@@ -1,0 +1,479 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1f2937;
+  background: #f5f7ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.container {
+  width: min(100% - 32px, 620px);
+  margin: 0 auto;
+  padding: 40px 0 64px;
+}
+
+header {
+  margin-bottom: 24px;
+}
+
+header h1 {
+  margin: 4px 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+}
+
+header p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.countdown {
+  margin-bottom: 16px;
+  padding: 22px;
+  border-radius: 20px;
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  box-shadow: 0 12px 28px rgb(79 70 229 / 22%);
+}
+
+.countdown span,
+.countdown strong,
+.countdown small {
+  display: block;
+}
+
+.countdown span,
+.countdown small {
+  color: #e0e7ff;
+}
+
+.countdown strong {
+  margin: 6px 0;
+  font-size: clamp(1.35rem, 6vw, 2rem);
+}
+
+.eyebrow {
+  color: #4f46e5;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.summary div,
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(31 41 55 / 6%);
+}
+
+.summary div {
+  padding: 18px;
+}
+
+.summary span,
+.summary strong {
+  display: block;
+}
+
+.summary span {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.summary strong {
+  margin-top: 4px;
+  font-size: 1.5rem;
+}
+
+.summary small {
+  display: block;
+  margin-top: 5px;
+  color: #6b7280;
+}
+
+.achievement {
+  overflow: hidden;
+}
+
+.achievement-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.achievement-heading div > span,
+.achievement-heading div > strong {
+  display: block;
+}
+
+.achievement-heading div > span {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.achievement-heading strong {
+  margin-top: 3px;
+  color: #4f46e5;
+  font-size: 1.8rem;
+}
+
+.achievement-heading > span {
+  color: #6b7280;
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.progress-track {
+  overflow: hidden;
+  height: 12px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.progress-bar {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width 400ms ease;
+}
+
+.progress-bar.completed {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.card {
+  margin-top: 16px;
+  padding: 22px;
+}
+
+h2 {
+  margin: 0 0 18px;
+  font-size: 1.15rem;
+}
+
+label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font: inherit;
+}
+
+input:focus {
+  border-color: #4f46e5;
+  outline: 3px solid #e0e7ff;
+}
+
+button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+form button {
+  width: 100%;
+  margin-top: 20px;
+  color: #fff;
+  background: #4f46e5;
+  font-weight: 800;
+}
+
+.goal-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.goal-form label {
+  margin-top: 14px;
+}
+
+.goal-form button {
+  width: auto;
+  min-width: 72px;
+  margin-top: 0;
+  padding: 0 16px;
+}
+
+.goal-display {
+  color: #4f46e5;
+  font-weight: 800;
+}
+
+.badge-help {
+  margin: 8px 0 18px;
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+
+.badge-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.badge {
+  position: relative;
+  overflow: hidden;
+  min-height: 112px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.badge.unlocked {
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8px 18px rgb(31 41 55 / 14%);
+}
+
+.badge.level-1 { background: linear-gradient(135deg, #b77944, #7c4a26); }
+.badge.level-2 { background: linear-gradient(135deg, #94a3b8, #475569); }
+.badge.level-3 { background: linear-gradient(135deg, #fbbf24, #d97706); }
+.badge.level-4 { background: linear-gradient(135deg, #38bdf8, #2563eb); }
+.badge.level-5 { background: linear-gradient(135deg, #a78bfa, #6d28d9); }
+.badge.level-6 { background: linear-gradient(135deg, #fb7185, #be123c); }
+.badge.level-7 { background: linear-gradient(135deg, #22d3ee, #4f46e5 55%, #db2777); }
+
+.badge-icon {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 1.6rem;
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.badge.unlocked .badge-icon {
+  filter: none;
+  opacity: 1;
+}
+
+.badge strong,
+.badge small {
+  display: block;
+}
+
+.badge small {
+  margin-top: 4px;
+  color: #9ca3af;
+}
+
+.badge.unlocked small {
+  color: rgb(255 255 255 / 82%);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title h2 {
+  margin: 0;
+}
+
+.text-button {
+  padding: 4px 8px;
+  color: #dc2626;
+  background: transparent;
+  font-size: 0.85rem;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-header h2 {
+  margin: 0;
+}
+
+.month-button {
+  width: 44px;
+  color: #4f46e5;
+  background: #eef2ff;
+  font-size: 1.6rem;
+}
+
+.weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.weekdays {
+  margin: 18px 0 8px;
+  color: #6b7280;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.calendar-day {
+  min-width: 0;
+  min-height: 58px;
+  padding: 7px 2px 4px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.calendar-day.today {
+  outline: 2px solid #4f46e5;
+}
+
+.calendar-day.studied {
+  color: #3730a3;
+  background: #eef2ff;
+}
+
+.calendar-day.goal-achieved {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.calendar-date,
+.calendar-time {
+  display: block;
+}
+
+.calendar-date {
+  font-size: 0.85rem;
+}
+
+.calendar-time {
+  overflow: hidden;
+  margin-top: 5px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-note {
+  margin: 14px 0 0;
+  color: #6b7280;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.empty {
+  margin: 22px 0 4px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+ul {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid #f0f1f3;
+}
+
+.record-date {
+  display: block;
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: 0.78rem;
+}
+
+.record-words {
+  display: block;
+  margin-top: 3px;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.record-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.record-minutes {
+  color: #4f46e5;
+  font-weight: 800;
+}
+
+.delete-button {
+  width: 44px;
+  color: #9ca3af;
+  background: transparent;
+  font-size: 1.3rem;
+}
+
+@media (max-width: 420px) {
+  .container {
+    width: min(100% - 24px, 620px);
+    padding-top: 28px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .goal-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .goal-form button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .calendar-day {
+    min-height: 52px;
+  }
+
+  .badge-list {
+    grid-template-columns: 1fr;
+  }
+
+  .achievement-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .achievement-heading > span {
+    text-align: left;
+  }
+}

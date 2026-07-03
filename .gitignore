@@ -1,0 +1,9 @@
+# Webアプリ以外の練習ファイルを公開しない
+*
+
+# GitHub Pagesで公開するファイルだけを許可
+!.gitignore
+!.nojekyll
+!index.html
+!style.css
+!app.js

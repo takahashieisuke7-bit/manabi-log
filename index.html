@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4f46e5">
+  <title>まなびログ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <p class="eyebrow">STUDY TRACKER</p>
+      <h1>まなびログ</h1>
+      <p>今日の頑張りを、少しずつ記録しよう。</p>
+    </header>
+
+    <section class="countdown" aria-label="共通テストまでの残り時間">
+      <span>2027年 共通テスト初日まで</span>
+      <strong id="countdown">計算中...</strong>
+      <small>2027年1月16日（土）9:30</small>
+    </section>
+
+    <section class="summary" aria-label="勉強時間の合計">
+      <div>
+        <span>今日</span>
+        <strong id="todayTotal">0分</strong>
+        <small id="goalProgress">目標を設定してみよう</small>
+      </div>
+      <div>
+        <span>すべて</span>
+        <strong id="allTotal">0分</strong>
+      </div>
+      <div>
+        <span>今日の英単語</span>
+        <strong id="todayWords">0個</strong>
+        <small id="allWords">累計 0個</small>
+      </div>
+      <div>
+        <span>連続記録</span>
+        <strong id="currentStreak">0日</strong>
+        <small id="bestStreak">最長 0日</small>
+      </div>
+    </section>
+
+    <section class="achievement card" aria-label="今日の目標達成率">
+      <div class="achievement-heading">
+        <div>
+          <span>今日の目標達成率</span>
+          <strong id="achievementRate">未設定</strong>
+        </div>
+        <span id="achievementMessage">目標時間を設定すると表示されます</span>
+      </div>
+      <div class="progress-track"
+           role="progressbar"
+           aria-label="今日の目標達成率"
+           aria-valuemin="0"
+           aria-valuemax="100"
+           aria-valuenow="0">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <h2>達成バッジ</h2>
+        <span id="badgeCount" class="goal-display">0 / 7</span>
+      </div>
+      <p class="badge-help">続けるほど、少しずつ難しいバッジが解放されます。</p>
+      <div id="badgeList" class="badge-list"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <h2>1日の目標</h2>
+        <span id="goalDisplay" class="goal-display">未設定</span>
+      </div>
+      <form id="goalForm" class="goal-form">
+        <div>
+          <label for="goalHours">時間</label>
+          <input id="goalHours" type="number" min="0" max="23"
+                 inputmode="numeric" value="1" required>
+        </div>
+        <div>
+          <label for="goalMinutes">分</label>
+          <input id="goalMinutes" type="number" min="0" max="59"
+                 inputmode="numeric" value="0" required>
+        </div>
+        <button type="submit">設定</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>勉強を記録</h2>
+      <form id="studyForm">
+        <label for="subject">科目</label>
+        <input id="subject" maxlength="30" placeholder="例：英語" required>
+
+        <label for="minutes">勉強時間（分）</label>
+        <input id="minutes" type="number" min="1" max="1440"
+               inputmode="numeric" placeholder="例：30" required>
+
+        <label for="wordCount">覚えた英単語数（任意）</label>
+        <input id="wordCount" type="number" min="0" max="10000"
+               inputmode="numeric" placeholder="例：20">
+
+        <button type="submit">記録する</button>
+      </form>
+    </section>
+
+    <section class="card calendar-card">
+      <div class="calendar-header">
+        <button id="previousMonth" class="month-button" type="button"
+                aria-label="前の月">‹</button>
+        <h2 id="calendarTitle"></h2>
+        <button id="nextMonth" class="month-button" type="button"
+                aria-label="次の月">›</button>
+      </div>
+      <div class="weekdays" aria-hidden="true">
+        <span>日</span><span>月</span><span>火</span><span>水</span>
+        <span>木</span><span>金</span><span>土</span>
+      </div>
+      <div id="calendar" class="calendar-grid"></div>
+      <p class="calendar-note">数字の下に、その日の勉強時間が表示されます。</p>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <h2>勉強記録</h2>
+        <button id="deleteAll" class="text-button" type="button">すべて削除</button>
+      </div>
+      <p id="emptyMessage" class="empty">まだ記録がありません。</p>
+      <ul id="recordList"></ul>
+    </section>
+  </main>
+
+  <template id="recordTemplate">
+    <li>
+      <div>
+        <strong class="record-subject"></strong>
+        <span class="record-date"></span>
+        <span class="record-words"></span>
+      </div>
+      <div class="record-actions">
+        <span class="record-minutes"></span>
+        <button class="delete-button" type="button" aria-label="記録を削除">×</button>
+      </div>
+    </li>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
