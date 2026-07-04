@@ -158,6 +158,127 @@ header p {
   background: linear-gradient(90deg, #22c55e, #16a34a);
 }
 
+.chart-title {
+  align-items: start;
+}
+
+.chart-title h2 {
+  margin-bottom: 3px;
+}
+
+.chart-range {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.78rem;
+}
+
+.period-switch {
+  display: flex;
+  padding: 3px;
+  border-radius: 12px;
+  background: #eef2ff;
+}
+
+.period-switch button {
+  min-width: 42px;
+  min-height: 36px;
+  padding: 0 10px;
+  color: #6b7280;
+  background: transparent;
+  font-weight: 700;
+}
+
+.period-switch button.active {
+  color: #fff;
+  background: #4f46e5;
+  box-shadow: 0 3px 8px rgb(79 70 229 / 22%);
+}
+
+.chart-layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 210px) 1fr;
+  align-items: center;
+  gap: 26px;
+  margin-top: 24px;
+}
+
+.pie-chart {
+  position: relative;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5e7eb;
+}
+
+.pie-chart::before {
+  position: absolute;
+  inset: 23%;
+  border-radius: 50%;
+  background: #fff;
+  content: "";
+}
+
+.pie-center {
+  position: relative;
+  z-index: 1;
+  max-width: 54%;
+  text-align: center;
+}
+
+.pie-center span,
+.pie-center strong {
+  display: block;
+}
+
+.pie-center span {
+  color: #6b7280;
+  font-size: 0.72rem;
+}
+
+.pie-center strong {
+  margin-top: 2px;
+  font-size: clamp(0.85rem, 3vw, 1.15rem);
+}
+
+.chart-legend {
+  display: grid;
+  gap: 10px;
+}
+
+.legend-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-subject {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-value {
+  color: #6b7280;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.chart-empty {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
 .card {
   margin-top: 16px;
   padding: 22px;
@@ -173,6 +294,29 @@ label {
   margin: 14px 0 6px;
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+fieldset {
+  min-width: 0;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.duration-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.duration-fields label {
+  margin-top: 6px;
 }
 
 input {
@@ -475,5 +619,23 @@ li {
 
   .achievement-heading > span {
     text-align: left;
+  }
+
+  .chart-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .period-switch {
+    align-self: start;
+  }
+
+  .chart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pie-chart {
+    width: min(72vw, 230px);
+    margin: 0 auto;
   }
 }

@@ -61,6 +61,29 @@
       </div>
     </section>
 
+    <section class="card chart-card">
+      <div class="section-title chart-title">
+        <div>
+          <h2>科目別の勉強時間</h2>
+          <p id="chartRange" class="chart-range"></p>
+        </div>
+        <div class="period-switch" aria-label="集計期間">
+          <button type="button" data-period="day" class="active">日</button>
+          <button type="button" data-period="week">週</button>
+          <button type="button" data-period="month">月</button>
+        </div>
+      </div>
+      <div class="chart-layout">
+        <div id="pieChart" class="pie-chart" role="img" aria-label="科目別勉強時間の円グラフ">
+          <div class="pie-center">
+            <span>合計</span>
+            <strong id="chartTotal">0分</strong>
+          </div>
+        </div>
+        <div id="chartLegend" class="chart-legend"></div>
+      </div>
+    </section>
+
     <section class="card">
       <div class="section-title">
         <h2>達成バッジ</h2>
@@ -96,9 +119,19 @@
         <label for="subject">科目</label>
         <input id="subject" maxlength="30" placeholder="例：英語" required>
 
-        <label for="minutes">勉強時間（分）</label>
-        <input id="minutes" type="number" min="1" max="1440"
-               inputmode="numeric" placeholder="例：30" required>
+        <fieldset class="duration-fields">
+          <legend>勉強時間</legend>
+          <div>
+            <label for="studyHours">時間</label>
+            <input id="studyHours" type="number" min="0" max="23"
+                   inputmode="numeric" value="0" required>
+          </div>
+          <div>
+            <label for="studyMinutes">分</label>
+            <input id="studyMinutes" type="number" min="0" max="59"
+                   inputmode="numeric" value="30" required>
+          </div>
+        </fieldset>
 
         <label for="wordCount">覚えた英単語数（任意）</label>
         <input id="wordCount" type="number" min="0" max="10000"

@@ -7,7 +7,8 @@ const EXAM_DATE = new Date("2027-01-16T09:30:00+09:00");
 const form = document.querySelector("#studyForm");
 const goalForm = document.querySelector("#goalForm");
 const subjectInput = document.querySelector("#subject");
-const minutesInput = document.querySelector("#minutes");
+const studyHoursInput = document.querySelector("#studyHours");
+const studyMinutesInput = document.querySelector("#studyMinutes");
 const goalHoursInput = document.querySelector("#goalHours");
 const goalMinutesInput = document.querySelector("#goalMinutes");
 const wordCountInput = document.querySelector("#wordCount");
@@ -28,6 +29,11 @@ const progressTrack = document.querySelector(".progress-track");
 const progressBar = document.querySelector("#progressBar");
 const badgeList = document.querySelector("#badgeList");
 const badgeCount = document.querySelector("#badgeCount");
+const pieChart = document.querySelector("#pieChart");
+const chartTotal = document.querySelector("#chartTotal");
+const chartRange = document.querySelector("#chartRange");
+const chartLegend = document.querySelector("#chartLegend");
+const periodButtons = document.querySelectorAll("[data-period]");
 const deleteAllButton = document.querySelector("#deleteAll");
 const template = document.querySelector("#recordTemplate");
 const calendar = document.querySelector("#calendar");
@@ -38,6 +44,7 @@ const nextMonthButton = document.querySelector("#nextMonth");
 let records = loadRecords();
 let dailyGoal = loadDailyGoal();
 let visibleMonth = new Date();
+let chartPeriod = "day";
 visibleMonth.setDate(1);
 if (dailyGoal > 0) {
   goalHoursInput.value = Math.floor(dailyGoal / 60);
@@ -72,6 +79,98 @@ function formatMinutes(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return hours === 0 ? `${minutes}分` : `${hours}時間${minutes}分`;
+}
+
+function formatShortDate(date) {
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function chartPeriodRange() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const start = new Date(now);
+  const end = new Date(now);
+
+  if (chartPeriod === "week") {
+    const daysFromMonday = (now.getDay() + 6) % 7;
+    start.setDate(now.getDate() - daysFromMonday);
+    end.setDate(start.getDate() + 6);
+  } else if (chartPeriod === "month") {
+    start.setDate(1);
+    end.setMonth(now.getMonth() + 1, 0);
+  }
+  return { start, end };
+}
+
+function renderSubjectChart() {
+  const { start, end } = chartPeriodRange();
+  const startKey = localDateKey(start);
+  const endKey = localDateKey(end);
+  const subjectTotals = new Map();
+
+  records
+    .filter((record) => record.date >= startKey && record.date <= endKey)
+    .forEach((record) => {
+      const current = subjectTotals.get(record.subject) ?? 0;
+      subjectTotals.set(record.subject, current + record.minutes);
+    });
+
+  const subjects = [...subjectTotals.entries()].sort((a, b) => b[1] - a[1]);
+  const total = subjects.reduce((sum, [, minutes]) => sum + minutes, 0);
+  const colors = [
+    "#4f46e5", "#06b6d4", "#22c55e", "#f59e0b", "#ef4444",
+    "#8b5cf6", "#ec4899", "#14b8a6", "#84cc16", "#f97316",
+  ];
+
+  chartRange.textContent = chartPeriod === "day"
+    ? `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日`
+    : `${formatShortDate(start)}〜${formatShortDate(end)}`;
+  chartTotal.textContent = formatMinutes(total);
+  chartLegend.replaceChildren();
+
+  if (total === 0) {
+    pieChart.style.background = "#e5e7eb";
+    pieChart.setAttribute("aria-label", "この期間の勉強記録はありません");
+    const empty = document.createElement("p");
+    empty.className = "chart-empty";
+    empty.textContent = "この期間の勉強記録はありません。";
+    chartLegend.append(empty);
+    return;
+  }
+
+  let accumulated = 0;
+  const gradientParts = subjects.map(([, minutes], index) => {
+    const startDegree = (accumulated / total) * 360;
+    accumulated += minutes;
+    const endDegree = (accumulated / total) * 360;
+    return `${colors[index % colors.length]} ${startDegree}deg ${endDegree}deg`;
+  });
+  pieChart.style.background = `conic-gradient(${gradientParts.join(", ")})`;
+  pieChart.setAttribute(
+    "aria-label",
+    subjects.map(([subject, minutes]) => `${subject} ${formatMinutes(minutes)}`).join("、"),
+  );
+
+  subjects.forEach(([subject, minutes], index) => {
+    const item = document.createElement("div");
+    item.className = "legend-item";
+
+    const color = document.createElement("span");
+    color.className = "legend-color";
+    color.style.background = colors[index % colors.length];
+
+    const name = document.createElement("span");
+    name.className = "legend-subject";
+    name.textContent = subject;
+
+    const value = document.createElement("span");
+    value.className = "legend-value";
+    const percentage = Math.round((minutes / total) * 100);
+    value.textContent = `${formatMinutes(minutes)}・${percentage}%`;
+
+    item.append(color, name, value);
+    chartLegend.append(item);
+  });
 }
 
 function updateCountdown() {
@@ -224,7 +323,7 @@ function render() {
     const words = Number(record.wordCount) || 0;
     item.querySelector(".record-words").textContent =
       words > 0 ? `英単語 ${words}個` : "";
-    item.querySelector(".record-minutes").textContent = `${record.minutes}分`;
+    item.querySelector(".record-minutes").textContent = formatMinutes(record.minutes);
     item.querySelector(".delete-button").addEventListener("click", () => {
       records = records.filter((item) => item.id !== record.id);
       saveRecords();
@@ -278,6 +377,7 @@ function render() {
     progressTrack.setAttribute("aria-valuenow", String(rate));
   }
   renderBadges(streaks.best, totalWordCount);
+  renderSubjectChart();
   renderCalendar();
 }
 
@@ -285,12 +385,18 @@ form.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const subject = subjectInput.value.trim();
-  const minutes = Number(minutesInput.value);
+  const studyHours = Number(studyHoursInput.value);
+  const studyMinutes = Number(studyMinutesInput.value);
+  const minutes = studyHours * 60 + studyMinutes;
   const wordCount = wordCountInput.value === "" ? 0 : Number(wordCountInput.value);
   if (
-    !subject || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440
+    !subject
+    || !Number.isInteger(studyHours) || studyHours < 0 || studyHours > 23
+    || !Number.isInteger(studyMinutes) || studyMinutes < 0 || studyMinutes > 59
+    || minutes < 1
     || !Number.isInteger(wordCount) || wordCount < 0 || wordCount > 10000
   ) {
+    alert("勉強時間を1分以上、23時間59分以内で入力してください。");
     return;
   }
 
@@ -341,6 +447,14 @@ previousMonthButton.addEventListener("click", () => {
 nextMonthButton.addEventListener("click", () => {
   visibleMonth.setMonth(visibleMonth.getMonth() + 1);
   renderCalendar();
+});
+
+periodButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    chartPeriod = button.dataset.period;
+    periodButtons.forEach((item) => item.classList.toggle("active", item === button));
+    renderSubjectChart();
+  });
 });
 
 updateCountdown();
