@@ -2,7 +2,11 @@
 
 const STORAGE_KEY = "study-records-v1";
 const GOAL_KEY = "study-daily-goal-v1";
+const HOLIDAYS_KEY = "study-holidays-v1";
+const PROFILE_KEY = "study-profile-v1";
+const MOCK_RESULTS_KEY = "study-mock-results-v1";
 const EXAM_DATE = new Date("2027-01-16T09:30:00+09:00");
+const MAX_LEVEL_HOURS = 5000;
 
 const form = document.querySelector("#studyForm");
 const goalForm = document.querySelector("#goalForm");
@@ -43,12 +47,54 @@ const previousMonthButton = document.querySelector("#previousMonth");
 const nextMonthButton = document.querySelector("#nextMonth");
 const tabButtons = document.querySelectorAll("[data-tab]");
 const tabPanels = document.querySelectorAll("[data-tab-panel]");
+const levelNumber = document.querySelector("#levelNumber");
+const levelTitle = document.querySelector("#levelTitle");
+const nextLevelText = document.querySelector("#nextLevelText");
+const levelTrack = document.querySelector(".level-track");
+const levelBar = document.querySelector("#levelBar");
+const ultimateGoalLabel = document.querySelector("#ultimateGoalLabel");
+const fiveThousandProgress = document.querySelector("#fiveThousandProgress");
+const holidayForm = document.querySelector("#holidayForm");
+const holidayDateInput = document.querySelector("#holidayDate");
+const holidayList = document.querySelector("#holidayList");
+const rescueCount = document.querySelector("#rescueCount");
+const mockForm = document.querySelector("#mockForm");
+const mockNameInput = document.querySelector("#mockName");
+const mockDateInput = document.querySelector("#mockDate");
+const mockScoreInput = document.querySelector("#mockScore");
+const mockMaxScoreInput = document.querySelector("#mockMaxScore");
+const mockChart = document.querySelector("#mockChart");
+const mockEmpty = document.querySelector("#mockEmpty");
+const profileButton = document.querySelector("#profileButton");
+const profileInitial = document.querySelector("#profileInitial");
+const profileDialog = document.querySelector("#profileDialog");
+const profileCloseButton = document.querySelector("#profileCloseButton");
+const profileForm = document.querySelector("#profileForm");
+const profileNameInput = document.querySelector("#profileName");
+const ultimateGoalInput = document.querySelector("#ultimateGoal");
+const profileLargeInitial = document.querySelector("#profileLargeInitial");
+const profileDisplayName = document.querySelector("#profileDisplayName");
+const profileDisplayTitle = document.querySelector("#profileDisplayTitle");
+const profileLevel = document.querySelector("#profileLevel");
+const profileHours = document.querySelector("#profileHours");
+const profileStreak = document.querySelector("#profileStreak");
+const profileBadges = document.querySelector("#profileBadges");
+const levelUpToast = document.querySelector("#levelUpToast");
+const levelUpMessage = document.querySelector("#levelUpMessage");
 
 let records = loadRecords();
 let dailyGoal = loadDailyGoal();
+let holidays = loadHolidays();
+let profile = loadProfile();
+let mockResults = loadMockResults();
 let visibleMonth = new Date();
 let chartPeriod = "day";
+let levelUpTimer;
 visibleMonth.setDate(1);
+holidayDateInput.value = localDateKey();
+mockDateInput.value = localDateKey();
+profileNameInput.value = profile.name;
+ultimateGoalInput.value = profile.goal;
 if (dailyGoal > 0) {
   goalHoursInput.value = Math.floor(dailyGoal / 60);
   goalMinutesInput.value = dailyGoal % 60;
@@ -71,6 +117,48 @@ function loadDailyGoal() {
   return Number.isInteger(savedGoal) && savedGoal > 0 ? savedGoal : 0;
 }
 
+function loadHolidays() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HOLIDAYS_KEY)) ?? [];
+    return Array.isArray(saved) ? saved.filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY)) ?? {};
+    return {
+      name: typeof saved.name === "string" && saved.name.trim() ? saved.name.trim() : "学習者",
+      goal: typeof saved.goal === "string" && saved.goal.trim() ? saved.goal.trim() : "慶應大学合格",
+    };
+  } catch {
+    return { name: "学習者", goal: "慶應大学合格" };
+  }
+}
+
+function loadMockResults() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MOCK_RESULTS_KEY)) ?? [];
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHolidays() {
+  localStorage.setItem(HOLIDAYS_KEY, JSON.stringify(holidays));
+}
+
+function saveProfile() {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}
+
+function saveMockResults() {
+  localStorage.setItem(MOCK_RESULTS_KEY, JSON.stringify(mockResults));
+}
+
 function localDateKey(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -82,6 +170,45 @@ function formatMinutes(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return hours === 0 ? `${minutes}分` : `${hours}時間${minutes}分`;
+}
+
+function calculateLevel(totalMinutes) {
+  const totalHours = totalMinutes / 60;
+  if (totalHours >= MAX_LEVEL_HOURS) {
+    return { level: 100, progress: 100, remainingMinutes: 0 };
+  }
+
+  const level = Math.min(
+    99,
+    Math.floor(99 * Math.sqrt(totalHours / MAX_LEVEL_HOURS)) + 1,
+  );
+  const currentHours = MAX_LEVEL_HOURS * ((level - 1) / 99) ** 2;
+  const nextHours = MAX_LEVEL_HOURS * (level / 99) ** 2;
+  const progress = ((totalHours - currentHours) / (nextHours - currentHours)) * 100;
+  const remainingMinutes = Math.ceil((nextHours - totalHours) * 60);
+  return { level, progress: Math.max(0, Math.min(100, progress)), remainingMinutes };
+}
+
+function getLevelTitle(level) {
+  const titles = [
+    { level: 1, title: "見習い学習者" },
+    { level: 5, title: "駆け出しの努力家" },
+    { level: 10, title: "学びの冒険者" },
+    { level: 20, title: "継続の探究者" },
+    { level: 30, title: "鍛錬の職人" },
+    { level: 40, title: "知識の開拓者" },
+    { level: 50, title: "折り返しの賢者" },
+    { level: 60, title: "不屈の挑戦者" },
+    { level: 70, title: "努力の求道者" },
+    { level: 80, title: "合格を狙う猛者" },
+    { level: 90, title: "限界を超える者" },
+    { level: 99, title: "夢の目前" },
+    { level: 100, title: "五千時間の覇者" },
+  ];
+  return titles.reduce(
+    (current, item) => (level >= item.level ? item.title : current),
+    titles[0].title,
+  );
 }
 
 function formatShortDate(date) {
@@ -203,37 +330,64 @@ function dayNumber(dateKey) {
 }
 
 function calculateStreaks() {
-  const studyDays = [...new Set(records.map((record) => record.date))]
+  const today = dayNumber(localDateKey());
+  const totals = studyMinutesByDate();
+  const coveredDays = new Set(
+    Object.keys(totals)
+      .map(dayNumber)
+      .filter((day) => Number.isFinite(day) && day <= today),
+  );
+  holidays
     .map(dayNumber)
-    .filter(Number.isFinite)
-    .sort((a, b) => a - b);
+    .filter((day) => Number.isFinite(day) && day <= today)
+    .forEach((day) => coveredDays.add(day));
 
-  if (studyDays.length === 0) {
-    return { current: 0, best: 0 };
+  const rescuedDays = new Set();
+  if (dailyGoal > 0) {
+    const rescueMinutes = Math.ceil(dailyGoal * 1.5);
+    Object.entries(totals)
+      .filter(([, minutes]) => minutes >= rescueMinutes)
+      .map(([date]) => dayNumber(date))
+      .sort((a, b) => a - b)
+      .forEach((studyDay) => {
+        const missedDay = studyDay - 1;
+        if (
+          coveredDays.has(studyDay - 2)
+          && !coveredDays.has(missedDay)
+          && missedDay <= today
+        ) {
+          coveredDays.add(missedDay);
+          rescuedDays.add(missedDay);
+        }
+      });
+  }
+
+  const covered = [...coveredDays].sort((a, b) => a - b);
+  if (covered.length === 0) {
+    return { current: 0, best: 0, rescuedDays };
   }
 
   let best = 1;
   let running = 1;
-  for (let index = 1; index < studyDays.length; index += 1) {
-    running = studyDays[index] === studyDays[index - 1] + 1 ? running + 1 : 1;
+  for (let index = 1; index < covered.length; index += 1) {
+    running = covered[index] === covered[index - 1] + 1 ? running + 1 : 1;
     best = Math.max(best, running);
   }
 
-  const today = dayNumber(localDateKey());
-  const lastStudyDay = studyDays.at(-1);
-  if (lastStudyDay < today - 1) {
-    return { current: 0, best };
+  const lastCoveredDay = covered[covered.length - 1];
+  if (lastCoveredDay < today - 1) {
+    return { current: 0, best, rescuedDays };
   }
 
   let current = 1;
-  for (let index = studyDays.length - 1; index > 0; index -= 1) {
-    if (studyDays[index] !== studyDays[index - 1] + 1) break;
+  for (let index = covered.length - 1; index > 0; index -= 1) {
+    if (covered[index] !== covered[index - 1] + 1) break;
     current += 1;
   }
-  return { current, best };
+  return { current, best, rescuedDays };
 }
 
-function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount) {
+function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel) {
   const totalHours = Math.floor(totalMinutes / 60);
   const badges = [
     { name: "はじめの一歩", icon: "🌱", value: studyDayCount, goal: 1, unit: "日学習", level: 1 },
@@ -257,15 +411,32 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
     { name: "三百時間の王者", icon: "👑", value: totalHours, goal: 300, unit: "時間", level: 7 },
     { name: "まなびの伝説", icon: "💎", value: longestStreak, goal: 100, unit: "日連続", level: 7 },
   ];
+  const levelBadges = [
+    { name: "駆け出しの努力家", icon: "🥉", goal: 5, level: 1 },
+    { name: "学びの冒険者", icon: "🗺️", goal: 10, level: 2 },
+    { name: "継続の探究者", icon: "🔎", goal: 20, level: 2 },
+    { name: "鍛錬の職人", icon: "🛠️", goal: 30, level: 3 },
+    { name: "知識の開拓者", icon: "🚩", goal: 40, level: 3 },
+    { name: "折り返しの賢者", icon: "🔮", goal: 50, level: 4 },
+    { name: "不屈の挑戦者", icon: "🛡️", goal: 60, level: 4 },
+    { name: "努力の求道者", icon: "⚔️", goal: 70, level: 5 },
+    { name: "合格を狙う猛者", icon: "🎯", goal: 80, level: 5 },
+    { name: "限界を超える者", icon: "🌌", goal: 90, level: 6 },
+    { name: "夢の目前", icon: "🌠", goal: 99, level: 6 },
+    { name: "五千時間の覇者", icon: "👑", goal: 100, level: 7 },
+  ].map((badge) => ({
+    ...badge,
+    value: currentLevel,
+    unit: "レベル",
+  }));
+  badges.push(...levelBadges);
 
   badgeList.replaceChildren();
   let unlockedCount = 0;
-  let newestTitle = "見習い学習者";
   badges.forEach((badge) => {
     const unlocked = badge.value >= badge.goal;
     if (unlocked) {
       unlockedCount += 1;
-      newestTitle = badge.name;
     }
 
     const item = document.createElement("div");
@@ -287,7 +458,8 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
     badgeList.append(item);
   });
   badgeCount.textContent = `${unlockedCount} / ${badges.length}`;
-  currentTitle.textContent = newestTitle;
+  currentTitle.textContent = getLevelTitle(currentLevel);
+  return unlockedCount;
 }
 
 function renderCalendar() {
@@ -298,6 +470,8 @@ function renderCalendar() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const totals = studyMinutesByDate();
   const todayKey = localDateKey();
+  const streaks = calculateStreaks();
+  const holidaySet = new Set(holidays);
 
   calendarTitle.textContent = `${year}年 ${month + 1}月`;
 
@@ -309,10 +483,14 @@ function renderCalendar() {
     const date = new Date(year, month, day);
     const dateKey = localDateKey(date);
     const studiedMinutes = totals[dateKey] ?? 0;
+    const isHoliday = holidaySet.has(dateKey);
+    const isRescued = streaks.rescuedDays.has(dayNumber(dateKey));
     const cell = document.createElement("div");
     cell.className = "calendar-day";
     if (dateKey === todayKey) cell.classList.add("today");
     if (studiedMinutes > 0) cell.classList.add("studied");
+    if (isHoliday && studiedMinutes === 0) cell.classList.add("holiday");
+    if (isRescued && studiedMinutes === 0) cell.classList.add("rescued");
     if (dailyGoal > 0 && studiedMinutes >= dailyGoal) {
       cell.classList.add("goal-achieved");
     }
@@ -328,9 +506,120 @@ function renderCalendar() {
       time.textContent = formatMinutes(studiedMinutes);
       cell.append(time);
       cell.title = `${dateKey}: ${formatMinutes(studiedMinutes)}`;
+    } else if (isHoliday || isRescued) {
+      const status = document.createElement("span");
+      status.className = "calendar-time";
+      status.textContent = isHoliday ? "休日" : "救済";
+      cell.append(status);
+      cell.title = `${dateKey}: ${status.textContent}`;
     }
     calendar.append(cell);
   }
+}
+
+function renderHolidays() {
+  holidayList.replaceChildren();
+  const sortedHolidays = [...holidays].sort();
+  if (sortedHolidays.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "chart-empty";
+    empty.textContent = "設定された休日はありません。";
+    holidayList.append(empty);
+    return;
+  }
+
+  sortedHolidays.forEach((date) => {
+    const chip = document.createElement("span");
+    chip.className = "holiday-chip";
+    chip.append(document.createTextNode(date));
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.textContent = "×";
+    removeButton.setAttribute("aria-label", `${date}の休日設定を削除`);
+    removeButton.addEventListener("click", () => {
+      holidays = holidays.filter((holiday) => holiday !== date);
+      saveHolidays();
+      render();
+    });
+    chip.append(removeButton);
+    holidayList.append(chip);
+  });
+}
+
+function renderMockResults() {
+  mockChart.replaceChildren();
+  mockEmpty.hidden = mockResults.length > 0;
+  [...mockResults]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .forEach((result) => {
+      const percentage = Math.round((result.score / result.maxScore) * 100);
+      const item = document.createElement("div");
+      item.className = "mock-result";
+
+      const title = document.createElement("span");
+      title.className = "mock-result-title";
+      title.textContent = `${result.date}　${result.name}`;
+
+      const value = document.createElement("span");
+      value.className = "mock-result-value";
+      value.textContent = `${result.score}/${result.maxScore}（${percentage}%）`;
+
+      const track = document.createElement("div");
+      track.className = "mock-bar-track";
+      const bar = document.createElement("div");
+      bar.className = "mock-bar";
+      bar.style.width = `${Math.min(100, percentage)}%`;
+      track.append(bar);
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "mock-delete";
+      removeButton.textContent = "削除";
+      removeButton.addEventListener("click", () => {
+        mockResults = mockResults.filter((item) => item.id !== result.id);
+        saveMockResults();
+        renderMockResults();
+      });
+
+      item.append(title, value, track, removeButton);
+      mockChart.append(item);
+    });
+}
+
+function renderLevelAndProfile(totalMinutes, streaks, unlockedBadgeCount) {
+  const levelInfo = calculateLevel(totalMinutes);
+  const title = getLevelTitle(levelInfo.level);
+  const initial = Array.from(profile.name)[0] ?? "学";
+
+  levelNumber.textContent = levelInfo.level;
+  levelTitle.textContent = title;
+  levelBar.style.width = `${levelInfo.progress}%`;
+  levelTrack.setAttribute("aria-valuenow", String(Math.round(levelInfo.progress)));
+  nextLevelText.textContent = levelInfo.level === 100
+    ? "最高レベル到達。5000時間を積み上げた証です。"
+    : `次のレベルまで ${formatMinutes(levelInfo.remainingMinutes)}`;
+  ultimateGoalLabel.textContent = profile.goal;
+  fiveThousandProgress.textContent =
+    `${Math.floor(totalMinutes / 60)} / ${MAX_LEVEL_HOURS}時間`;
+
+  profileInitial.textContent = initial;
+  profileLargeInitial.textContent = initial;
+  profileDisplayName.textContent = profile.name;
+  profileDisplayTitle.textContent = title;
+  profileLevel.textContent = levelInfo.level;
+  profileHours.textContent = formatMinutes(totalMinutes);
+  profileStreak.textContent = `${streaks.current}日`;
+  profileBadges.textContent = `${unlockedBadgeCount}個`;
+}
+
+function showLevelUp(newLevel) {
+  clearTimeout(levelUpTimer);
+  levelUpMessage.textContent = `レベル${newLevel}「${getLevelTitle(newLevel)}」`;
+  levelUpToast.hidden = false;
+  levelUpTimer = setTimeout(() => {
+    levelUpToast.hidden = true;
+  }, 3500);
 }
 
 function render() {
@@ -367,6 +656,7 @@ function render() {
     .reduce((sum, record) => sum + (Number(record.wordCount) || 0), 0);
   const streaks = calculateStreaks();
   const studyDayCount = new Set(records.map((record) => record.date)).size;
+  const currentLevel = calculateLevel(total).level;
 
   allTotal.textContent = formatMinutes(total);
   todayTotal.textContent = formatMinutes(today);
@@ -374,11 +664,12 @@ function render() {
   allWords.textContent = `累計 ${totalWordCount}個`;
   currentStreak.textContent = `${streaks.current}日`;
   bestStreak.textContent = `最長 ${streaks.best}日`;
+  rescueCount.textContent = `救済 ${streaks.rescuedDays.size}回`;
   goalDisplay.textContent = dailyGoal > 0 ? formatMinutes(dailyGoal) : "未設定";
   if (dailyGoal === 0) {
     goalProgress.textContent = "目標を設定してみよう";
     achievementRate.textContent = "未設定";
-    achievementMessage.textContent = "目標時間を設定すると表示されます";
+    achievementMessage.textContent = "目標がなければ達成もない。まず今日の基準を決めよう。";
     progressBar.style.width = "0%";
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", "0");
@@ -386,7 +677,7 @@ function render() {
     const rate = Math.floor((today / dailyGoal) * 100);
     goalProgress.textContent = "今日の目標達成！";
     achievementRate.textContent = `${rate}%`;
-    achievementMessage.textContent = "目標達成！すばらしい！";
+    achievementMessage.textContent = "目標達成。よくやった。でも合格までは、この積み重ねを止めない。";
     progressBar.style.width = "100%";
     progressBar.classList.add("completed");
     progressTrack.setAttribute("aria-valuenow", "100");
@@ -394,12 +685,23 @@ function render() {
     const rate = Math.floor((today / dailyGoal) * 100);
     goalProgress.textContent = `目標まであと${formatMinutes(dailyGoal - today)}`;
     achievementRate.textContent = `${rate}%`;
-    achievementMessage.textContent = "あと少し、積み重ねていこう";
+    achievementMessage.textContent = today === 0
+      ? "まだ0分。目標は行動して初めて意味がある。今すぐ始めよう。"
+      : `残り${formatMinutes(dailyGoal - today)}。まだ終わっていない。今日の目標は今日やり切ろう。`;
     progressBar.style.width = `${rate}%`;
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", String(rate));
   }
-  renderBadges(total, streaks.best, totalWordCount, studyDayCount);
+  const unlockedBadgeCount = renderBadges(
+    total,
+    streaks.best,
+    totalWordCount,
+    studyDayCount,
+    currentLevel,
+  );
+  renderLevelAndProfile(total, streaks, unlockedBadgeCount);
+  renderHolidays();
+  renderMockResults();
   renderSubjectChart();
   renderCalendar();
 }
@@ -407,6 +709,8 @@ function render() {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
+  const previousTotal = records.reduce((sum, record) => sum + record.minutes, 0);
+  const previousLevel = calculateLevel(previousTotal).level;
   const subject = subjectInput.value.trim();
   const studyHours = Number(studyHoursInput.value);
   const studyMinutes = Number(studyMinutesInput.value);
@@ -432,6 +736,10 @@ form.addEventListener("submit", (event) => {
   });
   saveRecords();
   render();
+  const newLevel = calculateLevel(previousTotal + minutes).level;
+  if (newLevel > previousLevel) {
+    showLevelUp(newLevel);
+  }
   form.reset();
   subjectInput.focus();
 });
@@ -452,6 +760,73 @@ goalForm.addEventListener("submit", (event) => {
   dailyGoal = hours * 60 + minutes;
   localStorage.setItem(GOAL_KEY, String(dailyGoal));
   render();
+});
+
+holidayForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const date = holidayDateInput.value;
+  if (!date || holidays.includes(date)) {
+    alert(date ? "その日はすでに休日に設定されています。" : "休日の日付を選んでください。");
+    return;
+  }
+
+  holidays.push(date);
+  saveHolidays();
+  render();
+});
+
+mockForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = mockNameInput.value.trim();
+  const date = mockDateInput.value;
+  const score = Number(mockScoreInput.value);
+  const maxScore = Number(mockMaxScoreInput.value);
+  if (
+    !name || !date
+    || !Number.isInteger(score) || !Number.isInteger(maxScore)
+    || score < 0 || maxScore < 1 || score > maxScore
+  ) {
+    alert("模試名・受験日・得点を確認してください。得点は満点以下で入力します。");
+    return;
+  }
+
+  mockResults.push({
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name,
+    date,
+    score,
+    maxScore,
+  });
+  saveMockResults();
+  renderMockResults();
+  mockForm.reset();
+  mockDateInput.value = localDateKey();
+  mockMaxScoreInput.value = 1000;
+});
+
+profileButton.addEventListener("click", () => {
+  profileNameInput.value = profile.name;
+  ultimateGoalInput.value = profile.goal;
+  profileDialog.showModal();
+});
+
+profileCloseButton.addEventListener("click", () => {
+  profileDialog.close();
+});
+
+profileForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = profileNameInput.value.trim();
+  const goal = ultimateGoalInput.value.trim();
+  if (!name || !goal) {
+    alert("表示名と最終目標を入力してください。");
+    return;
+  }
+
+  profile = { name, goal };
+  saveProfile();
+  render();
+  profileDialog.close();
 });
 
 deleteAllButton.addEventListener("click", () => {

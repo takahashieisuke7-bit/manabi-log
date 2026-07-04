@@ -33,6 +33,40 @@ header p {
   color: #6b7280;
 }
 
+.app-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-button {
+  display: grid;
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 0;
+  color: #4f46e5;
+  background: transparent;
+  place-items: center;
+}
+
+.profile-button > span {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  font-size: 1.1rem;
+  font-weight: 900;
+  place-items: center;
+}
+
+.profile-button small {
+  margin-top: 4px;
+  font-size: 0.65rem;
+}
+
 .countdown {
   margin-bottom: 16px;
   padding: 22px;
@@ -141,6 +175,84 @@ header p {
 
 .achievement {
   overflow: hidden;
+}
+
+.level-card {
+  color: #fff;
+  background: linear-gradient(145deg, #111827, #312e81);
+}
+
+.level-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.level-heading > div:first-child {
+  min-width: 76px;
+  text-align: center;
+}
+
+.level-heading span,
+.level-heading strong,
+.level-heading small {
+  display: block;
+}
+
+.level-heading > div:first-child span {
+  color: #a5b4fc;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.level-heading > div:first-child strong {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.level-heading > div:last-child span {
+  font-weight: 900;
+}
+
+.level-heading > div:last-child small {
+  margin-top: 4px;
+  color: #c7d2fe;
+}
+
+.level-track {
+  overflow: hidden;
+  height: 12px;
+  margin-top: 18px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 18%);
+}
+
+.level-bar {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22d3ee, #a78bfa, #f472b6);
+  transition: width 400ms ease;
+}
+
+.ultimate-goal {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+  font-size: 0.78rem;
+}
+
+.ultimate-goal span {
+  overflow: hidden;
+  color: #c7d2fe;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ultimate-goal strong {
+  flex: 0 0 auto;
 }
 
 .achievement-heading {
@@ -428,6 +540,247 @@ form button {
   font-size: 1.25rem;
 }
 
+.setting-note {
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.holiday-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.holiday-form button {
+  width: auto;
+  margin-top: 0;
+  padding: 0 16px;
+}
+
+.holiday-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.holiday-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #075985;
+  background: #e0f2fe;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.holiday-chip button {
+  min-height: 24px;
+  padding: 0;
+  color: #0369a1;
+  background: transparent;
+}
+
+.mock-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+}
+
+.mock-form button {
+  grid-column: 1 / -1;
+}
+
+.mock-chart {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.mock-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 10px;
+}
+
+.mock-result-title {
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-result-value {
+  color: #4f46e5;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.mock-bar-track {
+  overflow: hidden;
+  height: 18px;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.mock-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4f46e5, #22d3ee);
+}
+
+.mock-delete {
+  min-height: 28px;
+  padding: 0 6px;
+  color: #dc2626;
+  background: transparent;
+  font-size: 0.72rem;
+}
+
+.profile-dialog {
+  width: min(100% - 28px, 520px);
+  max-height: min(88vh, 720px);
+  padding: 22px;
+  border: 0;
+  border-radius: 22px;
+  color: #1f2937;
+  background: #fff;
+  box-shadow: 0 24px 80px rgb(15 23 42 / 35%);
+}
+
+.profile-dialog::backdrop {
+  background: rgb(15 23 42 / 62%);
+  backdrop-filter: blur(3px);
+}
+
+.level-up-toast {
+  position: fixed;
+  z-index: 30;
+  top: 50%;
+  left: 50%;
+  width: min(100% - 40px, 360px);
+  padding: 24px;
+  border: 2px solid #fbbf24;
+  border-radius: 20px;
+  color: #fff;
+  background: linear-gradient(135deg, #312e81, #7c3aed, #db2777);
+  box-shadow: 0 24px 80px rgb(15 23 42 / 45%);
+  text-align: center;
+  transform: translate(-50%, -50%);
+  animation: level-up 420ms ease-out;
+}
+
+.level-up-toast[hidden] {
+  display: none;
+}
+
+.level-up-toast span,
+.level-up-toast strong {
+  display: block;
+}
+
+.level-up-toast span {
+  color: #fde68a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.level-up-toast strong {
+  margin-top: 7px;
+  font-size: 1.35rem;
+}
+
+@keyframes level-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -42%) scale(0.85);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog-header h2 {
+  margin: 0;
+}
+
+.dialog-close {
+  width: 44px;
+  color: #6b7280;
+  background: #f3f4f6;
+  font-size: 1.3rem;
+}
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.profile-hero > span {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5, #db2777);
+  font-size: 1.5rem;
+  font-weight: 900;
+  place-items: center;
+}
+
+.profile-hero strong,
+.profile-hero small {
+  display: block;
+}
+
+.profile-hero strong {
+  font-size: 1.2rem;
+}
+
+.profile-hero small {
+  margin-top: 3px;
+  color: #6b7280;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.profile-stats div {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f5f7ff;
+}
+
+.profile-stats span,
+.profile-stats strong {
+  display: block;
+}
+
+.profile-stats span {
+  color: #6b7280;
+  font-size: 0.72rem;
+}
+
+.profile-stats strong {
+  margin-top: 3px;
+}
+
 .badge-help {
   margin: 8px 0 18px;
   color: #6b7280;
@@ -559,6 +912,16 @@ form button {
 .calendar-day.goal-achieved {
   color: #166534;
   background: #dcfce7;
+}
+
+.calendar-day.holiday {
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.calendar-day.rescued {
+  color: #9a3412;
+  background: #ffedd5;
 }
 
 .calendar-date,
@@ -694,5 +1057,21 @@ li {
   .pie-chart {
     width: min(72vw, 230px);
     margin: 0 auto;
+  }
+
+  .holiday-form {
+    grid-template-columns: 1fr;
+  }
+
+  .holiday-form button {
+    width: 100%;
+  }
+
+  .mock-form {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-form button {
+    grid-column: auto;
   }
 }

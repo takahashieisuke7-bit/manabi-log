@@ -9,10 +9,16 @@
 </head>
 <body>
   <main class="container">
-    <header>
-      <p class="eyebrow">STUDY TRACKER</p>
-      <h1>まなびログ</h1>
-      <p>今日の頑張りを、少しずつ記録しよう。</p>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">STUDY TRACKER</p>
+        <h1>まなびログ</h1>
+        <p>今日の頑張りを、少しずつ記録しよう。</p>
+      </div>
+      <button id="profileButton" class="profile-button" type="button">
+        <span id="profileInitial">学</span>
+        <small>プロフィール</small>
+      </button>
     </header>
 
     <section class="countdown" aria-label="共通テストまでの残り時間">
@@ -51,6 +57,27 @@
         <span>連続記録</span>
         <strong id="currentStreak">0日</strong>
         <small id="bestStreak">最長 0日</small>
+      </div>
+    </section>
+
+    <section class="level-card card" data-tab-panel="home">
+      <div class="level-heading">
+        <div>
+          <span>LEVEL</span>
+          <strong id="levelNumber">1</strong>
+        </div>
+        <div>
+          <span id="levelTitle">見習い学習者</span>
+          <small id="nextLevelText">次のレベルまで計算中...</small>
+        </div>
+      </div>
+      <div class="level-track" role="progressbar" aria-label="次のレベルまでの進捗"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="levelBar" class="level-bar"></div>
+      </div>
+      <div class="ultimate-goal">
+        <span id="ultimateGoalLabel">慶應大学合格</span>
+        <strong id="fiveThousandProgress">0 / 5000時間</strong>
       </div>
     </section>
 
@@ -95,10 +122,40 @@
       </div>
     </section>
 
+    <section class="card" data-tab-panel="analysis" hidden>
+      <div class="section-title">
+        <h2>共テ模試の結果</h2>
+        <span class="goal-display">得点率</span>
+      </div>
+      <form id="mockForm" class="mock-form">
+        <div>
+          <label for="mockName">模試名</label>
+          <input id="mockName" maxlength="30" placeholder="例：第1回共通テスト模試" required>
+        </div>
+        <div>
+          <label for="mockDate">受験日</label>
+          <input id="mockDate" type="date" required>
+        </div>
+        <div>
+          <label for="mockScore">得点</label>
+          <input id="mockScore" type="number" min="0" max="9999"
+                 inputmode="numeric" placeholder="例：650" required>
+        </div>
+        <div>
+          <label for="mockMaxScore">満点</label>
+          <input id="mockMaxScore" type="number" min="1" max="9999"
+                 inputmode="numeric" value="1000" required>
+        </div>
+        <button type="submit">模試結果を追加</button>
+      </form>
+      <div id="mockChart" class="mock-chart"></div>
+      <p id="mockEmpty" class="empty">まだ模試結果がありません。</p>
+    </section>
+
     <section class="card" data-tab-panel="badges" hidden>
       <div class="section-title">
         <h2>称号・達成バッジ</h2>
-        <span id="badgeCount" class="goal-display">0 / 20</span>
+        <span id="badgeCount" class="goal-display">0 / 32</span>
       </div>
       <div class="current-title">
         <span>現在の称号</span>
@@ -126,6 +183,24 @@
         </div>
         <button type="submit">設定</button>
       </form>
+    </section>
+
+    <section class="card" data-tab-panel="record" hidden>
+      <div class="section-title">
+        <h2>休日・連続記録の救済</h2>
+        <span id="rescueCount" class="goal-display">救済 0回</span>
+      </div>
+      <p class="setting-note">
+        休日は連続記録を切りません。休んだ翌日に目標の1.5倍を達成すると、前日を1日だけ救済します。
+      </p>
+      <form id="holidayForm" class="holiday-form">
+        <div>
+          <label for="holidayDate">休日にする日</label>
+          <input id="holidayDate" type="date" required>
+        </div>
+        <button type="submit">休日に設定</button>
+      </form>
+      <div id="holidayList" class="holiday-list"></div>
     </section>
 
     <section class="card" data-tab-panel="record" hidden>
@@ -169,7 +244,9 @@
         <span>木</span><span>金</span><span>土</span>
       </div>
       <div id="calendar" class="calendar-grid"></div>
-      <p class="calendar-note">数字の下に、その日の勉強時間が表示されます。</p>
+      <p class="calendar-note">
+        紫＝学習、緑＝目標達成、水色＝休日、オレンジ＝救済
+      </p>
     </section>
 
     <section class="card" data-tab-panel="record" hidden>
@@ -181,6 +258,39 @@
       <ul id="recordList"></ul>
     </section>
   </main>
+
+  <dialog id="profileDialog" class="profile-dialog">
+    <div class="dialog-header">
+      <h2>プロフィール</h2>
+      <button id="profileCloseButton" class="dialog-close" type="button"
+              aria-label="プロフィールを閉じる">×</button>
+    </div>
+    <div class="profile-hero">
+      <span id="profileLargeInitial">学</span>
+      <div>
+        <strong id="profileDisplayName">学習者</strong>
+        <small id="profileDisplayTitle">見習い学習者</small>
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div><span>レベル</span><strong id="profileLevel">1</strong></div>
+      <div><span>累計時間</span><strong id="profileHours">0分</strong></div>
+      <div><span>連続記録</span><strong id="profileStreak">0日</strong></div>
+      <div><span>獲得称号</span><strong id="profileBadges">0個</strong></div>
+    </div>
+    <form id="profileForm">
+      <label for="profileName">表示名</label>
+      <input id="profileName" maxlength="20" placeholder="例：英介" required>
+      <label for="ultimateGoal">最終目標</label>
+      <input id="ultimateGoal" maxlength="40" value="慶應大学合格" required>
+      <button type="submit">プロフィールを保存</button>
+    </form>
+  </dialog>
+
+  <div id="levelUpToast" class="level-up-toast" hidden>
+    <span>LEVEL UP!</span>
+    <strong id="levelUpMessage"></strong>
+  </div>
 
   <template id="recordTemplate">
     <li>
