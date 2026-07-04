@@ -58,6 +58,40 @@ header p {
   font-size: clamp(1.35rem, 6vw, 2rem);
 }
 
+.app-tabs {
+  position: sticky;
+  z-index: 10;
+  top: 8px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 5px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 8px 24px rgb(31 41 55 / 10%);
+  backdrop-filter: blur(10px);
+}
+
+.app-tabs button {
+  min-width: 0;
+  padding: 0 6px;
+  color: #6b7280;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.app-tabs button.active {
+  color: #fff;
+  background: #4f46e5;
+}
+
+[data-tab-panel][hidden] {
+  display: none;
+}
+
 .eyebrow {
   color: #4f46e5;
   font-size: 0.75rem;
@@ -369,6 +403,29 @@ form button {
 .goal-display {
   color: #4f46e5;
   font-weight: 800;
+}
+
+.current-title {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+
+.current-title span,
+.current-title strong {
+  display: block;
+}
+
+.current-title span {
+  color: #e0e7ff;
+  font-size: 0.75rem;
+}
+
+.current-title strong {
+  margin-top: 3px;
+  font-size: 1.25rem;
 }
 
 .badge-help {

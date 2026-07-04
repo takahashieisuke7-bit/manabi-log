@@ -29,6 +29,7 @@ const progressTrack = document.querySelector(".progress-track");
 const progressBar = document.querySelector("#progressBar");
 const badgeList = document.querySelector("#badgeList");
 const badgeCount = document.querySelector("#badgeCount");
+const currentTitle = document.querySelector("#currentTitle");
 const pieChart = document.querySelector("#pieChart");
 const chartTotal = document.querySelector("#chartTotal");
 const chartRange = document.querySelector("#chartRange");
@@ -40,6 +41,8 @@ const calendar = document.querySelector("#calendar");
 const calendarTitle = document.querySelector("#calendarTitle");
 const previousMonthButton = document.querySelector("#previousMonth");
 const nextMonthButton = document.querySelector("#nextMonth");
+const tabButtons = document.querySelectorAll("[data-tab]");
+const tabPanels = document.querySelectorAll("[data-tab-panel]");
 
 let records = loadRecords();
 let dailyGoal = loadDailyGoal();
@@ -230,25 +233,43 @@ function calculateStreaks() {
   return { current, best };
 }
 
-function renderBadges(longestStreak, totalWordCount) {
+function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount) {
+  const totalHours = Math.floor(totalMinutes / 60);
   const badges = [
-    { name: "はじめの一歩", icon: "🌱", value: longestStreak, goal: 1, unit: "日連続" },
-    { name: "三日坊主卒業", icon: "🔥", value: longestStreak, goal: 3, unit: "日連続" },
-    { name: "1週間マスター", icon: "⭐", value: longestStreak, goal: 7, unit: "日連続" },
-    { name: "継続の達人", icon: "🏅", value: longestStreak, goal: 14, unit: "日連続" },
-    { name: "習慣化マスター", icon: "🏆", value: longestStreak, goal: 30, unit: "日連続" },
-    { name: "単語コレクター", icon: "📘", value: totalWordCount, goal: 500, unit: "単語" },
-    { name: "まなびの伝説", icon: "💎", value: longestStreak, goal: 100, unit: "日連続" },
+    { name: "はじめの一歩", icon: "🌱", value: studyDayCount, goal: 1, unit: "日学習", level: 1 },
+    { name: "一時間の集中", icon: "⏱️", value: totalHours, goal: 1, unit: "時間", level: 1 },
+    { name: "三日坊主卒業", icon: "🔥", value: longestStreak, goal: 3, unit: "日連続", level: 1 },
+    { name: "努力の芽", icon: "🌿", value: totalHours, goal: 5, unit: "時間", level: 2 },
+    { name: "単語ハンター", icon: "📗", value: totalWordCount, goal: 100, unit: "単語", level: 2 },
+    { name: "七日間の炎", icon: "⭐", value: longestStreak, goal: 7, unit: "日連続", level: 2 },
+    { name: "十時間の探究者", icon: "🧭", value: totalHours, goal: 10, unit: "時間", level: 3 },
+    { name: "学習常連", icon: "📅", value: studyDayCount, goal: 10, unit: "日学習", level: 3 },
+    { name: "集中の職人", icon: "⚒️", value: totalHours, goal: 25, unit: "時間", level: 3 },
+    { name: "単語コレクター", icon: "📘", value: totalWordCount, goal: 500, unit: "単語", level: 4 },
+    { name: "継続の達人", icon: "🏅", value: longestStreak, goal: 14, unit: "日連続", level: 4 },
+    { name: "五十時間の猛者", icon: "⚡", value: totalHours, goal: 50, unit: "時間", level: 4 },
+    { name: "一か月の努力家", icon: "🗓️", value: studyDayCount, goal: 30, unit: "日学習", level: 5 },
+    { name: "単語マスター", icon: "📚", value: totalWordCount, goal: 1000, unit: "単語", level: 5 },
+    { name: "習慣化マスター", icon: "🏆", value: longestStreak, goal: 30, unit: "日連続", level: 5 },
+    { name: "百時間の賢者", icon: "🧙", value: totalHours, goal: 100, unit: "時間", level: 6 },
+    { name: "単語の賢者", icon: "🧠", value: totalWordCount, goal: 3000, unit: "単語", level: 6 },
+    { name: "百日学習者", icon: "🎖️", value: studyDayCount, goal: 100, unit: "日学習", level: 6 },
+    { name: "三百時間の王者", icon: "👑", value: totalHours, goal: 300, unit: "時間", level: 7 },
+    { name: "まなびの伝説", icon: "💎", value: longestStreak, goal: 100, unit: "日連続", level: 7 },
   ];
 
   badgeList.replaceChildren();
   let unlockedCount = 0;
-  badges.forEach((badge, index) => {
+  let newestTitle = "見習い学習者";
+  badges.forEach((badge) => {
     const unlocked = badge.value >= badge.goal;
-    if (unlocked) unlockedCount += 1;
+    if (unlocked) {
+      unlockedCount += 1;
+      newestTitle = badge.name;
+    }
 
     const item = document.createElement("div");
-    item.className = `badge${unlocked ? ` unlocked level-${index + 1}` : ""}`;
+    item.className = `badge${unlocked ? ` unlocked level-${badge.level}` : ""}`;
 
     const icon = document.createElement("span");
     icon.className = "badge-icon";
@@ -266,6 +287,7 @@ function renderBadges(longestStreak, totalWordCount) {
     badgeList.append(item);
   });
   badgeCount.textContent = `${unlockedCount} / ${badges.length}`;
+  currentTitle.textContent = newestTitle;
 }
 
 function renderCalendar() {
@@ -344,6 +366,7 @@ function render() {
     .filter((record) => record.date === localDateKey())
     .reduce((sum, record) => sum + (Number(record.wordCount) || 0), 0);
   const streaks = calculateStreaks();
+  const studyDayCount = new Set(records.map((record) => record.date)).size;
 
   allTotal.textContent = formatMinutes(total);
   todayTotal.textContent = formatMinutes(today);
@@ -376,7 +399,7 @@ function render() {
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", String(rate));
   }
-  renderBadges(streaks.best, totalWordCount);
+  renderBadges(total, streaks.best, totalWordCount, studyDayCount);
   renderSubjectChart();
   renderCalendar();
 }
@@ -454,6 +477,20 @@ periodButtons.forEach((button) => {
     chartPeriod = button.dataset.period;
     periodButtons.forEach((item) => item.classList.toggle("active", item === button));
     renderSubjectChart();
+  });
+});
+
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const selectedTab = button.dataset.tab;
+    tabButtons.forEach((item) => {
+      const selected = item === button;
+      item.classList.toggle("active", selected);
+      item.setAttribute("aria-selected", String(selected));
+    });
+    tabPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.tabPanel !== selectedTab;
+    });
   });
 });
 

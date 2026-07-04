@@ -21,7 +21,18 @@
       <small>2027年1月16日（土）9:30</small>
     </section>
 
-    <section class="summary" aria-label="勉強時間の合計">
+    <nav class="app-tabs" aria-label="画面切り替え" role="tablist">
+      <button type="button" data-tab="home" class="active"
+              role="tab" aria-selected="true">ホーム</button>
+      <button type="button" data-tab="record"
+              role="tab" aria-selected="false">記録</button>
+      <button type="button" data-tab="analysis"
+              role="tab" aria-selected="false">分析</button>
+      <button type="button" data-tab="badges"
+              role="tab" aria-selected="false">称号</button>
+    </nav>
+
+    <section class="summary" aria-label="勉強時間の合計" data-tab-panel="home">
       <div>
         <span>今日</span>
         <strong id="todayTotal">0分</strong>
@@ -43,7 +54,7 @@
       </div>
     </section>
 
-    <section class="achievement card" aria-label="今日の目標達成率">
+    <section class="achievement card" aria-label="今日の目標達成率" data-tab-panel="home">
       <div class="achievement-heading">
         <div>
           <span>今日の目標達成率</span>
@@ -61,7 +72,7 @@
       </div>
     </section>
 
-    <section class="card chart-card">
+    <section class="card chart-card" data-tab-panel="analysis" hidden>
       <div class="section-title chart-title">
         <div>
           <h2>科目別の勉強時間</h2>
@@ -84,16 +95,20 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab-panel="badges" hidden>
       <div class="section-title">
-        <h2>達成バッジ</h2>
-        <span id="badgeCount" class="goal-display">0 / 7</span>
+        <h2>称号・達成バッジ</h2>
+        <span id="badgeCount" class="goal-display">0 / 20</span>
+      </div>
+      <div class="current-title">
+        <span>現在の称号</span>
+        <strong id="currentTitle">見習い学習者</strong>
       </div>
       <p class="badge-help">続けるほど、少しずつ難しいバッジが解放されます。</p>
       <div id="badgeList" class="badge-list"></div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab-panel="record" hidden>
       <div class="section-title">
         <h2>1日の目標</h2>
         <span id="goalDisplay" class="goal-display">未設定</span>
@@ -113,7 +128,7 @@
       </form>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab-panel="record" hidden>
       <h2>勉強を記録</h2>
       <form id="studyForm">
         <label for="subject">科目</label>
@@ -141,7 +156,7 @@
       </form>
     </section>
 
-    <section class="card calendar-card">
+    <section class="card calendar-card" data-tab-panel="analysis" hidden>
       <div class="calendar-header">
         <button id="previousMonth" class="month-button" type="button"
                 aria-label="前の月">‹</button>
@@ -157,7 +172,7 @@
       <p class="calendar-note">数字の下に、その日の勉強時間が表示されます。</p>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab-panel="record" hidden>
       <div class="section-title">
         <h2>勉強記録</h2>
         <button id="deleteAll" class="text-button" type="button">すべて削除</button>
