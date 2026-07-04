@@ -62,8 +62,7 @@ const mockForm = document.querySelector("#mockForm");
 const mockNameInput = document.querySelector("#mockName");
 const mockDateInput = document.querySelector("#mockDate");
 const mockSubjectInput = document.querySelector("#mockSubject");
-const mockScoreInput = document.querySelector("#mockScore");
-const mockMaxScoreInput = document.querySelector("#mockMaxScore");
+const mockDeviationInput = document.querySelector("#mockDeviation");
 const mockChart = document.querySelector("#mockChart");
 const mockEmpty = document.querySelector("#mockEmpty");
 const profileButton = document.querySelector("#profileButton");
@@ -143,27 +142,38 @@ function loadMockResults() {
   try {
     const saved = JSON.parse(localStorage.getItem(MOCK_RESULTS_KEY)) ?? [];
     if (!Array.isArray(saved)) return [];
-    return saved
-      .filter((result) => {
-        const score = Number(result?.score);
-        const maxScore = Number(result?.maxScore);
-        return (
-          typeof result?.name === "string" && result.name.trim()
-          && /^\d{4}-\d{2}-\d{2}$/.test(result.date)
-          && Number.isInteger(score) && Number.isInteger(maxScore)
-          && score >= 0 && maxScore >= 1 && score <= maxScore
-        );
-      })
-      .map((result) => ({
+    return saved.flatMap((result) => {
+      if (
+        typeof result?.name !== "string" || !result.name.trim()
+        || !/^\d{4}-\d{2}-\d{2}$/.test(result.date)
+      ) {
+        return [];
+      }
+
+      const base = {
         id: String(result.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`),
         name: result.name.trim(),
         date: result.date,
         subject: typeof result.subject === "string" && result.subject.trim()
           ? result.subject.trim()
-          : null,
-        score: Number(result.score),
-        maxScore: Number(result.maxScore),
-      }));
+          : "総合",
+      };
+      const deviation = Number(result.deviation);
+      if (Number.isFinite(deviation) && deviation >= 0 && deviation <= 100) {
+        return [{ ...base, deviation }];
+      }
+
+      // 以前の得点形式は「旧得点」として保持し、偏差値には変換しない。
+      const score = Number(result.score);
+      const maxScore = Number(result.maxScore);
+      if (
+        Number.isInteger(score) && Number.isInteger(maxScore)
+        && score >= 0 && maxScore >= 1 && score <= maxScore
+      ) {
+        return [{ ...base, score, maxScore }];
+      }
+      return [];
+    });
   } catch {
     return [];
   }
@@ -581,37 +591,40 @@ function renderMockResults() {
     groups.get(key).results.push(result);
   });
 
-  const createBar = (label, score, maxScore, removeHandler, isOverall = false) => {
-    const percentage = Math.round((score / maxScore) * 100);
+  const createBar = (result, removeHandler) => {
+    const isLegacyScore = !Number.isFinite(result.deviation);
+    const isOverall = result.subject === "総合";
+    const barValue = isLegacyScore
+      ? Math.round((result.score / result.maxScore) * 100)
+      : result.deviation;
     const item = document.createElement("div");
-    item.className = `mock-result${isOverall ? " overall" : ""}`;
+    item.className =
+      `mock-result${isOverall ? " overall" : ""}${isLegacyScore ? " legacy" : ""}`;
 
     const title = document.createElement("span");
     title.className = "mock-result-title";
-    title.textContent = label;
+    title.textContent = `${result.subject}${isLegacyScore ? "（旧得点）" : ""}`;
 
     const value = document.createElement("span");
     value.className = "mock-result-value";
-    value.textContent = `${score}/${maxScore}（${percentage}%）`;
+    value.textContent = isLegacyScore
+      ? `${result.score}/${result.maxScore}`
+      : `偏差値 ${Number(result.deviation.toFixed(1))}`;
 
     const track = document.createElement("div");
     track.className = "mock-bar-track";
     const bar = document.createElement("div");
     bar.className = "mock-bar";
-    bar.style.width = `${Math.min(100, percentage)}%`;
+    bar.style.width = `${Math.min(100, barValue)}%`;
     track.append(bar);
 
-    item.append(title, value, track);
-    if (removeHandler) {
-      const removeButton = document.createElement("button");
-      removeButton.type = "button";
-      removeButton.className = "mock-delete";
-      removeButton.textContent = "削除";
-      removeButton.addEventListener("click", removeHandler);
-      item.append(removeButton);
-    } else {
-      item.append(document.createElement("span"));
-    }
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "mock-delete";
+    removeButton.textContent = "削除";
+    removeButton.addEventListener("click", removeHandler);
+
+    item.append(title, value, track, removeButton);
     return item;
   };
 
@@ -644,20 +657,15 @@ function renderMockResults() {
 
       const bars = document.createElement("div");
       bars.className = "mock-bars";
-      const subjectResults = group.results.filter((result) => result.subject);
-      const legacyResults = group.results.filter((result) => !result.subject);
-      const totalsSource = subjectResults.length > 0 ? subjectResults : legacyResults;
-      const totalScore = totalsSource.reduce((sum, result) => sum + result.score, 0);
-      const totalMaxScore = totalsSource.reduce((sum, result) => sum + result.maxScore, 0);
-      bars.append(createBar("総合", totalScore, totalMaxScore, null, true));
-
-      subjectResults
-        .sort((a, b) => a.subject.localeCompare(b.subject, "ja"))
+      const sortedResults = [...group.results].sort((a, b) => {
+        if (a.subject === "総合") return -1;
+        if (b.subject === "総合") return 1;
+        return a.subject.localeCompare(b.subject, "ja");
+      });
+      sortedResults
         .forEach((result) => {
           bars.append(createBar(
-            result.subject,
-            result.score,
-            result.maxScore,
+            result,
             () => {
               mockResults = mockResults.filter((item) => item.id !== result.id);
               saveMockResults();
@@ -665,6 +673,12 @@ function renderMockResults() {
             },
           ));
         });
+      if (!group.results.some((result) => result.subject === "総合")) {
+        const missingTotal = document.createElement("p");
+        missingTotal.className = "mock-total-missing";
+        missingTotal.textContent = "総合偏差値は未入力です。";
+        bars.prepend(missingTotal);
+      }
 
       groupElement.append(header, bars);
       mockChart.append(groupElement);
@@ -865,18 +879,12 @@ mockForm.addEventListener("submit", (event) => {
   const name = mockNameInput.value.trim();
   const date = mockDateInput.value;
   const subject = mockSubjectInput.value.trim();
-  const score = Number(mockScoreInput.value);
-  const maxScore = Number(mockMaxScoreInput.value);
-  if (subject === "総合") {
-    alert("総合得点は科目から自動計算されるため、科目名を入力してください。");
-    return;
-  }
+  const deviation = Number(mockDeviationInput.value);
   if (
     !name || !date || !subject
-    || !Number.isInteger(score) || !Number.isInteger(maxScore)
-    || score < 0 || maxScore < 1 || score > maxScore
+    || !Number.isFinite(deviation) || deviation < 0 || deviation > 100
   ) {
-    alert("模試名・受験日・科目・得点を確認してください。得点は満点以下で入力します。");
+    alert("模試名・受験日・科目・偏差値を確認してください。偏差値は0〜100で入力します。");
     return;
   }
 
@@ -888,23 +896,22 @@ mockForm.addEventListener("submit", (event) => {
     ),
   );
   if (existing) {
-    existing.score = score;
-    existing.maxScore = maxScore;
+    existing.deviation = deviation;
+    delete existing.score;
+    delete existing.maxScore;
   } else {
     mockResults.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
       date,
       subject,
-      score,
-      maxScore,
+      deviation,
     });
   }
   saveMockResults();
   renderMockResults();
   mockSubjectInput.value = "";
-  mockScoreInput.value = "";
-  mockMaxScoreInput.value = 100;
+  mockDeviationInput.value = "";
   mockSubjectInput.focus();
 });
 

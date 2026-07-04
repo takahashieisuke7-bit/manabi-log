@@ -128,7 +128,8 @@
         <span class="goal-display">科目別・総合</span>
       </div>
       <p class="setting-note">
-        同じ模試名・受験日で科目を追加すると、総合得点は自動計算されます。
+        同じ模試名・受験日で科目を追加します。総合偏差値は科目から計算できないため、
+        科目名を「総合」にして手入力してください。
       </p>
       <form id="mockForm" class="mock-form">
         <div>
@@ -145,16 +146,11 @@
                  placeholder="例：英語リーディング" required>
         </div>
         <div>
-          <label for="mockScore">得点</label>
-          <input id="mockScore" type="number" min="0" max="9999"
-                 inputmode="numeric" placeholder="例：650" required>
+          <label for="mockDeviation">偏差値</label>
+          <input id="mockDeviation" type="number" min="0" max="100" step="0.1"
+                 inputmode="decimal" placeholder="例：55.3" required>
         </div>
-        <div>
-          <label for="mockMaxScore">満点</label>
-          <input id="mockMaxScore" type="number" min="1" max="9999"
-                 inputmode="numeric" value="100" required>
-        </div>
-        <button type="submit">この科目を追加・更新</button>
+        <button type="submit">偏差値を追加・更新</button>
       </form>
       <div id="mockChart" class="mock-chart"></div>
       <p id="mockEmpty" class="empty">まだ模試結果がありません。</p>

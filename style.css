@@ -687,6 +687,23 @@ form button {
   background: linear-gradient(90deg, #7c3aed, #ec4899);
 }
 
+.mock-result.legacy {
+  opacity: 0.72;
+}
+
+.mock-result.legacy .mock-bar {
+  background: #94a3b8;
+}
+
+.mock-total-missing {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #92400e;
+  background: #fef3c7;
+  font-size: 0.75rem;
+}
+
 .mock-result-title {
   overflow: hidden;
   font-size: 0.85rem;
