@@ -55,7 +55,7 @@
       </div>
       <div>
         <span>連続記録</span>
-        <strong id="currentStreak">0日</strong>
+        <strong id="currentStreak" class="streak-value">0日</strong>
         <small id="bestStreak">最長 0日</small>
       </div>
     </section>
@@ -125,8 +125,11 @@
     <section class="card" data-tab-panel="analysis" hidden>
       <div class="section-title">
         <h2>共テ模試の結果</h2>
-        <span class="goal-display">得点率</span>
+        <span class="goal-display">科目別・総合</span>
       </div>
+      <p class="setting-note">
+        同じ模試名・受験日で科目を追加すると、総合得点は自動計算されます。
+      </p>
       <form id="mockForm" class="mock-form">
         <div>
           <label for="mockName">模試名</label>
@@ -137,6 +140,11 @@
           <input id="mockDate" type="date" required>
         </div>
         <div>
+          <label for="mockSubject">科目</label>
+          <input id="mockSubject" maxlength="30"
+                 placeholder="例：英語リーディング" required>
+        </div>
+        <div>
           <label for="mockScore">得点</label>
           <input id="mockScore" type="number" min="0" max="9999"
                  inputmode="numeric" placeholder="例：650" required>
@@ -144,9 +152,9 @@
         <div>
           <label for="mockMaxScore">満点</label>
           <input id="mockMaxScore" type="number" min="1" max="9999"
-                 inputmode="numeric" value="1000" required>
+                 inputmode="numeric" value="100" required>
         </div>
-        <button type="submit">模試結果を追加</button>
+        <button type="submit">この科目を追加・更新</button>
       </form>
       <div id="mockChart" class="mock-chart"></div>
       <p id="mockEmpty" class="empty">まだ模試結果がありません。</p>

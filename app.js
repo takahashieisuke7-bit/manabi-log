@@ -61,6 +61,7 @@ const rescueCount = document.querySelector("#rescueCount");
 const mockForm = document.querySelector("#mockForm");
 const mockNameInput = document.querySelector("#mockName");
 const mockDateInput = document.querySelector("#mockDate");
+const mockSubjectInput = document.querySelector("#mockSubject");
 const mockScoreInput = document.querySelector("#mockScore");
 const mockMaxScoreInput = document.querySelector("#mockMaxScore");
 const mockChart = document.querySelector("#mockChart");
@@ -141,7 +142,28 @@ function loadProfile() {
 function loadMockResults() {
   try {
     const saved = JSON.parse(localStorage.getItem(MOCK_RESULTS_KEY)) ?? [];
-    return Array.isArray(saved) ? saved : [];
+    if (!Array.isArray(saved)) return [];
+    return saved
+      .filter((result) => {
+        const score = Number(result?.score);
+        const maxScore = Number(result?.maxScore);
+        return (
+          typeof result?.name === "string" && result.name.trim()
+          && /^\d{4}-\d{2}-\d{2}$/.test(result.date)
+          && Number.isInteger(score) && Number.isInteger(maxScore)
+          && score >= 0 && maxScore >= 1 && score <= maxScore
+        );
+      })
+      .map((result) => ({
+        id: String(result.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        name: result.name.trim(),
+        date: result.date,
+        subject: typeof result.subject === "string" && result.subject.trim()
+          ? result.subject.trim()
+          : null,
+        score: Number(result.score),
+        maxScore: Number(result.maxScore),
+      }));
   } catch {
     return [];
   }
@@ -550,40 +572,102 @@ function renderHolidays() {
 function renderMockResults() {
   mockChart.replaceChildren();
   mockEmpty.hidden = mockResults.length > 0;
-  [...mockResults]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .forEach((result) => {
-      const percentage = Math.round((result.score / result.maxScore) * 100);
-      const item = document.createElement("div");
-      item.className = "mock-result";
+  const groups = new Map();
+  mockResults.forEach((result) => {
+    const key = `${result.date}\u0000${result.name}`;
+    if (!groups.has(key)) {
+      groups.set(key, { name: result.name, date: result.date, results: [] });
+    }
+    groups.get(key).results.push(result);
+  });
 
-      const title = document.createElement("span");
-      title.className = "mock-result-title";
-      title.textContent = `${result.date}　${result.name}`;
+  const createBar = (label, score, maxScore, removeHandler, isOverall = false) => {
+    const percentage = Math.round((score / maxScore) * 100);
+    const item = document.createElement("div");
+    item.className = `mock-result${isOverall ? " overall" : ""}`;
 
-      const value = document.createElement("span");
-      value.className = "mock-result-value";
-      value.textContent = `${result.score}/${result.maxScore}（${percentage}%）`;
+    const title = document.createElement("span");
+    title.className = "mock-result-title";
+    title.textContent = label;
 
-      const track = document.createElement("div");
-      track.className = "mock-bar-track";
-      const bar = document.createElement("div");
-      bar.className = "mock-bar";
-      bar.style.width = `${Math.min(100, percentage)}%`;
-      track.append(bar);
+    const value = document.createElement("span");
+    value.className = "mock-result-value";
+    value.textContent = `${score}/${maxScore}（${percentage}%）`;
 
+    const track = document.createElement("div");
+    track.className = "mock-bar-track";
+    const bar = document.createElement("div");
+    bar.className = "mock-bar";
+    bar.style.width = `${Math.min(100, percentage)}%`;
+    track.append(bar);
+
+    item.append(title, value, track);
+    if (removeHandler) {
       const removeButton = document.createElement("button");
       removeButton.type = "button";
       removeButton.className = "mock-delete";
       removeButton.textContent = "削除";
-      removeButton.addEventListener("click", () => {
-        mockResults = mockResults.filter((item) => item.id !== result.id);
+      removeButton.addEventListener("click", removeHandler);
+      item.append(removeButton);
+    } else {
+      item.append(document.createElement("span"));
+    }
+    return item;
+  };
+
+  [...groups.values()]
+    .sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name, "ja"))
+    .forEach((group) => {
+      const groupElement = document.createElement("section");
+      groupElement.className = "mock-group";
+
+      const header = document.createElement("div");
+      header.className = "mock-group-header";
+      const heading = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = group.name;
+      const date = document.createElement("small");
+      date.textContent = group.date;
+      heading.append(name, date);
+
+      const removeGroupButton = document.createElement("button");
+      removeGroupButton.type = "button";
+      removeGroupButton.className = "mock-delete";
+      removeGroupButton.textContent = "模試を削除";
+      removeGroupButton.addEventListener("click", () => {
+        const ids = new Set(group.results.map((result) => result.id));
+        mockResults = mockResults.filter((result) => !ids.has(result.id));
         saveMockResults();
         renderMockResults();
       });
+      header.append(heading, removeGroupButton);
 
-      item.append(title, value, track, removeButton);
-      mockChart.append(item);
+      const bars = document.createElement("div");
+      bars.className = "mock-bars";
+      const subjectResults = group.results.filter((result) => result.subject);
+      const legacyResults = group.results.filter((result) => !result.subject);
+      const totalsSource = subjectResults.length > 0 ? subjectResults : legacyResults;
+      const totalScore = totalsSource.reduce((sum, result) => sum + result.score, 0);
+      const totalMaxScore = totalsSource.reduce((sum, result) => sum + result.maxScore, 0);
+      bars.append(createBar("総合", totalScore, totalMaxScore, null, true));
+
+      subjectResults
+        .sort((a, b) => a.subject.localeCompare(b.subject, "ja"))
+        .forEach((result) => {
+          bars.append(createBar(
+            result.subject,
+            result.score,
+            result.maxScore,
+            () => {
+              mockResults = mockResults.filter((item) => item.id !== result.id);
+              saveMockResults();
+              renderMockResults();
+            },
+          ));
+        });
+
+      groupElement.append(header, bars);
+      mockChart.append(groupElement);
     });
 }
 
@@ -663,6 +747,7 @@ function render() {
   todayWords.textContent = `${todayWordCount}個`;
   allWords.textContent = `累計 ${totalWordCount}個`;
   currentStreak.textContent = `${streaks.current}日`;
+  currentStreak.classList.toggle("burning", streaks.current > 0);
   bestStreak.textContent = `最長 ${streaks.best}日`;
   rescueCount.textContent = `救済 ${streaks.rescuedDays.size}回`;
   goalDisplay.textContent = dailyGoal > 0 ? formatMinutes(dailyGoal) : "未設定";
@@ -779,29 +864,48 @@ mockForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = mockNameInput.value.trim();
   const date = mockDateInput.value;
+  const subject = mockSubjectInput.value.trim();
   const score = Number(mockScoreInput.value);
   const maxScore = Number(mockMaxScoreInput.value);
+  if (subject === "総合") {
+    alert("総合得点は科目から自動計算されるため、科目名を入力してください。");
+    return;
+  }
   if (
-    !name || !date
+    !name || !date || !subject
     || !Number.isInteger(score) || !Number.isInteger(maxScore)
     || score < 0 || maxScore < 1 || score > maxScore
   ) {
-    alert("模試名・受験日・得点を確認してください。得点は満点以下で入力します。");
+    alert("模試名・受験日・科目・得点を確認してください。得点は満点以下で入力します。");
     return;
   }
 
-  mockResults.push({
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name,
-    date,
-    score,
-    maxScore,
-  });
+  const existing = mockResults.find(
+    (result) => (
+      result.name === name
+      && result.date === date
+      && result.subject === subject
+    ),
+  );
+  if (existing) {
+    existing.score = score;
+    existing.maxScore = maxScore;
+  } else {
+    mockResults.push({
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name,
+      date,
+      subject,
+      score,
+      maxScore,
+    });
+  }
   saveMockResults();
   renderMockResults();
-  mockForm.reset();
-  mockDateInput.value = localDateKey();
-  mockMaxScoreInput.value = 1000;
+  mockSubjectInput.value = "";
+  mockScoreInput.value = "";
+  mockMaxScoreInput.value = 100;
+  mockSubjectInput.focus();
 });
 
 profileButton.addEventListener("click", () => {
