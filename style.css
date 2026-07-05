@@ -730,7 +730,18 @@ form button {
   overflow-x: auto;
   margin-top: 10px;
   padding-bottom: 4px;
+  overscroll-behavior-inline: contain;
+  scroll-behavior: smooth;
   scrollbar-color: #c7d2fe transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chart-scroll-hint {
+  display: block;
+  margin-top: 5px;
+  color: #818cf8;
+  font-size: 0.68rem;
+  text-align: center;
 }
 
 .mock-line-svg {

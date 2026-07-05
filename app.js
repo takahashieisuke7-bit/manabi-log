@@ -625,7 +625,8 @@ function createMockLineChart(titleText, events, series, featured = false) {
   });
   card.append(legend);
 
-  const width = Math.max(520, events.length * 112 + 90);
+  // 6〜8回程度は一目で比較でき、それ以上だけ横スクロールさせる。
+  const width = Math.max(360, events.length * 54 + 72);
   const height = featured ? 340 : 290;
   const margin = { top: 22, right: 24, bottom: 66, left: 48 };
   const plotWidth = width - margin.left - margin.right;
@@ -736,7 +737,24 @@ function createMockLineChart(titleText, events, series, featured = false) {
 
   scroll.append(svg);
   card.append(scroll);
+  if (events.length > 4) {
+    const hint = document.createElement("small");
+    hint.className = "chart-scroll-hint";
+    hint.textContent = "← 横にスライドして続きを見る →";
+    hint.hidden = true;
+    card.append(hint);
+  }
   return card;
+}
+
+function updateChartScrollHints() {
+  document.querySelectorAll(".line-chart-card").forEach((card) => {
+    const scroll = card.querySelector(".line-chart-scroll");
+    const hint = card.querySelector(".chart-scroll-hint");
+    if (scroll && hint) {
+      hint.hidden = scroll.scrollWidth <= scroll.clientWidth + 1;
+    }
+  });
 }
 
 function renderMockResults() {
@@ -890,6 +908,7 @@ function renderMockResults() {
       details.append(body);
       mockChart.append(details);
     });
+  requestAnimationFrame(updateChartScrollHints);
 }
 
 function renderLevelAndProfile(totalMinutes, streaks, unlockedBadgeCount) {
@@ -1188,8 +1207,13 @@ tabButtons.forEach((button) => {
     tabPanels.forEach((panel) => {
       panel.hidden = panel.dataset.tabPanel !== selectedTab;
     });
+    if (selectedTab === "analysis") {
+      requestAnimationFrame(updateChartScrollHints);
+    }
   });
 });
+
+window.addEventListener("resize", updateChartScrollHints);
 
 updateCountdown();
 setInterval(updateCountdown, 60000);
