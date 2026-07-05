@@ -634,6 +634,209 @@ form button {
   margin-top: 24px;
 }
 
+.mock-series-group {
+  overflow: hidden;
+  border: 1px solid #dbe3ff;
+  border-radius: 18px;
+  background: #f8faff;
+}
+
+.mock-series-group > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mock-series-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mock-series-group > summary::after {
+  color: #4f46e5;
+  content: "＋";
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.mock-series-group[open] > summary::after {
+  content: "−";
+}
+
+.mock-series-group > summary strong,
+.mock-series-group > summary small {
+  display: block;
+}
+
+.mock-series-group > summary small {
+  margin-top: 3px;
+  color: #6b7280;
+}
+
+.mock-series-body {
+  display: grid;
+  gap: 16px;
+  padding: 0 12px 14px;
+}
+
+.line-chart-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.line-chart-card.featured {
+  border-color: #c4b5fd;
+  background: linear-gradient(145deg, #fff, #f5f3ff);
+  box-shadow: 0 8px 22px rgb(124 58 237 / 10%);
+}
+
+.line-chart-card h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.line-chart-card.featured h4 {
+  color: #6d28d9;
+  font-size: 1.08rem;
+}
+
+.line-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+  font-size: 0.72rem;
+}
+
+.line-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.line-chart-legend i {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.line-chart-scroll {
+  overflow-x: auto;
+  margin-top: 10px;
+  padding-bottom: 4px;
+  scrollbar-color: #c7d2fe transparent;
+}
+
+.mock-line-svg {
+  display: block;
+  max-width: none;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.chart-grid-line {
+  stroke: #d1d5db;
+  stroke-dasharray: 5 5;
+  stroke-width: 1;
+}
+
+.chart-axis-line {
+  stroke: #9ca3af;
+  stroke-width: 1.2;
+}
+
+.chart-vertical-guide {
+  stroke: #eef2f7;
+  stroke-width: 1;
+}
+
+.chart-axis-label,
+.chart-x-label {
+  fill: #6b7280;
+  font-size: 11px;
+}
+
+.chart-value-label {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.mock-line-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: draw-line 850ms ease-out forwards;
+}
+
+.mock-line-point {
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.individual-chart-heading {
+  margin: 6px 2px -4px;
+  font-size: 1rem;
+}
+
+.mock-data-details {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.mock-data-details > summary {
+  cursor: pointer;
+  color: #4f46e5;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.mock-data-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.mock-data-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 0.72rem;
+}
+
+.mock-data-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-data-row.legacy {
+  opacity: 0.68;
+}
+
+.delete-mock-series {
+  width: 100%;
+  margin-top: 12px;
+  color: #dc2626;
+  background: #fef2f2;
+  font-size: 0.78rem;
+}
+
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+
 .mock-group {
   padding: 16px;
   border: 1px solid #e0e7ff;
@@ -983,6 +1186,7 @@ form button {
   .streak-value.burning,
   .streak-value.burning::after,
   .mock-bar,
+  .mock-line-path,
   .level-up-toast {
     animation: none;
   }

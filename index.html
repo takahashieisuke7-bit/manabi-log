@@ -128,13 +128,18 @@
         <span class="goal-display">科目別・総合</span>
       </div>
       <p class="setting-note">
-        同じ模試名・受験日で科目を追加します。総合偏差値は科目から計算できないため、
+        同じ模試名・第何回・受験日で科目を追加します。総合偏差値は、
         科目名を「総合」にして手入力してください。
       </p>
       <form id="mockForm" class="mock-form">
         <div>
           <label for="mockName">模試名</label>
-          <input id="mockName" maxlength="30" placeholder="例：第1回共通テスト模試" required>
+          <input id="mockName" maxlength="30" placeholder="例：河合共通テスト模試" required>
+        </div>
+        <div>
+          <label for="mockRound">第何回</label>
+          <input id="mockRound" type="number" min="1" max="99"
+                 inputmode="numeric" placeholder="例：1" required>
         </div>
         <div>
           <label for="mockDate">受験日</label>

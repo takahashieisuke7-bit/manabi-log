@@ -60,6 +60,7 @@ const holidayList = document.querySelector("#holidayList");
 const rescueCount = document.querySelector("#rescueCount");
 const mockForm = document.querySelector("#mockForm");
 const mockNameInput = document.querySelector("#mockName");
+const mockRoundInput = document.querySelector("#mockRound");
 const mockDateInput = document.querySelector("#mockDate");
 const mockSubjectInput = document.querySelector("#mockSubject");
 const mockDeviationInput = document.querySelector("#mockDeviation");
@@ -154,6 +155,11 @@ function loadMockResults() {
         id: String(result.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`),
         name: result.name.trim(),
         date: result.date,
+        round: Number.isInteger(Number(result.round))
+          && Number(result.round) >= 1
+          && Number(result.round) <= 99
+          ? Number(result.round)
+          : null,
         subject: typeof result.subject === "string" && result.subject.trim()
           ? result.subject.trim()
           : "総合",
@@ -579,109 +585,310 @@ function renderHolidays() {
   });
 }
 
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+function createSvgElement(tagName, attributes = {}, text = "") {
+  const element = document.createElementNS(SVG_NAMESPACE, tagName);
+  Object.entries(attributes).forEach(([name, value]) => {
+    element.setAttribute(name, String(value));
+  });
+  if (text !== "") element.textContent = text;
+  return element;
+}
+
+function createMockLineChart(titleText, events, series, featured = false) {
+  const card = document.createElement("section");
+  card.className = `line-chart-card${featured ? " featured" : ""}`;
+  const title = document.createElement("h4");
+  title.textContent = titleText;
+  card.append(title);
+
+  const activeSeries = series.filter((item) => item.values.size > 0);
+  if (activeSeries.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "chart-empty";
+    empty.textContent = featured
+      ? "総合偏差値は未入力です。科目名を「総合」にして追加してください。"
+      : "表示できる偏差値がありません。";
+    card.append(empty);
+    return card;
+  }
+
+  const legend = document.createElement("div");
+  legend.className = "line-chart-legend";
+  activeSeries.forEach((item) => {
+    const legendItem = document.createElement("span");
+    const swatch = document.createElement("i");
+    swatch.style.background = item.color;
+    legendItem.append(swatch, document.createTextNode(item.name));
+    legend.append(legendItem);
+  });
+  card.append(legend);
+
+  const width = Math.max(520, events.length * 112 + 90);
+  const height = featured ? 340 : 290;
+  const margin = { top: 22, right: 24, bottom: 66, left: 48 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const xAt = (index) => events.length === 1
+    ? margin.left + plotWidth / 2
+    : margin.left + (plotWidth * index) / (events.length - 1);
+  const yAt = (value) => margin.top + ((100 - value) / 100) * plotHeight;
+
+  const scroll = document.createElement("div");
+  scroll.className = "line-chart-scroll";
+  const svg = createSvgElement("svg", {
+    class: "mock-line-svg",
+    viewBox: `0 0 ${width} ${height}`,
+    width,
+    height,
+    role: "img",
+    "aria-label": `${titleText}。偏差値0から100`,
+  });
+
+  for (let value = 0; value <= 100; value += 10) {
+    const y = yAt(value);
+    svg.append(createSvgElement("line", {
+      x1: margin.left,
+      y1: y,
+      x2: width - margin.right,
+      y2: y,
+      class: value === 0 ? "chart-axis-line" : "chart-grid-line",
+    }));
+    svg.append(createSvgElement("text", {
+      x: margin.left - 8,
+      y: y + 4,
+      "text-anchor": "end",
+      class: "chart-axis-label",
+    }, value));
+  }
+
+  events.forEach((event, index) => {
+    const x = xAt(index);
+    svg.append(createSvgElement("line", {
+      x1: x,
+      y1: margin.top,
+      x2: x,
+      y2: height - margin.bottom,
+      class: "chart-vertical-guide",
+    }));
+    const label = createSvgElement("text", {
+      x,
+      y: height - margin.bottom + 22,
+      "text-anchor": "middle",
+      class: "chart-x-label",
+    });
+    label.append(
+      createSvgElement("tspan", { x, dy: 0 }, event.round ? `第${event.round}回` : "回数未設定"),
+      createSvgElement(
+        "tspan",
+        { x, dy: 17 },
+        `${Number(event.date.slice(5, 7))}/${Number(event.date.slice(8, 10))}`,
+      ),
+    );
+    svg.append(label);
+  });
+
+  activeSeries.forEach((item) => {
+    let pathData = "";
+    let drawing = false;
+    events.forEach((event, index) => {
+      const value = item.values.get(event.key);
+      if (!Number.isFinite(value)) {
+        drawing = false;
+        return;
+      }
+      pathData += `${drawing ? "L" : "M"}${xAt(index)},${yAt(value)} `;
+      drawing = true;
+    });
+    svg.append(createSvgElement("path", {
+      d: pathData.trim(),
+      stroke: item.color,
+      "stroke-width": featured ? 4 : 2.8,
+      class: "mock-line-path",
+    }));
+
+    events.forEach((event, index) => {
+      const value = item.values.get(event.key);
+      if (!Number.isFinite(value)) return;
+      const point = createSvgElement("circle", {
+        cx: xAt(index),
+        cy: yAt(value),
+        r: featured ? 5.5 : 4.5,
+        fill: item.color,
+        class: "mock-line-point",
+      });
+      point.append(createSvgElement(
+        "title",
+        {},
+        `${item.name}・${event.round ? `第${event.round}回` : event.date}・偏差値${value}`,
+      ));
+      svg.append(point);
+      svg.append(createSvgElement("text", {
+        x: xAt(index),
+        y: yAt(value) - 9,
+        "text-anchor": "middle",
+        fill: item.color,
+        class: "chart-value-label",
+      }, Number(value.toFixed(1))));
+    });
+  });
+
+  scroll.append(svg);
+  card.append(scroll);
+  return card;
+}
+
 function renderMockResults() {
   mockChart.replaceChildren();
   mockEmpty.hidden = mockResults.length > 0;
   const groups = new Map();
   mockResults.forEach((result) => {
-    const key = `${result.date}\u0000${result.name}`;
-    if (!groups.has(key)) {
-      groups.set(key, { name: result.name, date: result.date, results: [] });
-    }
-    groups.get(key).results.push(result);
+    if (!groups.has(result.name)) groups.set(result.name, []);
+    groups.get(result.name).push(result);
   });
 
-  const createBar = (result, removeHandler) => {
-    const isLegacyScore = !Number.isFinite(result.deviation);
-    const isOverall = result.subject === "総合";
-    const barValue = isLegacyScore
-      ? Math.round((result.score / result.maxScore) * 100)
-      : result.deviation;
-    const item = document.createElement("div");
-    item.className =
-      `mock-result${isOverall ? " overall" : ""}${isLegacyScore ? " legacy" : ""}`;
+  [...groups.entries()]
+    .sort((a, b) => {
+      const latest = (results) => results.reduce(
+        (value, result) => result.date > value ? result.date : value,
+        "",
+      );
+      return latest(b[1]).localeCompare(latest(a[1])) || a[0].localeCompare(b[0], "ja");
+    })
+    .forEach(([mockName, results], groupIndex) => {
+      const details = document.createElement("details");
+      details.className = "mock-series-group";
+      details.open = groupIndex === 0;
 
-    const title = document.createElement("span");
-    title.className = "mock-result-title";
-    title.textContent = `${result.subject}${isLegacyScore ? "（旧得点）" : ""}`;
+      const eventMap = new Map();
+      results.forEach((result) => {
+        const key = `${result.round ?? "none"}\u0000${result.date}`;
+        if (!eventMap.has(key)) {
+          eventMap.set(key, { key, round: result.round, date: result.date });
+        }
+      });
+      const events = [...eventMap.values()].sort(
+        (a, b) => a.date.localeCompare(b.date) || (a.round ?? 999) - (b.round ?? 999),
+      );
 
-    const value = document.createElement("span");
-    value.className = "mock-result-value";
-    value.textContent = isLegacyScore
-      ? `${result.score}/${result.maxScore}`
-      : `偏差値 ${Number(result.deviation.toFixed(1))}`;
+      const summary = document.createElement("summary");
+      const summaryText = document.createElement("span");
+      const summaryName = document.createElement("strong");
+      summaryName.textContent = mockName;
+      const summaryMeta = document.createElement("small");
+      summaryMeta.textContent = `${events.length}回分・最新 ${events[events.length - 1].date}`;
+      summaryText.append(summaryName, summaryMeta);
+      summary.append(summaryText);
+      details.append(summary);
 
-    const track = document.createElement("div");
-    track.className = "mock-bar-track";
-    const bar = document.createElement("div");
-    bar.className = "mock-bar";
-    bar.style.width = `${Math.min(100, barValue)}%`;
-    track.append(bar);
+      const body = document.createElement("div");
+      body.className = "mock-series-body";
+      const subjects = [...new Set(
+        results
+          .filter((result) => Number.isFinite(result.deviation))
+          .map((result) => result.subject),
+      )];
+      const regularSubjects = subjects
+        .filter((subject) => subject !== "総合")
+        .sort((a, b) => a.localeCompare(b, "ja"));
+      const colors = [
+        "#2563eb", "#dc2626", "#16a34a", "#d97706", "#0891b2",
+        "#db2777", "#7c3aed", "#65a30d", "#ea580c", "#475569",
+      ];
+      const colorBySubject = new Map(
+        regularSubjects.map((subject, index) => [subject, colors[index % colors.length]]),
+      );
+      const valuesFor = (subject) => {
+        const values = new Map();
+        results
+          .filter((result) => result.subject === subject && Number.isFinite(result.deviation))
+          .forEach((result) => {
+            values.set(`${result.round ?? "none"}\u0000${result.date}`, result.deviation);
+          });
+        return values;
+      };
 
-    const removeButton = document.createElement("button");
-    removeButton.type = "button";
-    removeButton.className = "mock-delete";
-    removeButton.textContent = "削除";
-    removeButton.addEventListener("click", removeHandler);
+      body.append(createMockLineChart(
+        "総合偏差値の推移",
+        events,
+        [{ name: "総合", color: "#7c3aed", values: valuesFor("総合") }],
+        true,
+      ));
+      body.append(createMockLineChart(
+        "全科目比較",
+        events,
+        regularSubjects.map((subject) => ({
+          name: subject,
+          color: colorBySubject.get(subject),
+          values: valuesFor(subject),
+        })),
+      ));
 
-    item.append(title, value, track, removeButton);
-    return item;
-  };
+      const individualHeading = document.createElement("h3");
+      individualHeading.className = "individual-chart-heading";
+      individualHeading.textContent = "科目別の推移";
+      body.append(individualHeading);
+      regularSubjects.forEach((subject) => {
+        body.append(createMockLineChart(
+          `${subject}の推移`,
+          events,
+          [{ name: subject, color: colorBySubject.get(subject), values: valuesFor(subject) }],
+        ));
+      });
 
-  [...groups.values()]
-    .sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name, "ja"))
-    .forEach((group) => {
-      const groupElement = document.createElement("section");
-      groupElement.className = "mock-group";
-
-      const header = document.createElement("div");
-      header.className = "mock-group-header";
-      const heading = document.createElement("div");
-      const name = document.createElement("strong");
-      name.textContent = group.name;
-      const date = document.createElement("small");
-      date.textContent = group.date;
-      heading.append(name, date);
+      const dataDetails = document.createElement("details");
+      dataDetails.className = "mock-data-details";
+      const dataSummary = document.createElement("summary");
+      dataSummary.textContent = "入力データの確認・削除";
+      dataDetails.append(dataSummary);
+      const dataList = document.createElement("div");
+      dataList.className = "mock-data-list";
+      [...results]
+        .sort((a, b) => (
+          a.date.localeCompare(b.date)
+          || (a.round ?? 999) - (b.round ?? 999)
+          || a.subject.localeCompare(b.subject, "ja")
+        ))
+        .forEach((result) => {
+          const row = document.createElement("div");
+          row.className = `mock-data-row${Number.isFinite(result.deviation) ? "" : " legacy"}`;
+          const description = document.createElement("span");
+          const roundLabel = result.round ? `第${result.round}回` : "回数未設定";
+          description.textContent = `${roundLabel}・${result.date}・${result.subject}`;
+          const value = document.createElement("strong");
+          value.textContent = Number.isFinite(result.deviation)
+            ? `偏差値 ${Number(result.deviation.toFixed(1))}`
+            : `旧得点 ${result.score}/${result.maxScore}`;
+          const removeButton = document.createElement("button");
+          removeButton.type = "button";
+          removeButton.className = "mock-delete";
+          removeButton.textContent = "削除";
+          removeButton.addEventListener("click", () => {
+            mockResults = mockResults.filter((item) => item.id !== result.id);
+            saveMockResults();
+            renderMockResults();
+          });
+          row.append(description, value, removeButton);
+          dataList.append(row);
+        });
+      dataDetails.append(dataList);
 
       const removeGroupButton = document.createElement("button");
       removeGroupButton.type = "button";
-      removeGroupButton.className = "mock-delete";
-      removeGroupButton.textContent = "模試を削除";
+      removeGroupButton.className = "delete-mock-series";
+      removeGroupButton.textContent = "この模試データをすべて削除";
       removeGroupButton.addEventListener("click", () => {
-        const ids = new Set(group.results.map((result) => result.id));
+        const ids = new Set(results.map((result) => result.id));
         mockResults = mockResults.filter((result) => !ids.has(result.id));
         saveMockResults();
         renderMockResults();
       });
-      header.append(heading, removeGroupButton);
+      dataDetails.append(removeGroupButton);
+      body.append(dataDetails);
 
-      const bars = document.createElement("div");
-      bars.className = "mock-bars";
-      const sortedResults = [...group.results].sort((a, b) => {
-        if (a.subject === "総合") return -1;
-        if (b.subject === "総合") return 1;
-        return a.subject.localeCompare(b.subject, "ja");
-      });
-      sortedResults
-        .forEach((result) => {
-          bars.append(createBar(
-            result,
-            () => {
-              mockResults = mockResults.filter((item) => item.id !== result.id);
-              saveMockResults();
-              renderMockResults();
-            },
-          ));
-        });
-      if (!group.results.some((result) => result.subject === "総合")) {
-        const missingTotal = document.createElement("p");
-        missingTotal.className = "mock-total-missing";
-        missingTotal.textContent = "総合偏差値は未入力です。";
-        bars.prepend(missingTotal);
-      }
-
-      groupElement.append(header, bars);
-      mockChart.append(groupElement);
+      details.append(body);
+      mockChart.append(details);
     });
 }
 
@@ -877,20 +1084,23 @@ holidayForm.addEventListener("submit", (event) => {
 mockForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = mockNameInput.value.trim();
+  const round = Number(mockRoundInput.value);
   const date = mockDateInput.value;
   const subject = mockSubjectInput.value.trim();
   const deviation = Number(mockDeviationInput.value);
   if (
     !name || !date || !subject
+    || !Number.isInteger(round) || round < 1 || round > 99
     || !Number.isFinite(deviation) || deviation < 0 || deviation > 100
   ) {
-    alert("模試名・受験日・科目・偏差値を確認してください。偏差値は0〜100で入力します。");
+    alert("模試名・第何回・受験日・科目・偏差値を確認してください。偏差値は0〜100で入力します。");
     return;
   }
 
   const existing = mockResults.find(
     (result) => (
       result.name === name
+      && result.round === round
       && result.date === date
       && result.subject === subject
     ),
@@ -903,6 +1113,7 @@ mockForm.addEventListener("submit", (event) => {
     mockResults.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
+      round,
       date,
       subject,
       deviation,
