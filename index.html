@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="まなびログ">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -169,6 +174,13 @@
       <div class="current-title">
         <span>現在の称号</span>
         <strong id="currentTitle">見習い学習者</strong>
+      </div>
+      <div class="unlocked-titles">
+        <div>
+          <span>獲得した称号一覧</span>
+          <strong id="unlockedTitleCount">まだなし</strong>
+        </div>
+        <div id="unlockedTitleList" class="unlocked-title-list"></div>
       </div>
       <p class="badge-help">続けるほど、少しずつ難しいバッジが解放されます。</p>
       <div id="badgeList" class="badge-list"></div>

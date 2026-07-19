@@ -572,6 +572,63 @@ form button {
   font-size: 1.25rem;
 }
 
+.unlocked-titles {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e0e7ff;
+  border-radius: 16px;
+  background: #f5f7ff;
+}
+
+.unlocked-titles span,
+.unlocked-titles strong {
+  display: block;
+}
+
+.unlocked-titles > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.unlocked-titles > div:first-child span {
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.unlocked-titles > div:first-child strong {
+  color: #4f46e5;
+  font-size: 0.95rem;
+}
+
+.unlocked-title-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.unlocked-title-chip {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  font-size: 0.76rem;
+  font-weight: 800;
+  box-shadow: 0 6px 12px rgb(79 70 229 / 12%);
+}
+
+.unlocked-title-chip.level-1 { background: linear-gradient(135deg, #b77944, #7c4a26); }
+.unlocked-title-chip.level-2 { background: linear-gradient(135deg, #94a3b8, #475569); }
+.unlocked-title-chip.level-3 { background: linear-gradient(135deg, #fbbf24, #d97706); }
+.unlocked-title-chip.level-4 { background: linear-gradient(135deg, #38bdf8, #2563eb); }
+.unlocked-title-chip.level-5 { background: linear-gradient(135deg, #a78bfa, #6d28d9); }
+.unlocked-title-chip.level-6 { background: linear-gradient(135deg, #fb7185, #be123c); }
+.unlocked-title-chip.level-7 { background: linear-gradient(135deg, #22d3ee, #4f46e5 55%, #db2777); }
+.unlocked-title-chip.more { background: #111827; }
+
 .setting-note {
   margin: 10px 0 0;
   color: #6b7280;

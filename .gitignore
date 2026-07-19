@@ -7,3 +7,6 @@
 !index.html
 !style.css
 !app.js
+!manifest.webmanifest
+!service-worker.js
+!icon.svg

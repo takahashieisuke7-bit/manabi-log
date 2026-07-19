@@ -1,0 +1,18 @@
+{
+  "name": "まなびログ",
+  "short_name": "まなびログ",
+  "description": "共通テストまでの学習時間、模試結果、称号を記録する無料の勉強管理アプリです。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f7fb",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -34,6 +34,8 @@ const progressBar = document.querySelector("#progressBar");
 const badgeList = document.querySelector("#badgeList");
 const badgeCount = document.querySelector("#badgeCount");
 const currentTitle = document.querySelector("#currentTitle");
+const unlockedTitleCount = document.querySelector("#unlockedTitleCount");
+const unlockedTitleList = document.querySelector("#unlockedTitleList");
 const pieChart = document.querySelector("#pieChart");
 const chartTotal = document.querySelector("#chartTotal");
 const chartRange = document.querySelector("#chartRange");
@@ -548,11 +550,12 @@ function updateCountdown() {
     return;
   }
 
-  const totalMinutes = Math.floor(remaining / 60000);
-  const days = Math.floor(totalMinutes / (24 * 60));
-  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-  const minutes = totalMinutes % 60;
-  countdown.textContent = `あと ${days}日 ${hours}時間 ${minutes}分`;
+  const totalSeconds = Math.floor(remaining / 1000);
+  const days = Math.floor(totalSeconds / (24 * 60 * 60));
+  const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+  countdown.textContent = `あと ${days}日 ${hours}時間 ${minutes}分 ${seconds}秒`;
 }
 
 function studyMinutesByDate() {
@@ -625,8 +628,73 @@ function calculateStreaks() {
   return { current, best, rescuedDays };
 }
 
+function calculateMockBadgeStats() {
+  const validResults = mockResults.filter((result) => (
+    Number.isFinite(Number(result.deviation))
+    && Number(result.deviation) >= 0
+    && Number(result.deviation) <= 100
+  ));
+  const totalResults = validResults.filter((result) => result.subject === "総合");
+  const subjectResults = validResults.filter((result) => result.subject !== "総合");
+  const bestAnyDeviation = validResults.reduce(
+    (best, result) => Math.max(best, Number(result.deviation)),
+    0,
+  );
+  const bestTotalDeviation = totalResults.reduce(
+    (best, result) => Math.max(best, Number(result.deviation)),
+    0,
+  );
+  const bestSubjectDeviation = subjectResults.reduce(
+    (best, result) => Math.max(best, Number(result.deviation)),
+    0,
+  );
+  const subjectBestMap = subjectResults.reduce((bestMap, result) => {
+    const current = bestMap.get(result.subject) ?? 0;
+    bestMap.set(result.subject, Math.max(current, Number(result.deviation)));
+    return bestMap;
+  }, new Map());
+  const totalMockNames = new Set(totalResults.map((result) => result.name));
+  const subjectGroups = new Map();
+  validResults.forEach((result) => {
+    const key = `${result.name}__${result.subject}`;
+    const results = subjectGroups.get(key) ?? [];
+    results.push(result);
+    subjectGroups.set(key, results);
+  });
+
+  let bestDeviationGain = 0;
+  subjectGroups.forEach((results) => {
+    const sorted = [...results].sort((a, b) => (
+      a.date.localeCompare(b.date)
+      || Number(a.round ?? 0) - Number(b.round ?? 0)
+    ));
+    if (sorted.length < 2) return;
+    const first = Number(sorted[0].deviation);
+    const last = Number(sorted[sorted.length - 1].deviation);
+    bestDeviationGain = Math.max(bestDeviationGain, last - first);
+  });
+
+  return {
+    resultCount: validResults.length,
+    totalResultCount: totalResults.length,
+    totalMockCount: totalMockNames.size,
+    bestAnyDeviation,
+    bestTotalDeviation,
+    bestSubjectDeviation,
+    subjectsOver55: [...subjectBestMap.values()].filter((value) => value >= 55).length,
+    subjectsOver60: [...subjectBestMap.values()].filter((value) => value >= 60).length,
+    subjectsOver65: [...subjectBestMap.values()].filter((value) => value >= 65).length,
+    bestDeviationGain: Math.max(0, Math.round(bestDeviationGain * 10) / 10),
+  };
+}
+
+function formatBadgeValue(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel) {
   const totalHours = Math.floor(totalMinutes / 60);
+  const mockStats = calculateMockBadgeStats();
   const badges = [
     { name: "はじめの一歩", icon: "🌱", value: studyDayCount, goal: 1, unit: "日学習", level: 1 },
     { name: "一時間の集中", icon: "⏱️", value: totalHours, goal: 1, unit: "時間", level: 1 },
@@ -668,13 +736,47 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
     unit: "レベル",
   }));
   badges.push(...levelBadges);
+  badges.push(
+    { name: "五百時間の開拓者", icon: "🧭", value: totalHours, goal: 500, unit: "時間", level: 7 },
+    { name: "千時間の執念", icon: "🔥", value: totalHours, goal: 1000, unit: "時間", level: 7 },
+    { name: "二千時間の挑戦者", icon: "⚔️", value: totalHours, goal: 2000, unit: "時間", level: 7 },
+    { name: "三千時間の合格圏ハンター", icon: "🏹", value: totalHours, goal: 3000, unit: "時間", level: 7 },
+    { name: "四千時間の怪物", icon: "🐉", value: totalHours, goal: 4000, unit: "時間", level: 7 },
+    { name: "五千時間の覇者", icon: "👑", value: totalHours, goal: 5000, unit: "時間", level: 7 },
+    { name: "二百日継続の鉄人", icon: "🛡️", value: longestStreak, goal: 200, unit: "日連続", level: 7 },
+    { name: "一年継続の伝説", icon: "🌅", value: longestStreak, goal: 365, unit: "日連続", level: 7 },
+    { name: "二百日学習の実力者", icon: "📚", value: studyDayCount, goal: 200, unit: "日学習", level: 7 },
+    { name: "一年分の積み上げ", icon: "🗓️", value: studyDayCount, goal: 365, unit: "日学習", level: 7 },
+    { name: "英単語五千の武器庫", icon: "🧰", value: totalWordCount, goal: 5000, unit: "単語", level: 7 },
+    { name: "英単語一万の支配者", icon: "🦁", value: totalWordCount, goal: 10000, unit: "単語", level: 7 },
+    { name: "模試デビュー", icon: "📈", value: mockStats.resultCount, goal: 1, unit: "件", level: 1 },
+    { name: "総合偏差値の記録者", icon: "🎯", value: mockStats.totalResultCount, goal: 1, unit: "件", level: 2 },
+    { name: "模試を追う者", icon: "🔎", value: mockStats.totalMockCount, goal: 3, unit: "種類", level: 3 },
+    { name: "偏差値50突破", icon: "🚪", value: mockStats.bestAnyDeviation, goal: 50, unit: "偏差値", level: 3 },
+    { name: "偏差値55の壁破り", icon: "🧱", value: mockStats.bestAnyDeviation, goal: 55, unit: "偏差値", level: 4 },
+    { name: "偏差値60到達", icon: "🚀", value: mockStats.bestAnyDeviation, goal: 60, unit: "偏差値", level: 5 },
+    { name: "偏差値65の上位戦士", icon: "⚡", value: mockStats.bestAnyDeviation, goal: 65, unit: "偏差値", level: 6 },
+    { name: "偏差値70の怪物", icon: "💎", value: mockStats.bestAnyDeviation, goal: 70, unit: "偏差値", level: 7 },
+    { name: "総合55突破", icon: "🏁", value: mockStats.bestTotalDeviation, goal: 55, unit: "総合偏差値", level: 4 },
+    { name: "総合60到達", icon: "🏆", value: mockStats.bestTotalDeviation, goal: 60, unit: "総合偏差値", level: 5 },
+    { name: "総合65の勝負師", icon: "🥇", value: mockStats.bestTotalDeviation, goal: 65, unit: "総合偏差値", level: 6 },
+    { name: "総合70の合格請負人", icon: "🌟", value: mockStats.bestTotalDeviation, goal: 70, unit: "総合偏差値", level: 7 },
+    { name: "得意科目の芽", icon: "🌱", value: mockStats.subjectsOver55, goal: 1, unit: "科目", level: 3 },
+    { name: "二科目エース化", icon: "🦅", value: mockStats.subjectsOver60, goal: 2, unit: "科目", level: 5 },
+    { name: "三科目の柱", icon: "🏛️", value: mockStats.subjectsOver65, goal: 3, unit: "科目", level: 6 },
+    { name: "偏差値+3の反撃", icon: "↗️", value: mockStats.bestDeviationGain, goal: 3, unit: "UP", level: 4 },
+    { name: "偏差値+5の逆転劇", icon: "📣", value: mockStats.bestDeviationGain, goal: 5, unit: "UP", level: 5 },
+    { name: "偏差値+10の覚醒", icon: "✨", value: mockStats.bestDeviationGain, goal: 10, unit: "UP", level: 7 },
+  );
 
   badgeList.replaceChildren();
   let unlockedCount = 0;
+  const unlockedBadges = [];
   badges.forEach((badge) => {
     const unlocked = badge.value >= badge.goal;
     if (unlocked) {
       unlockedCount += 1;
+      unlockedBadges.push(badge);
     }
 
     const item = document.createElement("div");
@@ -690,13 +792,27 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
     const condition = document.createElement("small");
     condition.textContent = unlocked
       ? `${badge.goal}${badge.unit} 達成！`
-      : `${Math.min(badge.value, badge.goal)} / ${badge.goal}${badge.unit}`;
+      : `${formatBadgeValue(Math.min(badge.value, badge.goal))} / ${badge.goal}${badge.unit}`;
 
     item.append(icon, name, condition);
     badgeList.append(item);
   });
   badgeCount.textContent = `${unlockedCount} / ${badges.length}`;
   currentTitle.textContent = getLevelTitle(currentLevel);
+  unlockedTitleList.replaceChildren();
+  unlockedTitleCount.textContent = unlockedCount > 0 ? `${unlockedCount}個獲得` : "まだなし";
+  unlockedBadges.slice(0, 18).forEach((badge) => {
+    const chip = document.createElement("span");
+    chip.className = `unlocked-title-chip level-${badge.level}`;
+    chip.textContent = `${badge.icon} ${badge.name}`;
+    unlockedTitleList.append(chip);
+  });
+  if (unlockedBadges.length > 18) {
+    const more = document.createElement("span");
+    more.className = "unlocked-title-chip more";
+    more.textContent = `+${unlockedBadges.length - 18}個`;
+    unlockedTitleList.append(more);
+  }
   return unlockedCount;
 }
 
@@ -1422,5 +1538,11 @@ tabButtons.forEach((button) => {
 window.addEventListener("resize", updateChartScrollHints);
 
 updateCountdown();
-setInterval(updateCountdown, 60000);
+setInterval(updateCountdown, 1000);
 render();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="まなびログ">
+  <defs>
+    <linearGradient id="bg" x1="96" y1="64" x2="430" y2="456" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="0.55" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="page" x1="135" y1="145" x2="388" y2="372" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e0e7ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <path d="M126 154c0-23 18-41 41-41h178c23 0 41 18 41 41v212c0 18-15 33-33 33H156c-17 0-30-13-30-30V154Z" fill="#312e81" opacity=".3"/>
+  <path d="M151 132h193c26 0 47 21 47 47v205c0 11-9 20-20 20H160c-22 0-40-18-40-40V163c0-17 14-31 31-31Z" fill="url(#page)"/>
+  <path d="M160 132h186c25 0 45 20 45 45v16H176c-18 0-33-15-33-33 0-15 8-28 17-28Z" fill="#c7d2fe"/>
+  <path d="M178 222h156M178 274h156M178 326h96" stroke="#4f46e5" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="344" cy="330" r="54" fill="#fbbf24"/>
+  <path d="M322 331l17 18 31-39" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
