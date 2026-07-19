@@ -1767,9 +1767,7 @@ todoForm.addEventListener("submit", (event) => {
   });
   saveTodos();
   todoForm.reset();
-  renderTodos();
-  renderWeeklyReview();
-  renderWeaknessAlerts();
+  render();
 });
 
 subjectGoalForm.addEventListener("submit", (event) => {
@@ -1797,8 +1795,7 @@ subjectGoalForm.addEventListener("submit", (event) => {
   subjectGoals = sanitizeSubjectGoals(subjectGoals);
   saveSubjectGoals();
   subjectGoalNameInput.value = "";
-  renderSubjectGoals();
-  renderWeaknessAlerts();
+  render();
 });
 
 holidayForm.addEventListener("submit", (event) => {
@@ -1942,6 +1939,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=5").catch(() => {});
   });
 }

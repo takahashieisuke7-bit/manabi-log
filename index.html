@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="manifest.webmanifest?v=5">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <main class="container">
@@ -181,6 +181,34 @@
     </section>
 
     <section class="card" data-tab-panel="record" hidden>
+      <h2>勉強を記録</h2>
+      <form id="studyForm">
+        <label for="subject">科目</label>
+        <input id="subject" maxlength="30" placeholder="例：英語" required>
+
+        <fieldset class="duration-fields">
+          <legend>勉強時間</legend>
+          <div>
+            <label for="studyHours">時間</label>
+            <input id="studyHours" type="number" min="0" max="23"
+                   inputmode="numeric" value="0" required>
+          </div>
+          <div>
+            <label for="studyMinutes">分</label>
+            <input id="studyMinutes" type="number" min="0" max="59"
+                   inputmode="numeric" value="30" required>
+          </div>
+        </fieldset>
+
+        <label for="wordCount">覚えた英単語数（任意）</label>
+        <input id="wordCount" type="number" min="0" max="10000"
+               inputmode="numeric" placeholder="例：20">
+
+        <button type="submit">記録する</button>
+      </form>
+    </section>
+
+    <section class="card" data-tab-panel="record" hidden>
       <div class="section-title">
         <h2>1日の目標</h2>
         <span id="goalDisplay" class="goal-display">未設定</span>
@@ -245,34 +273,6 @@
         <button type="submit">休日に設定</button>
       </form>
       <div id="holidayList" class="holiday-list"></div>
-    </section>
-
-    <section class="card" data-tab-panel="record" hidden>
-      <h2>勉強を記録</h2>
-      <form id="studyForm">
-        <label for="subject">科目</label>
-        <input id="subject" maxlength="30" placeholder="例：英語" required>
-
-        <fieldset class="duration-fields">
-          <legend>勉強時間</legend>
-          <div>
-            <label for="studyHours">時間</label>
-            <input id="studyHours" type="number" min="0" max="23"
-                   inputmode="numeric" value="0" required>
-          </div>
-          <div>
-            <label for="studyMinutes">分</label>
-            <input id="studyMinutes" type="number" min="0" max="59"
-                   inputmode="numeric" value="30" required>
-          </div>
-        </fieldset>
-
-        <label for="wordCount">覚えた英単語数（任意）</label>
-        <input id="wordCount" type="number" min="0" max="10000"
-               inputmode="numeric" placeholder="例：20">
-
-        <button type="submit">記録する</button>
-      </form>
     </section>
 
     <section class="card calendar-card" data-tab-panel="analysis" hidden>
@@ -412,6 +412,6 @@
     </li>
   </template>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
