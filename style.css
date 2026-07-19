@@ -250,14 +250,18 @@ header p {
   background: linear-gradient(145deg, #111827, #312e81);
 }
 
+.level-card.card {
+  padding: 18px;
+}
+
 .level-heading {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .level-heading > div:first-child {
-  min-width: 76px;
+  min-width: 62px;
   text-align: center;
 }
 
@@ -275,7 +279,7 @@ header p {
 }
 
 .level-heading > div:first-child strong {
-  font-size: 2.5rem;
+  font-size: 2rem;
   line-height: 1;
 }
 
@@ -291,7 +295,7 @@ header p {
 .level-track {
   overflow: hidden;
   height: 12px;
-  margin-top: 18px;
+  margin-top: 13px;
   border-radius: 999px;
   background: rgb(255 255 255 / 18%);
 }
@@ -319,7 +323,7 @@ header p {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 13px;
+  margin-top: 10px;
   font-size: 0.78rem;
 }
 
@@ -354,13 +358,75 @@ header p {
 .achievement-heading strong {
   margin-top: 3px;
   color: #4f46e5;
-  font-size: 1.8rem;
+  font-size: 1.55rem;
 }
 
 .achievement-heading > span {
   color: #6b7280;
   font-size: 0.8rem;
   text-align: right;
+}
+
+.compact-details-card {
+  padding: 0;
+}
+
+.compact-details-card details {
+  padding: 0;
+}
+
+.compact-details-card summary,
+.mock-input-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 18px 22px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.compact-details-card summary::-webkit-details-marker,
+.mock-input-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.compact-details-card summary::after,
+.mock-input-details summary::after {
+  color: #4f46e5;
+  content: "＋";
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.compact-details-card details[open] summary::after,
+.mock-input-details[open] summary::after {
+  content: "−";
+}
+
+.compact-details-card summary > span:first-child {
+  min-width: 0;
+}
+
+.compact-details-card summary strong,
+.compact-details-card summary small {
+  display: block;
+}
+
+.compact-details-card summary small {
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: 0.78rem;
+}
+
+.compact-details-card details > :not(summary) {
+  margin-right: 22px;
+  margin-left: 22px;
+}
+
+.compact-details-card details > :last-child {
+  margin-bottom: 18px;
 }
 
 .progress-track {
@@ -446,6 +512,31 @@ header p {
   margin-top: 4px;
   color: #78350f;
   line-height: 1.55;
+}
+
+.weakness-more {
+  margin-top: 10px;
+}
+
+.weakness-more summary {
+  display: inline-flex;
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: #4f46e5;
+  background: #eef2ff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.weakness-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.weakness-more .weakness-list {
+  margin-top: 10px;
 }
 
 .streak-value {
@@ -893,6 +984,24 @@ form button {
 
 .mock-form button {
   grid-column: 1 / -1;
+}
+
+.mock-input-details {
+  margin-top: 16px;
+  border: 1px solid #e0e7ff;
+  border-radius: 16px;
+  background: #f8faff;
+}
+
+.mock-input-details summary {
+  min-height: 48px;
+  padding: 12px 14px;
+  color: #4f46e5;
+  font-weight: 900;
+}
+
+.mock-input-details .mock-form {
+  padding: 0 14px 14px;
 }
 
 .mock-chart {
@@ -1366,10 +1475,35 @@ form button {
   font-size: 0.82rem;
 }
 
+.badge-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.badge-filters button {
+  min-height: 34px;
+  padding: 0 11px;
+  color: #4f46e5;
+  background: #eef2ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.badge-filters button.active {
+  color: #fff;
+  background: #4f46e5;
+}
+
 .badge-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+}
+
+.badge-list .empty {
+  grid-column: 1 / -1;
 }
 
 .badge {

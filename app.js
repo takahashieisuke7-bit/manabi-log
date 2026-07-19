@@ -96,9 +96,14 @@ const todoEmpty = document.querySelector("#todoEmpty");
 const todoProgress = document.querySelector("#todoProgress");
 const todoBadge = document.querySelector("#todoBadge");
 const weeklyRange = document.querySelector("#weeklyRange");
+const weeklySummary = document.querySelector("#weeklySummary");
 const weeklyReviewGrid = document.querySelector("#weeklyReviewGrid");
 const weeklyAdvice = document.querySelector("#weeklyAdvice");
+const weaknessPrimaryList = document.querySelector("#weaknessPrimaryList");
 const weaknessList = document.querySelector("#weaknessList");
+const weaknessMoreDetails = document.querySelector("#weaknessMoreDetails");
+const weaknessMoreSummary = document.querySelector("#weaknessMoreSummary");
+const badgeFilterButtons = document.querySelectorAll("[data-badge-filter]");
 const subjectGoalForm = document.querySelector("#subjectGoalForm");
 const subjectGoalNameInput = document.querySelector("#subjectGoalName");
 const subjectGoalHoursInput = document.querySelector("#subjectGoalHours");
@@ -116,6 +121,7 @@ let todos = loadTodos();
 let subjectGoals = loadSubjectGoals();
 let visibleMonth = new Date();
 let chartPeriod = "day";
+let badgeFilter = "all";
 let levelUpTimer;
 visibleMonth.setDate(1);
 holidayDateInput.value = localDateKey();
@@ -720,6 +726,7 @@ function renderWeeklyReview() {
   const doneTodos = todoWeek.filter((todo) => todo.done).length;
 
   weeklyRange.textContent = `${formatShortDate(current.start)}〜${formatShortDate(current.end)}`;
+  weeklySummary.textContent = `今週 ${formatMinutes(currentTotal)}・やること ${doneTodos}/${todoWeek.length}`;
   weeklyReviewGrid.replaceChildren();
   [
     ["今週", formatMinutes(currentTotal)],
@@ -799,12 +806,14 @@ function renderWeaknessAlerts() {
     }
   }
 
+  weaknessPrimaryList.replaceChildren();
   weaknessList.replaceChildren();
   const visibleAlerts = alerts.slice(0, 4);
   if (visibleAlerts.length === 0) {
     visibleAlerts.push(["今のところ大きな警告なし", "記録・目標・模試データが揃っています。この調子で更新しよう。"]);
   }
-  visibleAlerts.forEach(([title, message]) => {
+
+  const createAlertItem = ([title, message]) => {
     const item = document.createElement("div");
     item.className = "weakness-item";
     const strong = document.createElement("strong");
@@ -812,7 +821,15 @@ function renderWeaknessAlerts() {
     const small = document.createElement("small");
     small.textContent = message;
     item.append(strong, small);
-    weaknessList.append(item);
+    return item;
+  };
+
+  weaknessPrimaryList.append(createAlertItem(visibleAlerts[0]));
+  const extraAlerts = visibleAlerts.slice(1);
+  weaknessMoreDetails.hidden = extraAlerts.length === 0;
+  weaknessMoreSummary.textContent = `ほかの警告を見る（${extraAlerts.length}件）`;
+  extraAlerts.forEach((alert) => {
+    weaknessList.append(createAlertItem(alert));
   });
 }
 
@@ -1036,6 +1053,17 @@ function formatBadgeValue(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
+function badgeCategory(badge) {
+  if (badge.unit.includes("偏差値") || badge.unit === "UP" || badge.unit === "件" || badge.unit === "種類" || badge.unit === "科目") {
+    return "mock";
+  }
+  if (badge.unit.includes("連続")) return "streak";
+  if (badge.unit.includes("時間")) return "time";
+  if (badge.unit.includes("単語")) return "word";
+  if (badge.unit.includes("レベル")) return "level";
+  return "study";
+}
+
 function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel) {
   const totalHours = Math.floor(totalMinutes / 60);
   const mockStats = calculateMockBadgeStats();
@@ -1115,6 +1143,7 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
 
   badgeList.replaceChildren();
   let unlockedCount = 0;
+  let visibleBadgeCount = 0;
   const unlockedBadges = [];
   badges.forEach((badge) => {
     const unlocked = badge.value >= badge.goal;
@@ -1123,8 +1152,17 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
       unlockedBadges.push(badge);
     }
 
+    const category = badgeCategory(badge);
+    const visible = badgeFilter === "all"
+      || (badgeFilter === "unlocked" && unlocked)
+      || (badgeFilter === "locked" && !unlocked)
+      || badgeFilter === category;
+    if (!visible) return;
+    visibleBadgeCount += 1;
+
     const item = document.createElement("div");
     item.className = `badge${unlocked ? ` unlocked level-${badge.level}` : ""}`;
+    item.dataset.category = category;
 
     const icon = document.createElement("span");
     icon.className = "badge-icon";
@@ -1141,6 +1179,12 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
     item.append(icon, name, condition);
     badgeList.append(item);
   });
+  if (visibleBadgeCount === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "この条件の称号はまだありません。";
+    badgeList.append(empty);
+  }
   badgeCount.textContent = `${unlockedCount} / ${badges.length}`;
   currentTitle.textContent = getLevelTitle(currentLevel);
   unlockedTitleList.replaceChildren();
@@ -1654,7 +1698,7 @@ function render() {
   if (dailyGoal === 0) {
     goalProgress.textContent = "目標を設定してみよう";
     achievementRate.textContent = "未設定";
-    achievementMessage.textContent = "目標がなければ達成もない。まず今日の基準を決めよう。";
+    achievementMessage.textContent = "まず今日の基準を決めよう。";
     progressBar.style.width = "0%";
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", "0");
@@ -1662,7 +1706,7 @@ function render() {
     const rate = Math.floor((today / dailyGoal) * 100);
     goalProgress.textContent = "今日の目標達成！";
     achievementRate.textContent = `${rate}%`;
-    achievementMessage.textContent = "目標達成。よくやった。でも合格までは、この積み重ねを止めない。";
+    achievementMessage.textContent = "達成。明日も積もう。";
     progressBar.style.width = "100%";
     progressBar.classList.add("completed");
     progressTrack.setAttribute("aria-valuenow", "100");
@@ -1671,8 +1715,8 @@ function render() {
     goalProgress.textContent = `目標まであと${formatMinutes(dailyGoal - today)}`;
     achievementRate.textContent = `${rate}%`;
     achievementMessage.textContent = today === 0
-      ? "まだ0分。目標は行動して初めて意味がある。今すぐ始めよう。"
-      : `残り${formatMinutes(dailyGoal - today)}。まだ終わっていない。今日の目標は今日やり切ろう。`;
+      ? "まだ0分。今すぐ始めよう。"
+      : `残り${formatMinutes(dailyGoal - today)}。今日中に潰そう。`;
     progressBar.style.width = `${rate}%`;
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", String(rate));
@@ -1914,6 +1958,14 @@ periodButtons.forEach((button) => {
   });
 });
 
+badgeFilterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    badgeFilter = button.dataset.badgeFilter;
+    badgeFilterButtons.forEach((item) => item.classList.toggle("active", item === button));
+    render();
+  });
+});
+
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const selectedTab = button.dataset.tab;
@@ -1939,6 +1991,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=5").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=6").catch(() => {});
   });
 }

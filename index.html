@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=5">
+  <link rel="manifest" href="manifest.webmanifest?v=6">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <main class="container">
@@ -120,13 +120,18 @@
       </div>
     </section>
 
-    <section class="card weekly-review" data-tab-panel="home">
-      <div class="section-title">
-        <h2>週間レビュー</h2>
-        <span id="weeklyRange" class="goal-display">今週</span>
-      </div>
-      <div id="weeklyReviewGrid" class="review-grid"></div>
-      <p id="weeklyAdvice" class="review-advice">今週の記録から作戦を出します。</p>
+    <section class="card weekly-review compact-details-card" data-tab-panel="home">
+      <details id="weeklyDetails">
+        <summary>
+          <span>
+            <strong>週間レビュー</strong>
+            <small id="weeklySummary">今週の記録から作戦を出します。</small>
+          </span>
+          <span id="weeklyRange" class="goal-display">今週</span>
+        </summary>
+        <div id="weeklyReviewGrid" class="review-grid"></div>
+        <p id="weeklyAdvice" class="review-advice">今週の記録から作戦を出します。</p>
+      </details>
     </section>
 
     <section class="card weakness-card" data-tab-panel="home">
@@ -134,7 +139,11 @@
         <h2>弱点アラート</h2>
         <span class="goal-display">自動分析</span>
       </div>
-      <div id="weaknessList" class="weakness-list"></div>
+      <div id="weaknessPrimaryList" class="weakness-list"></div>
+      <details id="weaknessMoreDetails" class="weakness-more" hidden>
+        <summary id="weaknessMoreSummary">ほかの警告を見る</summary>
+        <div id="weaknessList" class="weakness-list"></div>
+      </details>
     </section>
 
     <section class="card chart-card" data-tab-panel="analysis" hidden>
@@ -177,6 +186,14 @@
         <div id="unlockedTitleList" class="unlocked-title-list"></div>
       </div>
       <p class="badge-help">続けるほど、少しずつ難しいバッジが解放されます。</p>
+      <div class="badge-filters" aria-label="称号の絞り込み">
+        <button type="button" class="active" data-badge-filter="all">すべて</button>
+        <button type="button" data-badge-filter="unlocked">獲得済み</button>
+        <button type="button" data-badge-filter="locked">未獲得</button>
+        <button type="button" data-badge-filter="time">時間</button>
+        <button type="button" data-badge-filter="streak">連続</button>
+        <button type="button" data-badge-filter="mock">偏差値</button>
+      </div>
       <div id="badgeList" class="badge-list"></div>
     </section>
 
@@ -228,51 +245,61 @@
       </form>
     </section>
 
-    <section class="card subject-goal-card" data-tab-panel="record" hidden>
-      <div class="section-title">
-        <h2>科目ごとの目標時間</h2>
-        <span id="subjectGoalCount" class="goal-display">0科目</span>
-      </div>
-      <p class="setting-note">
-        今日どの科目にどれだけ時間を使うか決められます。弱点アラートにも使います。
-      </p>
-      <form id="subjectGoalForm" class="subject-goal-form">
-        <div>
-          <label for="subjectGoalName">科目</label>
-          <input id="subjectGoalName" maxlength="30" placeholder="例：数学" required>
-        </div>
-        <div>
-          <label for="subjectGoalHours">時間</label>
-          <input id="subjectGoalHours" type="number" min="0" max="23"
-                 inputmode="numeric" value="1" required>
-        </div>
-        <div>
-          <label for="subjectGoalMinutes">分</label>
-          <input id="subjectGoalMinutes" type="number" min="0" max="59"
-                 inputmode="numeric" value="0" required>
-        </div>
-        <button type="submit">追加・更新</button>
-      </form>
-      <div id="subjectGoalList" class="subject-goal-list"></div>
-      <p id="subjectGoalEmpty" class="empty">まだ科目別目標がありません。</p>
+    <section class="card subject-goal-card compact-details-card" data-tab-panel="record" hidden>
+      <details id="subjectGoalDetails">
+        <summary>
+          <span>
+            <strong>科目ごとの目標時間</strong>
+            <small>設定したら普段は閉じてOK</small>
+          </span>
+          <span id="subjectGoalCount" class="goal-display">0科目</span>
+        </summary>
+        <p class="setting-note">
+          今日どの科目にどれだけ時間を使うか決められます。弱点アラートにも使います。
+        </p>
+        <form id="subjectGoalForm" class="subject-goal-form">
+          <div>
+            <label for="subjectGoalName">科目</label>
+            <input id="subjectGoalName" maxlength="30" placeholder="例：数学" required>
+          </div>
+          <div>
+            <label for="subjectGoalHours">時間</label>
+            <input id="subjectGoalHours" type="number" min="0" max="23"
+                   inputmode="numeric" value="1" required>
+          </div>
+          <div>
+            <label for="subjectGoalMinutes">分</label>
+            <input id="subjectGoalMinutes" type="number" min="0" max="59"
+                   inputmode="numeric" value="0" required>
+          </div>
+          <button type="submit">追加・更新</button>
+        </form>
+        <div id="subjectGoalList" class="subject-goal-list"></div>
+        <p id="subjectGoalEmpty" class="empty">まだ科目別目標がありません。</p>
+      </details>
     </section>
 
-    <section class="card" data-tab-panel="record" hidden>
-      <div class="section-title">
-        <h2>休日・連続記録の救済</h2>
-        <span id="rescueCount" class="goal-display">救済 0回</span>
-      </div>
-      <p class="setting-note">
-        休日は連続記録を切りません。休んだ翌日に目標の1.5倍を達成すると、前日を1日だけ救済します。
-      </p>
-      <form id="holidayForm" class="holiday-form">
-        <div>
-          <label for="holidayDate">休日にする日</label>
-          <input id="holidayDate" type="date" required>
-        </div>
-        <button type="submit">休日に設定</button>
-      </form>
-      <div id="holidayList" class="holiday-list"></div>
+    <section class="card compact-details-card" data-tab-panel="record" hidden>
+      <details id="holidayDetails">
+        <summary>
+          <span>
+            <strong>休日・連続記録の救済</strong>
+            <small>必要な時だけ開く</small>
+          </span>
+          <span id="rescueCount" class="goal-display">救済 0回</span>
+        </summary>
+        <p class="setting-note">
+          休日は連続記録を切りません。休んだ翌日に目標の1.5倍を達成すると、前日を1日だけ救済します。
+        </p>
+        <form id="holidayForm" class="holiday-form">
+          <div>
+            <label for="holidayDate">休日にする日</label>
+            <input id="holidayDate" type="date" required>
+          </div>
+          <button type="submit">休日に設定</button>
+        </form>
+        <div id="holidayList" class="holiday-list"></div>
+      </details>
     </section>
 
     <section class="card calendar-card" data-tab-panel="analysis" hidden>
@@ -302,34 +329,37 @@
         同じ模試名・第何回・受験日で科目を追加します。総合偏差値は、
         科目名を「総合」にして手入力してください。
       </p>
-      <form id="mockForm" class="mock-form">
-        <div>
-          <label for="mockName">模試名</label>
-          <input id="mockName" maxlength="30" placeholder="例：河合共通テスト模試" required>
-        </div>
-        <div>
-          <label for="mockRound">第何回</label>
-          <input id="mockRound" type="number" min="1" max="99"
-                 inputmode="numeric" placeholder="例：1" required>
-        </div>
-        <div>
-          <label for="mockDate">受験日</label>
-          <input id="mockDate" type="date" required>
-        </div>
-        <div>
-          <label for="mockSubject">科目</label>
-          <input id="mockSubject" maxlength="30"
-                 placeholder="例：英語リーディング" required>
-        </div>
-        <div>
-          <label for="mockDeviation">偏差値</label>
-          <input id="mockDeviation" type="number" min="0" max="100" step="0.1"
-                 inputmode="decimal" placeholder="例：55.3" required>
-        </div>
-        <button type="submit">偏差値を追加・更新</button>
-      </form>
       <div id="mockChart" class="mock-chart"></div>
       <p id="mockEmpty" class="empty">まだ模試結果がありません。</p>
+      <details class="mock-input-details">
+        <summary>模試結果を入力する</summary>
+        <form id="mockForm" class="mock-form">
+          <div>
+            <label for="mockName">模試名</label>
+            <input id="mockName" maxlength="30" placeholder="例：河合共通テスト模試" required>
+          </div>
+          <div>
+            <label for="mockRound">第何回</label>
+            <input id="mockRound" type="number" min="1" max="99"
+                   inputmode="numeric" placeholder="例：1" required>
+          </div>
+          <div>
+            <label for="mockDate">受験日</label>
+            <input id="mockDate" type="date" required>
+          </div>
+          <div>
+            <label for="mockSubject">科目</label>
+            <input id="mockSubject" maxlength="30"
+                   placeholder="例：英語リーディング" required>
+          </div>
+          <div>
+            <label for="mockDeviation">偏差値</label>
+            <input id="mockDeviation" type="number" min="0" max="100" step="0.1"
+                   inputmode="decimal" placeholder="例：55.3" required>
+          </div>
+          <button type="submit">偏差値を追加・更新</button>
+        </form>
+      </details>
     </section>
 
     <section class="card record-history-card" data-tab-panel="record" hidden>
@@ -345,23 +375,28 @@
         <ul id="recordList"></ul>
       </details>
     </section>
-    <section class="card backup-card" data-tab-panel="record" hidden>
-      <div class="section-title">
-        <h2>バックアップ・復元</h2>
-        <span class="goal-display">無料・端末保存</span>
-      </div>
-      <p class="setting-note">
-        勉強記録、目標、休日、プロフィール、模試結果を1つのファイルに保存できます。
-        スマホの機種変更やブラウザのデータ削除に備えて、ときどき保存しておくのがおすすめです。
-      </p>
-      <div class="backup-actions">
-        <button id="exportBackup" class="backup-primary" type="button">バックアップを書き出す</button>
-        <label class="backup-secondary" for="backupFile">バックアップを読み込む</label>
-        <input id="backupFile" class="visually-hidden" type="file" accept="application/json,.json">
-      </div>
-      <p id="backupStatus" class="backup-status" role="status">
-        復元すると、今この端末に入っている記録はバックアップ内容で上書きされます。
-      </p>
+    <section class="card backup-card compact-details-card" data-tab-panel="record" hidden>
+      <details id="backupDetails">
+        <summary>
+          <span>
+            <strong>バックアップ・復元</strong>
+            <small>毎日使わないので折りたたみ</small>
+          </span>
+          <span class="goal-display">無料</span>
+        </summary>
+        <p class="setting-note">
+          勉強記録、目標、休日、プロフィール、模試結果を1つのファイルに保存できます。
+          スマホの機種変更やブラウザのデータ削除に備えて、ときどき保存しておくのがおすすめです。
+        </p>
+        <div class="backup-actions">
+          <button id="exportBackup" class="backup-primary" type="button">バックアップを書き出す</button>
+          <label class="backup-secondary" for="backupFile">バックアップを読み込む</label>
+          <input id="backupFile" class="visually-hidden" type="file" accept="application/json,.json">
+        </div>
+        <p id="backupStatus" class="backup-status" role="status">
+          復元すると、今この端末に入っている記録はバックアップ内容で上書きされます。
+        </p>
+      </details>
     </section>
   </main>
 
@@ -412,6 +447,6 @@
     </li>
   </template>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
