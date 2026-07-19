@@ -1367,6 +1367,63 @@ li {
   font-size: 1.3rem;
 }
 
+.backup-card {
+  border-color: #c7d2fe;
+  background: linear-gradient(145deg, #fff, #eef2ff);
+}
+
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.backup-primary,
+.backup-secondary {
+  display: grid;
+  min-height: 46px;
+  place-items: center;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.backup-primary {
+  color: #fff;
+  background: #4f46e5;
+}
+
+.backup-secondary {
+  color: #3730a3;
+  background: #e0e7ff;
+}
+
+.backup-status {
+  margin: 12px 0 0;
+  color: #4b5563;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.backup-status.success {
+  color: #166534;
+}
+
+.backup-status.error {
+  color: #b91c1c;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 @media (max-width: 420px) {
   .container {
     width: min(100% - 24px, 620px);
@@ -1436,5 +1493,9 @@ li {
 
   .mock-form button {
     grid-column: auto;
+  }
+
+  .backup-actions {
+    grid-template-columns: 1fr;
   }
 }

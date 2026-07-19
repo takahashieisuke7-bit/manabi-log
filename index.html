@@ -266,6 +266,24 @@
       <p id="emptyMessage" class="empty">まだ記録がありません。</p>
       <ul id="recordList"></ul>
     </section>
+    <section class="card backup-card" data-tab-panel="record" hidden>
+      <div class="section-title">
+        <h2>バックアップ・復元</h2>
+        <span class="goal-display">無料・端末保存</span>
+      </div>
+      <p class="setting-note">
+        勉強記録、目標、休日、プロフィール、模試結果を1つのファイルに保存できます。
+        スマホの機種変更やブラウザのデータ削除に備えて、ときどき保存しておくのがおすすめです。
+      </p>
+      <div class="backup-actions">
+        <button id="exportBackup" class="backup-primary" type="button">バックアップを書き出す</button>
+        <label class="backup-secondary" for="backupFile">バックアップを読み込む</label>
+        <input id="backupFile" class="visually-hidden" type="file" accept="application/json,.json">
+      </div>
+      <p id="backupStatus" class="backup-status" role="status">
+        復元すると、今この端末に入っている記録はバックアップ内容で上書きされます。
+      </p>
+    </section>
   </main>
 
   <dialog id="profileDialog" class="profile-dialog">

@@ -82,6 +82,9 @@ const profileStreak = document.querySelector("#profileStreak");
 const profileBadges = document.querySelector("#profileBadges");
 const levelUpToast = document.querySelector("#levelUpToast");
 const levelUpMessage = document.querySelector("#levelUpMessage");
+const exportBackupButton = document.querySelector("#exportBackup");
+const backupFileInput = document.querySelector("#backupFile");
+const backupStatus = document.querySelector("#backupStatus");
 
 let records = loadRecords();
 let dailyGoal = loadDailyGoal();
@@ -103,7 +106,7 @@ if (dailyGoal > 0) {
 
 function loadRecords() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? [];
+    return sanitizeRecords(JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? []);
   } catch {
     return [];
   }
@@ -115,13 +118,13 @@ function saveRecords() {
 
 function loadDailyGoal() {
   const savedGoal = Number(localStorage.getItem(GOAL_KEY));
-  return Number.isInteger(savedGoal) && savedGoal > 0 ? savedGoal : 0;
+  return sanitizeDailyGoal(savedGoal);
 }
 
 function loadHolidays() {
   try {
     const saved = JSON.parse(localStorage.getItem(HOLIDAYS_KEY)) ?? [];
-    return Array.isArray(saved) ? saved.filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)) : [];
+    return sanitizeHolidays(saved);
   } catch {
     return [];
   }
@@ -185,6 +188,98 @@ function loadMockResults() {
   }
 }
 
+function createId() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isDateKey(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function sanitizeRecords(value) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((record) => {
+    const subject = typeof record?.subject === "string" ? record.subject.trim() : "";
+    const minutes = Number(record?.minutes);
+    const wordCount = Number(record?.wordCount ?? 0);
+    if (
+      !subject
+      || !isDateKey(record?.date)
+      || !Number.isInteger(minutes) || minutes < 1 || minutes > 23 * 60 + 59
+      || !Number.isInteger(wordCount) || wordCount < 0 || wordCount > 10000
+    ) {
+      return [];
+    }
+    return [{
+      id: String(record.id ?? createId()),
+      subject,
+      minutes,
+      wordCount,
+      date: record.date,
+    }];
+  });
+}
+
+function sanitizeDailyGoal(value) {
+  const goal = Number(value);
+  return Number.isInteger(goal) && goal > 0 && goal <= 23 * 60 + 59 ? goal : 0;
+}
+
+function sanitizeHolidays(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter(isDateKey))].sort();
+}
+
+function sanitizeProfile(value) {
+  const name = typeof value?.name === "string" && value.name.trim()
+    ? value.name.trim().slice(0, 20)
+    : "学習者";
+  const goal = typeof value?.goal === "string" && value.goal.trim()
+    ? value.goal.trim().slice(0, 40)
+    : "慶応大学合格";
+  return { name, goal };
+}
+
+function sanitizeMockResults(value) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((result) => {
+    if (
+      typeof result?.name !== "string" || !result.name.trim()
+      || !isDateKey(result.date)
+    ) {
+      return [];
+    }
+
+    const base = {
+      id: String(result.id ?? createId()),
+      name: result.name.trim().slice(0, 30),
+      date: result.date,
+      round: Number.isInteger(Number(result.round))
+        && Number(result.round) >= 1
+        && Number(result.round) <= 99
+        ? Number(result.round)
+        : null,
+      subject: typeof result.subject === "string" && result.subject.trim()
+        ? result.subject.trim().slice(0, 30)
+        : "総合",
+    };
+    const deviation = Number(result.deviation);
+    if (Number.isFinite(deviation) && deviation >= 0 && deviation <= 100) {
+      return [{ ...base, deviation }];
+    }
+
+    const score = Number(result.score);
+    const maxScore = Number(result.maxScore);
+    if (
+      Number.isInteger(score) && Number.isInteger(maxScore)
+      && score >= 0 && maxScore >= 1 && score <= maxScore
+    ) {
+      return [{ ...base, score, maxScore }];
+    }
+    return [];
+  });
+}
+
 function saveHolidays() {
   localStorage.setItem(HOLIDAYS_KEY, JSON.stringify(holidays));
 }
@@ -195,6 +290,111 @@ function saveProfile() {
 
 function saveMockResults() {
   localStorage.setItem(MOCK_RESULTS_KEY, JSON.stringify(mockResults));
+}
+
+function saveDailyGoal() {
+  if (dailyGoal > 0) {
+    localStorage.setItem(GOAL_KEY, String(dailyGoal));
+  } else {
+    localStorage.removeItem(GOAL_KEY);
+  }
+}
+
+function saveAllData() {
+  saveRecords();
+  saveDailyGoal();
+  saveHolidays();
+  saveProfile();
+  saveMockResults();
+}
+
+function setBackupStatus(message, type = "") {
+  backupStatus.textContent = message;
+  backupStatus.classList.toggle("success", type === "success");
+  backupStatus.classList.toggle("error", type === "error");
+}
+
+function createBackupPayload() {
+  return {
+    app: "manabi-log",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: {
+      records,
+      dailyGoal,
+      holidays,
+      profile,
+      mockResults,
+    },
+  };
+}
+
+function exportBackup() {
+  const payload = createBackupPayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `manabi-log-backup-${localDateKey()}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  setBackupStatus("バックアップファイルを書き出しました。スマホの「ダウンロード」や「ファイル」に保存されます。", "success");
+}
+
+function readBackupPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("invalid-backup");
+  }
+
+  const source = payload.data && typeof payload.data === "object" ? payload.data : payload;
+  const hasBackupData = ["records", "dailyGoal", "holidays", "profile", "mockResults"]
+    .some((key) => Object.prototype.hasOwnProperty.call(source, key));
+  if (!hasBackupData) {
+    throw new Error("invalid-backup");
+  }
+
+  return {
+    records: sanitizeRecords(source.records ?? []),
+    dailyGoal: sanitizeDailyGoal(source.dailyGoal ?? 0),
+    holidays: sanitizeHolidays(source.holidays ?? []),
+    profile: sanitizeProfile(source.profile ?? {}),
+    mockResults: sanitizeMockResults(source.mockResults ?? []),
+  };
+}
+
+async function importBackup(file) {
+  if (!file) return;
+
+  try {
+    const payload = readBackupPayload(JSON.parse(await file.text()));
+    const ok = confirm("バックアップを復元します。今この端末に入っている記録は、選んだバックアップ内容で上書きされます。続けますか？");
+    if (!ok) {
+      setBackupStatus("復元をキャンセルしました。今の記録はそのままです。");
+      return;
+    }
+
+    records = payload.records;
+    dailyGoal = payload.dailyGoal;
+    holidays = payload.holidays;
+    profile = payload.profile;
+    mockResults = payload.mockResults;
+    saveAllData();
+
+    goalHoursInput.value = dailyGoal > 0 ? Math.floor(dailyGoal / 60) : 1;
+    goalMinutesInput.value = dailyGoal > 0 ? dailyGoal % 60 : 0;
+    profileNameInput.value = profile.name;
+    ultimateGoalInput.value = profile.goal;
+    render();
+    setBackupStatus("バックアップを復元しました。記録・目標・プロフィール・模試結果を更新しました。", "success");
+  } catch {
+    setBackupStatus("このファイルは読み込めませんでした。まなびログのバックアップファイルを選んでください。", "error");
+  } finally {
+    backupFileInput.value = "";
+  }
 }
 
 function localDateKey(date = new Date()) {
@@ -1083,7 +1283,7 @@ goalForm.addEventListener("submit", (event) => {
   }
 
   dailyGoal = hours * 60 + minutes;
-  localStorage.setItem(GOAL_KEY, String(dailyGoal));
+  saveDailyGoal();
   render();
 });
 
@@ -1168,6 +1368,12 @@ profileForm.addEventListener("submit", (event) => {
   saveProfile();
   render();
   profileDialog.close();
+});
+
+exportBackupButton.addEventListener("click", exportBackup);
+
+backupFileInput.addEventListener("change", () => {
+  importBackup(backupFileInput.files[0]);
 });
 
 deleteAllButton.addEventListener("click", () => {
