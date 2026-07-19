@@ -43,6 +43,22 @@
               role="tab" aria-selected="false">称号</button>
     </nav>
 
+    <section class="card todo-card" data-tab-panel="home">
+      <div class="section-title">
+        <div>
+          <h2>今日やること</h2>
+          <p id="todoProgress" class="setting-note">今日の勝ち筋を作ろう。</p>
+        </div>
+        <span id="todoBadge" class="goal-display">0 / 0</span>
+      </div>
+      <form id="todoForm" class="todo-form">
+        <input id="todoInput" maxlength="50" placeholder="例：英単語100個、数学10問" required>
+        <button type="submit">追加</button>
+      </form>
+      <div id="todoList" class="todo-list"></div>
+      <p id="todoEmpty" class="empty">今日のやることはまだありません。</p>
+    </section>
+
     <section class="summary" aria-label="勉強時間の合計" data-tab-panel="home">
       <div>
         <span>今日</span>
@@ -104,6 +120,23 @@
       </div>
     </section>
 
+    <section class="card weekly-review" data-tab-panel="home">
+      <div class="section-title">
+        <h2>週間レビュー</h2>
+        <span id="weeklyRange" class="goal-display">今週</span>
+      </div>
+      <div id="weeklyReviewGrid" class="review-grid"></div>
+      <p id="weeklyAdvice" class="review-advice">今週の記録から作戦を出します。</p>
+    </section>
+
+    <section class="card weakness-card" data-tab-panel="home">
+      <div class="section-title">
+        <h2>弱点アラート</h2>
+        <span class="goal-display">自動分析</span>
+      </div>
+      <div id="weaknessList" class="weakness-list"></div>
+    </section>
+
     <section class="card chart-card" data-tab-panel="analysis" hidden>
       <div class="section-title chart-title">
         <div>
@@ -125,45 +158,6 @@
         </div>
         <div id="chartLegend" class="chart-legend"></div>
       </div>
-    </section>
-
-    <section class="card" data-tab-panel="analysis" hidden>
-      <div class="section-title">
-        <h2>共テ模試の結果</h2>
-        <span class="goal-display">科目別・総合</span>
-      </div>
-      <p class="setting-note">
-        同じ模試名・第何回・受験日で科目を追加します。総合偏差値は、
-        科目名を「総合」にして手入力してください。
-      </p>
-      <form id="mockForm" class="mock-form">
-        <div>
-          <label for="mockName">模試名</label>
-          <input id="mockName" maxlength="30" placeholder="例：河合共通テスト模試" required>
-        </div>
-        <div>
-          <label for="mockRound">第何回</label>
-          <input id="mockRound" type="number" min="1" max="99"
-                 inputmode="numeric" placeholder="例：1" required>
-        </div>
-        <div>
-          <label for="mockDate">受験日</label>
-          <input id="mockDate" type="date" required>
-        </div>
-        <div>
-          <label for="mockSubject">科目</label>
-          <input id="mockSubject" maxlength="30"
-                 placeholder="例：英語リーディング" required>
-        </div>
-        <div>
-          <label for="mockDeviation">偏差値</label>
-          <input id="mockDeviation" type="number" min="0" max="100" step="0.1"
-                 inputmode="decimal" placeholder="例：55.3" required>
-        </div>
-        <button type="submit">偏差値を追加・更新</button>
-      </form>
-      <div id="mockChart" class="mock-chart"></div>
-      <p id="mockEmpty" class="empty">まだ模試結果がありません。</p>
     </section>
 
     <section class="card" data-tab-panel="badges" hidden>
@@ -204,6 +198,35 @@
         </div>
         <button type="submit">設定</button>
       </form>
+    </section>
+
+    <section class="card subject-goal-card" data-tab-panel="record" hidden>
+      <div class="section-title">
+        <h2>科目ごとの目標時間</h2>
+        <span id="subjectGoalCount" class="goal-display">0科目</span>
+      </div>
+      <p class="setting-note">
+        今日どの科目にどれだけ時間を使うか決められます。弱点アラートにも使います。
+      </p>
+      <form id="subjectGoalForm" class="subject-goal-form">
+        <div>
+          <label for="subjectGoalName">科目</label>
+          <input id="subjectGoalName" maxlength="30" placeholder="例：数学" required>
+        </div>
+        <div>
+          <label for="subjectGoalHours">時間</label>
+          <input id="subjectGoalHours" type="number" min="0" max="23"
+                 inputmode="numeric" value="1" required>
+        </div>
+        <div>
+          <label for="subjectGoalMinutes">分</label>
+          <input id="subjectGoalMinutes" type="number" min="0" max="59"
+                 inputmode="numeric" value="0" required>
+        </div>
+        <button type="submit">追加・更新</button>
+      </form>
+      <div id="subjectGoalList" class="subject-goal-list"></div>
+      <p id="subjectGoalEmpty" class="empty">まだ科目別目標がありません。</p>
     </section>
 
     <section class="card" data-tab-panel="record" hidden>
@@ -270,13 +293,57 @@
       </p>
     </section>
 
-    <section class="card" data-tab-panel="record" hidden>
+    <section class="card mock-section" data-tab-panel="analysis" hidden>
       <div class="section-title">
-        <h2>勉強記録</h2>
-        <button id="deleteAll" class="text-button" type="button">すべて削除</button>
+        <h2>共テ模試の結果</h2>
+        <span class="goal-display">科目別・総合</span>
       </div>
-      <p id="emptyMessage" class="empty">まだ記録がありません。</p>
-      <ul id="recordList"></ul>
+      <p class="setting-note">
+        同じ模試名・第何回・受験日で科目を追加します。総合偏差値は、
+        科目名を「総合」にして手入力してください。
+      </p>
+      <form id="mockForm" class="mock-form">
+        <div>
+          <label for="mockName">模試名</label>
+          <input id="mockName" maxlength="30" placeholder="例：河合共通テスト模試" required>
+        </div>
+        <div>
+          <label for="mockRound">第何回</label>
+          <input id="mockRound" type="number" min="1" max="99"
+                 inputmode="numeric" placeholder="例：1" required>
+        </div>
+        <div>
+          <label for="mockDate">受験日</label>
+          <input id="mockDate" type="date" required>
+        </div>
+        <div>
+          <label for="mockSubject">科目</label>
+          <input id="mockSubject" maxlength="30"
+                 placeholder="例：英語リーディング" required>
+        </div>
+        <div>
+          <label for="mockDeviation">偏差値</label>
+          <input id="mockDeviation" type="number" min="0" max="100" step="0.1"
+                 inputmode="decimal" placeholder="例：55.3" required>
+        </div>
+        <button type="submit">偏差値を追加・更新</button>
+      </form>
+      <div id="mockChart" class="mock-chart"></div>
+      <p id="mockEmpty" class="empty">まだ模試結果がありません。</p>
+    </section>
+
+    <section class="card record-history-card" data-tab-panel="record" hidden>
+      <details id="recordHistoryDetails">
+        <summary>
+          <span>
+            <strong>勉強記録</strong>
+            <small>開くと過去の記録確認・削除ができます</small>
+          </span>
+          <button id="deleteAll" class="text-button" type="button">すべて削除</button>
+        </summary>
+        <p id="emptyMessage" class="empty">まだ記録がありません。</p>
+        <ul id="recordList"></ul>
+      </details>
     </section>
     <section class="card backup-card" data-tab-panel="record" hidden>
       <div class="section-title">

@@ -5,6 +5,8 @@ const GOAL_KEY = "study-daily-goal-v1";
 const HOLIDAYS_KEY = "study-holidays-v1";
 const PROFILE_KEY = "study-profile-v1";
 const MOCK_RESULTS_KEY = "study-mock-results-v1";
+const TODOS_KEY = "study-todos-v1";
+const SUBJECT_GOALS_KEY = "study-subject-goals-v1";
 const EXAM_DATE = new Date("2027-01-16T09:30:00+09:00");
 const MAX_LEVEL_HOURS = 5000;
 
@@ -87,12 +89,31 @@ const levelUpMessage = document.querySelector("#levelUpMessage");
 const exportBackupButton = document.querySelector("#exportBackup");
 const backupFileInput = document.querySelector("#backupFile");
 const backupStatus = document.querySelector("#backupStatus");
+const todoForm = document.querySelector("#todoForm");
+const todoInput = document.querySelector("#todoInput");
+const todoList = document.querySelector("#todoList");
+const todoEmpty = document.querySelector("#todoEmpty");
+const todoProgress = document.querySelector("#todoProgress");
+const todoBadge = document.querySelector("#todoBadge");
+const weeklyRange = document.querySelector("#weeklyRange");
+const weeklyReviewGrid = document.querySelector("#weeklyReviewGrid");
+const weeklyAdvice = document.querySelector("#weeklyAdvice");
+const weaknessList = document.querySelector("#weaknessList");
+const subjectGoalForm = document.querySelector("#subjectGoalForm");
+const subjectGoalNameInput = document.querySelector("#subjectGoalName");
+const subjectGoalHoursInput = document.querySelector("#subjectGoalHours");
+const subjectGoalMinutesInput = document.querySelector("#subjectGoalMinutes");
+const subjectGoalList = document.querySelector("#subjectGoalList");
+const subjectGoalEmpty = document.querySelector("#subjectGoalEmpty");
+const subjectGoalCount = document.querySelector("#subjectGoalCount");
 
 let records = loadRecords();
 let dailyGoal = loadDailyGoal();
 let holidays = loadHolidays();
 let profile = loadProfile();
 let mockResults = loadMockResults();
+let todos = loadTodos();
+let subjectGoals = loadSubjectGoals();
 let visibleMonth = new Date();
 let chartPeriod = "day";
 let levelUpTimer;
@@ -190,6 +211,22 @@ function loadMockResults() {
   }
 }
 
+function loadTodos() {
+  try {
+    return sanitizeTodos(JSON.parse(localStorage.getItem(TODOS_KEY)) ?? []);
+  } catch {
+    return [];
+  }
+}
+
+function loadSubjectGoals() {
+  try {
+    return sanitizeSubjectGoals(JSON.parse(localStorage.getItem(SUBJECT_GOALS_KEY)) ?? []);
+  } catch {
+    return [];
+  }
+}
+
 function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -282,6 +319,39 @@ function sanitizeMockResults(value) {
   });
 }
 
+function sanitizeTodos(value) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((todo) => {
+    const text = typeof todo?.text === "string" ? todo.text.trim().slice(0, 50) : "";
+    const date = isDateKey(todo?.date) ? todo.date : localDateKey();
+    if (!text) return [];
+    return [{
+      id: String(todo.id ?? createId()),
+      text,
+      date,
+      done: Boolean(todo.done),
+    }];
+  });
+}
+
+function sanitizeSubjectGoals(value) {
+  if (!Array.isArray(value)) return [];
+  const goals = new Map();
+  value.forEach((goal) => {
+    const subject = typeof goal?.subject === "string" ? goal.subject.trim().slice(0, 30) : "";
+    const minutes = Number(goal?.minutes);
+    if (
+      subject
+      && Number.isInteger(minutes)
+      && minutes >= 1
+      && minutes <= 23 * 60 + 59
+    ) {
+      goals.set(subject, { subject, minutes });
+    }
+  });
+  return [...goals.values()].sort((a, b) => a.subject.localeCompare(b.subject, "ja"));
+}
+
 function saveHolidays() {
   localStorage.setItem(HOLIDAYS_KEY, JSON.stringify(holidays));
 }
@@ -292,6 +362,14 @@ function saveProfile() {
 
 function saveMockResults() {
   localStorage.setItem(MOCK_RESULTS_KEY, JSON.stringify(mockResults));
+}
+
+function saveTodos() {
+  localStorage.setItem(TODOS_KEY, JSON.stringify(todos));
+}
+
+function saveSubjectGoals() {
+  localStorage.setItem(SUBJECT_GOALS_KEY, JSON.stringify(subjectGoals));
 }
 
 function saveDailyGoal() {
@@ -308,6 +386,8 @@ function saveAllData() {
   saveHolidays();
   saveProfile();
   saveMockResults();
+  saveTodos();
+  saveSubjectGoals();
 }
 
 function setBackupStatus(message, type = "") {
@@ -327,6 +407,8 @@ function createBackupPayload() {
       holidays,
       profile,
       mockResults,
+      todos,
+      subjectGoals,
     },
   };
 }
@@ -353,7 +435,15 @@ function readBackupPayload(payload) {
   }
 
   const source = payload.data && typeof payload.data === "object" ? payload.data : payload;
-  const hasBackupData = ["records", "dailyGoal", "holidays", "profile", "mockResults"]
+  const hasBackupData = [
+    "records",
+    "dailyGoal",
+    "holidays",
+    "profile",
+    "mockResults",
+    "todos",
+    "subjectGoals",
+  ]
     .some((key) => Object.prototype.hasOwnProperty.call(source, key));
   if (!hasBackupData) {
     throw new Error("invalid-backup");
@@ -365,6 +455,8 @@ function readBackupPayload(payload) {
     holidays: sanitizeHolidays(source.holidays ?? []),
     profile: sanitizeProfile(source.profile ?? {}),
     mockResults: sanitizeMockResults(source.mockResults ?? []),
+    todos: sanitizeTodos(source.todos ?? []),
+    subjectGoals: sanitizeSubjectGoals(source.subjectGoals ?? []),
   };
 }
 
@@ -384,6 +476,8 @@ async function importBackup(file) {
     holidays = payload.holidays;
     profile = payload.profile;
     mockResults = payload.mockResults;
+    todos = payload.todos;
+    subjectGoals = payload.subjectGoals;
     saveAllData();
 
     goalHoursInput.value = dailyGoal > 0 ? Math.floor(dailyGoal / 60) : 1;
@@ -391,7 +485,7 @@ async function importBackup(file) {
     profileNameInput.value = profile.name;
     ultimateGoalInput.value = profile.goal;
     render();
-    setBackupStatus("バックアップを復元しました。記録・目標・プロフィール・模試結果を更新しました。", "success");
+    setBackupStatus("バックアップを復元しました。記録・目標・プロフィール・模試結果・やること・科目別目標を更新しました。", "success");
   } catch {
     setBackupStatus("このファイルは読み込めませんでした。まなびログのバックアップファイルを選んでください。", "error");
   } finally {
@@ -470,6 +564,256 @@ function chartPeriodRange() {
     end.setMonth(now.getMonth() + 1, 0);
   }
   return { start, end };
+}
+
+function weekRange(offsetWeeks = 0) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const daysFromMonday = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - daysFromMonday + offsetWeeks * 7);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start, end, startKey: localDateKey(start), endKey: localDateKey(end) };
+}
+
+function recordsInRange(startKey, endKey) {
+  return records.filter((record) => record.date >= startKey && record.date <= endKey);
+}
+
+function minutesBySubject(sourceRecords) {
+  return sourceRecords.reduce((totals, record) => {
+    totals.set(record.subject, (totals.get(record.subject) ?? 0) + record.minutes);
+    return totals;
+  }, new Map());
+}
+
+function todayMinutesBySubject() {
+  return minutesBySubject(records.filter((record) => record.date === localDateKey()));
+}
+
+function latestMockDeviationBySubject() {
+  const latest = new Map();
+  mockResults
+    .filter((result) => Number.isFinite(Number(result.deviation)))
+    .sort((a, b) => (
+      a.date.localeCompare(b.date)
+      || Number(a.round ?? 0) - Number(b.round ?? 0)
+    ))
+    .forEach((result) => {
+      latest.set(result.subject, Number(result.deviation));
+    });
+  return latest;
+}
+
+function renderTodos() {
+  const todayKey = localDateKey();
+  const todaysTodos = todos.filter((todo) => todo.date === todayKey);
+  const doneCount = todaysTodos.filter((todo) => todo.done).length;
+
+  todoList.replaceChildren();
+  todoEmpty.hidden = todaysTodos.length > 0;
+  todoBadge.textContent = `${doneCount} / ${todaysTodos.length}`;
+  if (todaysTodos.length === 0) {
+    todoProgress.textContent = "今日の勝ち筋を作ろう。";
+  } else if (doneCount === todaysTodos.length) {
+    todoProgress.textContent = "今日のやること完了。いい流れ、そのまま積もう。";
+  } else {
+    todoProgress.textContent = `残り${todaysTodos.length - doneCount}個。迷う時間を減らして、上から潰そう。`;
+  }
+
+  todaysTodos.forEach((todo) => {
+    const item = document.createElement("label");
+    item.className = `todo-item${todo.done ? " done" : ""}`;
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = todo.done;
+    checkbox.addEventListener("change", () => {
+      todos = todos.map((item) => (
+        item.id === todo.id ? { ...item, done: checkbox.checked } : item
+      ));
+      saveTodos();
+      renderTodos();
+      renderWeeklyReview();
+      renderWeaknessAlerts();
+    });
+
+    const text = document.createElement("span");
+    text.textContent = todo.text;
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "todo-delete";
+    remove.setAttribute("aria-label", "やることを削除");
+    remove.textContent = "×";
+    remove.addEventListener("click", () => {
+      todos = todos.filter((item) => item.id !== todo.id);
+      saveTodos();
+      renderTodos();
+      renderWeaknessAlerts();
+    });
+
+    item.append(checkbox, text, remove);
+    todoList.append(item);
+  });
+}
+
+function renderSubjectGoals() {
+  const todayTotals = todayMinutesBySubject();
+  subjectGoalList.replaceChildren();
+  subjectGoalEmpty.hidden = subjectGoals.length > 0;
+  subjectGoalCount.textContent = `${subjectGoals.length}科目`;
+
+  subjectGoals.forEach((goal) => {
+    const studied = todayTotals.get(goal.subject) ?? 0;
+    const rate = Math.min(100, Math.floor((studied / goal.minutes) * 100));
+    const row = document.createElement("div");
+    row.className = "subject-goal-row";
+
+    const heading = document.createElement("div");
+    heading.className = "subject-goal-heading";
+    const name = document.createElement("strong");
+    name.textContent = goal.subject;
+    const meta = document.createElement("span");
+    meta.textContent = `${formatMinutes(studied)} / ${formatMinutes(goal.minutes)}`;
+    heading.append(name, meta);
+
+    const track = document.createElement("div");
+    track.className = "subject-goal-track";
+    const bar = document.createElement("div");
+    bar.className = studied >= goal.minutes ? "subject-goal-bar completed" : "subject-goal-bar";
+    bar.style.width = `${rate}%`;
+    track.append(bar);
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "subject-goal-delete";
+    remove.textContent = "削除";
+    remove.addEventListener("click", () => {
+      subjectGoals = subjectGoals.filter((item) => item.subject !== goal.subject);
+      saveSubjectGoals();
+      renderSubjectGoals();
+      renderWeaknessAlerts();
+    });
+
+    row.append(heading, track, remove);
+    subjectGoalList.append(row);
+  });
+}
+
+function renderWeeklyReview() {
+  const current = weekRange(0);
+  const previous = weekRange(-1);
+  const currentRecords = recordsInRange(current.startKey, current.endKey);
+  const previousRecords = recordsInRange(previous.startKey, previous.endKey);
+  const currentTotal = currentRecords.reduce((sum, record) => sum + record.minutes, 0);
+  const previousTotal = previousRecords.reduce((sum, record) => sum + record.minutes, 0);
+  const delta = currentTotal - previousTotal;
+  const subjectTotals = [...minutesBySubject(currentRecords).entries()]
+    .sort((a, b) => b[1] - a[1]);
+  const goalAchievedDays = [...new Set(currentRecords.map((record) => record.date))]
+    .filter((date) => dailyGoal > 0 && currentRecords
+      .filter((record) => record.date === date)
+      .reduce((sum, record) => sum + record.minutes, 0) >= dailyGoal)
+    .length;
+  const todoWeek = todos.filter((todo) => todo.date >= current.startKey && todo.date <= current.endKey);
+  const doneTodos = todoWeek.filter((todo) => todo.done).length;
+
+  weeklyRange.textContent = `${formatShortDate(current.start)}〜${formatShortDate(current.end)}`;
+  weeklyReviewGrid.replaceChildren();
+  [
+    ["今週", formatMinutes(currentTotal)],
+    ["先週との差", delta >= 0 ? `+${formatMinutes(delta)}` : `-${formatMinutes(Math.abs(delta))}`],
+    ["目標達成日", dailyGoal > 0 ? `${goalAchievedDays}日` : "未設定"],
+    ["やること", `${doneTodos} / ${todoWeek.length}`],
+    ["一番多い科目", subjectTotals[0] ? `${subjectTotals[0][0]} ${formatMinutes(subjectTotals[0][1])}` : "まだなし"],
+  ].forEach(([label, value]) => {
+    const item = document.createElement("div");
+    const small = document.createElement("span");
+    small.textContent = label;
+    const strong = document.createElement("strong");
+    strong.textContent = value;
+    item.append(small, strong);
+    weeklyReviewGrid.append(item);
+  });
+
+  if (currentTotal === 0) {
+    weeklyAdvice.textContent = "今週はまだ記録がありません。まず1回、短くても記録を残そう。";
+  } else if (delta >= 0) {
+    weeklyAdvice.textContent = "先週以上に積めています。油断せず、足りない科目を1つ潰すとさらに強い。";
+  } else {
+    weeklyAdvice.textContent = "先週より落ちています。原因を責めるより、今日の1タスクを確実に終わらせよう。";
+  }
+}
+
+function renderWeaknessAlerts() {
+  const alerts = [];
+  const todayTotals = todayMinutesBySubject();
+  const lastTwoWeeks = weekRange(0);
+  const twoWeeksStart = new Date(lastTwoWeeks.start);
+  twoWeeksStart.setDate(twoWeeksStart.getDate() - 7);
+  const recentRecords = recordsInRange(localDateKey(twoWeeksStart), lastTwoWeeks.endKey);
+  const recentSubjectTotals = [...minutesBySubject(recentRecords).entries()]
+    .sort((a, b) => a[1] - b[1]);
+  const latestDeviation = latestMockDeviationBySubject();
+
+  if (todos.filter((todo) => todo.date === localDateKey()).length === 0) {
+    alerts.push(["今日のやることが未設定", "ホーム一番上で、今日絶対やるタスクを1つだけでも入れよう。"]);
+  }
+  if (dailyGoal === 0) {
+    alerts.push(["1日の目標が未設定", "記録タブで基準時間を決めよう。基準がないと勝ち負けが見えません。"]);
+  }
+  if (subjectGoals.length === 0) {
+    alerts.push(["科目別目標が未設定", "英語・数学など、合格に必要な科目ごとの時間配分を決めよう。"]);
+  }
+
+  subjectGoals.forEach((goal) => {
+    const studied = todayTotals.get(goal.subject) ?? 0;
+    if (studied < goal.minutes) {
+      alerts.push([
+        `${goal.subject}が今日まだ不足`,
+        `あと${formatMinutes(goal.minutes - studied)}で科目別目標に届きます。`,
+      ]);
+    }
+  });
+
+  [...latestDeviation.entries()]
+    .filter(([subject, deviation]) => subject !== "総合" && deviation < 50)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, 2)
+    .forEach(([subject, deviation]) => {
+      alerts.push([
+        `${subject}の偏差値が足を引っ張り気味`,
+        `最新偏差値${deviation}。次はこの科目の復習タスクを入れる価値があります。`,
+      ]);
+    });
+
+  if (recentSubjectTotals.length >= 2) {
+    const [weakSubject, weakMinutes] = recentSubjectTotals[0];
+    const [, strongestMinutes] = recentSubjectTotals[recentSubjectTotals.length - 1];
+    if (strongestMinutes >= weakMinutes * 3 && strongestMinutes >= 180) {
+      alerts.push([
+        `${weakSubject}の時間が少なめ`,
+        `直近2週間で${formatMinutes(weakMinutes)}。得意科目だけで押し切れるか確認しよう。`,
+      ]);
+    }
+  }
+
+  weaknessList.replaceChildren();
+  const visibleAlerts = alerts.slice(0, 4);
+  if (visibleAlerts.length === 0) {
+    visibleAlerts.push(["今のところ大きな警告なし", "記録・目標・模試データが揃っています。この調子で更新しよう。"]);
+  }
+  visibleAlerts.forEach(([title, message]) => {
+    const item = document.createElement("div");
+    item.className = "weakness-item";
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    const small = document.createElement("small");
+    small.textContent = message;
+    item.append(strong, small);
+    weaknessList.append(item);
+  });
 }
 
 function renderSubjectChart() {
@@ -1201,7 +1545,7 @@ function renderMockResults() {
           removeButton.addEventListener("click", () => {
             mockResults = mockResults.filter((item) => item.id !== result.id);
             saveMockResults();
-            renderMockResults();
+            render();
           });
           row.append(description, value, removeButton);
           dataList.append(row);
@@ -1216,7 +1560,7 @@ function renderMockResults() {
         const ids = new Set(results.map((result) => result.id));
         mockResults = mockResults.filter((result) => !ids.has(result.id));
         saveMockResults();
-        renderMockResults();
+        render();
       });
       dataDetails.append(removeGroupButton);
       body.append(dataDetails);
@@ -1340,6 +1684,10 @@ function render() {
     studyDayCount,
     currentLevel,
   );
+  renderTodos();
+  renderSubjectGoals();
+  renderWeeklyReview();
+  renderWeaknessAlerts();
   renderLevelAndProfile(total, streaks, unlockedBadgeCount);
   renderHolidays();
   renderMockResults();
@@ -1403,6 +1751,56 @@ goalForm.addEventListener("submit", (event) => {
   render();
 });
 
+todoForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = todoInput.value.trim();
+  if (!text) {
+    alert("今日やることを入力してください。");
+    return;
+  }
+
+  todos.unshift({
+    id: createId(),
+    text,
+    date: localDateKey(),
+    done: false,
+  });
+  saveTodos();
+  todoForm.reset();
+  renderTodos();
+  renderWeeklyReview();
+  renderWeaknessAlerts();
+});
+
+subjectGoalForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const subject = subjectGoalNameInput.value.trim();
+  const hours = Number(subjectGoalHoursInput.value);
+  const minutes = Number(subjectGoalMinutesInput.value);
+  const totalMinutes = hours * 60 + minutes;
+  if (
+    !subject
+    || !Number.isInteger(hours) || hours < 0 || hours > 23
+    || !Number.isInteger(minutes) || minutes < 0 || minutes > 59
+    || totalMinutes < 1
+  ) {
+    alert("科目名と、1分以上の目標時間を入力してください。");
+    return;
+  }
+
+  const existing = subjectGoals.find((goal) => goal.subject === subject);
+  if (existing) {
+    existing.minutes = totalMinutes;
+  } else {
+    subjectGoals.push({ subject, minutes: totalMinutes });
+  }
+  subjectGoals = sanitizeSubjectGoals(subjectGoals);
+  saveSubjectGoals();
+  subjectGoalNameInput.value = "";
+  renderSubjectGoals();
+  renderWeaknessAlerts();
+});
+
 holidayForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const date = holidayDateInput.value;
@@ -1455,7 +1853,7 @@ mockForm.addEventListener("submit", (event) => {
     });
   }
   saveMockResults();
-  renderMockResults();
+  render();
   mockSubjectInput.value = "";
   mockDeviationInput.value = "";
   mockSubjectInput.focus();
@@ -1492,7 +1890,8 @@ backupFileInput.addEventListener("change", () => {
   importBackup(backupFileInput.files[0]);
 });
 
-deleteAllButton.addEventListener("click", () => {
+deleteAllButton.addEventListener("click", (event) => {
+  event.stopPropagation();
   if (confirm("すべての勉強記録を削除しますか？")) {
     records = [];
     saveRecords();
