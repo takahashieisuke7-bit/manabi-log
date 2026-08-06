@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=7">
+  <link rel="manifest" href="manifest.webmanifest?v=8">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <main class="container">
@@ -244,14 +244,14 @@
         </div>
 
         <div class="quick-fill">
-          <div>
-            <span>最近の記録から再入力</span>
+          <details>
+            <summary>最近の記録から再入力</summary>
             <div id="recentRecordButtons" class="quick-buttons"></div>
-          </div>
-          <div>
-            <span>よく使うテンプレート</span>
+          </details>
+          <details>
+            <summary>よく使うテンプレート</summary>
             <div id="templateButtons" class="quick-buttons"></div>
-          </div>
+          </details>
         </div>
 
         <fieldset class="duration-fields">
@@ -490,6 +490,15 @@
     </form>
   </dialog>
 
+  <dialog id="subjectInsightDialog" class="profile-dialog subject-insight-dialog">
+    <div class="dialog-header">
+      <h2 id="subjectInsightTitle">科目の詳細</h2>
+      <button id="subjectInsightCloseButton" class="dialog-close" type="button"
+              aria-label="科目の詳細を閉じる">×</button>
+    </div>
+    <div id="subjectInsightBody" class="subject-insight-body"></div>
+  </dialog>
+
   <div id="levelUpToast" class="level-up-toast" hidden>
     <span>LEVEL UP!</span>
     <strong id="levelUpMessage"></strong>
@@ -514,6 +523,6 @@
     </li>
   </template>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

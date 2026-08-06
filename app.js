@@ -104,6 +104,10 @@ const profileLevel = document.querySelector("#profileLevel");
 const profileHours = document.querySelector("#profileHours");
 const profileStreak = document.querySelector("#profileStreak");
 const profileBadges = document.querySelector("#profileBadges");
+const subjectInsightDialog = document.querySelector("#subjectInsightDialog");
+const subjectInsightTitle = document.querySelector("#subjectInsightTitle");
+const subjectInsightBody = document.querySelector("#subjectInsightBody");
+const subjectInsightCloseButton = document.querySelector("#subjectInsightCloseButton");
 const levelUpToast = document.querySelector("#levelUpToast");
 const levelUpMessage = document.querySelector("#levelUpMessage");
 const exportBackupButton = document.querySelector("#exportBackup");
@@ -686,6 +690,14 @@ function minutesByActivity(sourceRecords) {
   }, new Map());
 }
 
+function countByActivity(sourceRecords) {
+  return sourceRecords.reduce((totals, record) => {
+    const activity = record.activity || "その他";
+    totals.set(activity, (totals.get(activity) ?? 0) + 1);
+    return totals;
+  }, new Map());
+}
+
 function averageMinutes(sourceRecords) {
   if (sourceRecords.length === 0) return 0;
   return Math.round(sourceRecords.reduce((sum, record) => sum + record.minutes, 0) / sourceRecords.length);
@@ -709,6 +721,25 @@ function latestMockDeviationBySubject() {
     ))
     .forEach((result) => {
       latest.set(result.subject, Number(result.deviation));
+    });
+  return latest;
+}
+
+function latestMockResultBySubject() {
+  const latest = new Map();
+  mockResults
+    .filter((result) => Number.isFinite(Number(result.deviation)))
+    .sort((a, b) => (
+      a.date.localeCompare(b.date)
+      || Number(a.round ?? 0) - Number(b.round ?? 0)
+    ))
+    .forEach((result) => {
+      latest.set(result.subject, {
+        name: result.name,
+        round: result.round,
+        date: result.date,
+        deviation: Number(result.deviation),
+      });
     });
   return latest;
 }
@@ -1148,6 +1179,58 @@ function renderWeaknessAlerts() {
     ]);
   }
 
+  [...minutesBySubject(recentRecords).keys()]
+    .map((subject) => {
+      const subjectRecords = recentRecords.filter((record) => record.subject === subject);
+      const totals = minutesByActivity(subjectRecords);
+      return {
+        subject,
+        lecture: totals.get("東進受講") ?? 0,
+        review: totals.get("復習") ?? 0,
+      };
+    })
+    .filter((item) => item.lecture >= 90 && item.review < item.lecture * 0.35)
+    .sort((a, b) => b.lecture - a.lecture)
+    .slice(0, 2)
+    .forEach((item) => {
+      alerts.push([
+        `${item.subject}は受講の割に復習が少ない`,
+        `直近2週間で受講${formatMinutes(item.lecture)}、復習${formatMinutes(item.review)}。今日のやることに復習を入れよう。`,
+      ]);
+    });
+
+  const currentWeek = weekRange(0);
+  const previousWeek = weekRange(-1);
+  const currentWeekRecords = recordsInRange(currentWeek.startKey, currentWeek.endKey);
+  const previousWeekRecords = recordsInRange(previousWeek.startKey, previousWeek.endKey);
+  const practiceSubjects = new Set([
+    ...currentWeekRecords
+      .filter((record) => (record.activity || "その他") === "問題演習")
+      .map((record) => record.subject),
+    ...previousWeekRecords
+      .filter((record) => (record.activity || "その他") === "問題演習")
+      .map((record) => record.subject),
+  ]);
+  [...practiceSubjects]
+    .map((subject) => {
+      const current = currentWeekRecords
+        .filter((record) => record.subject === subject && (record.activity || "その他") === "問題演習")
+        .reduce((sum, record) => sum + record.minutes, 0);
+      const previous = previousWeekRecords
+        .filter((record) => record.subject === subject && (record.activity || "その他") === "問題演習")
+        .reduce((sum, record) => sum + record.minutes, 0);
+      return { subject, current, previous };
+    })
+    .filter((item) => item.previous >= 60 && item.current < item.previous * 0.7)
+    .sort((a, b) => (b.previous - b.current) - (a.previous - a.current))
+    .slice(0, 2)
+    .forEach((item) => {
+      alerts.push([
+        `${item.subject}の演習時間が先週より落ちています`,
+        `先週${formatMinutes(item.previous)}→今週${formatMinutes(item.current)}。落ちた分を1セットだけ戻そう。`,
+      ]);
+    });
+
   ["単語", "過去問", "模試復習"].forEach((activity) => {
     const latest = lastRecordDate(records.filter((record) => (record.activity || "その他") === activity));
     if (latest && dayNumber(localDateKey()) - dayNumber(latest) >= 3) {
@@ -1157,6 +1240,12 @@ function renderWeaknessAlerts() {
       ]);
     }
   });
+  if (records.length >= 3 && !lastRecordDate(records.filter((record) => (record.activity || "その他") === "単語"))) {
+    alerts.push([
+      "単語の記録がまだありません",
+      "英語は毎日の小さい積み上げが効きます。単語をやった日は個数も残そう。",
+    ]);
+  }
 
   subjectGoals.forEach((goal) => {
     const studied = todayTotals.get(goal.subject) ?? 0;
@@ -1176,6 +1265,26 @@ function renderWeaknessAlerts() {
       alerts.push([
         `${subject}の偏差値が足を引っ張り気味`,
         `最新偏差値${deviation}。次はこの科目の復習タスクを入れる価値があります。`,
+      ]);
+    });
+
+  [...latestMockResultBySubject().entries()]
+    .filter(([subject, result]) => subject !== "総合" && result.deviation < 50)
+    .map(([subject, result]) => {
+      const mockDate = new Date(`${result.date}T00:00:00`);
+      mockDate.setDate(mockDate.getDate() - 14);
+      const studied = recordsInRange(localDateKey(mockDate), localDateKey())
+        .filter((record) => record.subject === subject)
+        .reduce((sum, record) => sum + record.minutes, 0);
+      return { subject, result, studied };
+    })
+    .filter((item) => item.studied < 180)
+    .sort((a, b) => a.studied - b.studied)
+    .slice(0, 2)
+    .forEach((item) => {
+      alerts.push([
+        `${item.subject}は偏差値低めなのに時間が足りない`,
+        `最新偏差値${item.result.deviation}、直近の記録は${formatMinutes(item.studied)}。優先順位を上げよう。`,
       ]);
     });
 
@@ -1266,6 +1375,9 @@ function renderSubjectChart() {
   const showDetail = (name) => {
     selectedChartItem = { mode: chartMode, name, startKey, endKey };
     renderChartDetail(rangeRecords);
+    if (chartMode === "subject") {
+      openSubjectInsightDialog(name, rangeRecords);
+    }
   };
 
   items.forEach(([name, minutes], index) => {
@@ -1359,6 +1471,142 @@ function renderChartDetail(rangeRecords) {
   chartDetail.append(title, stats);
   if (subTotals.size > 0) chartDetail.append(breakdown);
   chartDetail.append(recent);
+}
+
+function createInsightStat(label, value) {
+  const item = document.createElement("div");
+  const span = document.createElement("span");
+  span.textContent = label;
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  item.append(span, strong);
+  return item;
+}
+
+function subjectWarnings(subject, sourceRecords) {
+  const warnings = [];
+  const subjectRecords = sourceRecords.filter((record) => record.subject === subject);
+  const activityTotals = minutesByActivity(subjectRecords);
+  const lectureMinutes = activityTotals.get("東進受講") ?? 0;
+  const reviewMinutes = activityTotals.get("復習") ?? 0;
+  const practiceMinutes = activityTotals.get("問題演習") ?? 0;
+
+  if (lectureMinutes >= 90 && reviewMinutes < lectureMinutes * 0.35) {
+    warnings.push([
+      "受講に対して復習が少ない",
+      `受講${formatMinutes(lectureMinutes)}に対して復習${formatMinutes(reviewMinutes)}。受けっぱなしは点に変わりにくい。`,
+    ]);
+  }
+  if (practiceMinutes === 0 && subjectRecords.reduce((sum, record) => sum + record.minutes, 0) >= 180) {
+    warnings.push([
+      "演習の記録が少ない",
+      "インプットだけだと弱点が見えにくい。次は問題演習を1セット入れよう。",
+    ]);
+  }
+
+  const latestDeviation = latestMockResultBySubject().get(subject);
+  if (latestDeviation && latestDeviation.deviation < 50) {
+    const mockDate = new Date(`${latestDeviation.date}T00:00:00`);
+    mockDate.setDate(mockDate.getDate() - 14);
+    const sinceMockRecords = recordsInRange(localDateKey(mockDate), localDateKey())
+      .filter((record) => record.subject === subject);
+    const sinceMockMinutes = sinceMockRecords.reduce((sum, record) => sum + record.minutes, 0);
+    if (sinceMockMinutes < 180) {
+      warnings.push([
+        "偏差値が低いのに勉強時間が少ない",
+        `${latestDeviation.name} 第${latestDeviation.round}回は偏差値${latestDeviation.deviation}。直近の${subject}は${formatMinutes(sinceMockMinutes)}なので、優先度を上げよう。`,
+      ]);
+    }
+  }
+
+  return warnings;
+}
+
+function openSubjectInsightDialog(subject, rangeRecords) {
+  const subjectRecords = rangeRecords.filter((record) => record.subject === subject);
+  if (subjectRecords.length === 0 || !subjectInsightDialog) return;
+
+  const total = subjectRecords.reduce((sum, record) => sum + record.minutes, 0);
+  const activityTotals = minutesByActivity(subjectRecords);
+  const activityCounts = countByActivity(subjectRecords);
+  const words = subjectRecords.reduce((sum, record) => sum + (Number(record.wordCount) || 0), 0);
+  const warnings = subjectWarnings(subject, rangeRecords);
+
+  subjectInsightTitle.textContent = `${subject}の内容別分析`;
+  subjectInsightBody.replaceChildren();
+
+  const stats = document.createElement("div");
+  stats.className = "detail-stats";
+  stats.append(
+    createInsightStat("期間合計", formatMinutes(total)),
+    createInsightStat("記録回数", `${subjectRecords.length}回`),
+    createInsightStat("1回平均", formatMinutes(averageMinutes(subjectRecords))),
+    createInsightStat("英単語", `${words}個`),
+  );
+
+  const activitySection = document.createElement("section");
+  activitySection.className = "insight-section";
+  const activityTitle = document.createElement("h3");
+  activityTitle.textContent = "内容別の平均時間";
+  const activityList = document.createElement("div");
+  activityList.className = "activity-average-list";
+  [...activityTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([activity, minutes]) => {
+      const activityRecords = subjectRecords.filter((record) => (record.activity || "その他") === activity);
+      const row = document.createElement("div");
+      const main = document.createElement("strong");
+      main.textContent = activity;
+      const detail = document.createElement("span");
+      detail.textContent = `${activityCounts.get(activity)}回・合計${formatMinutes(minutes)}・平均${formatMinutes(averageMinutes(activityRecords))}`;
+      row.append(main, detail);
+      activityList.append(row);
+    });
+  activitySection.append(activityTitle, activityList);
+
+  const warningSection = document.createElement("section");
+  warningSection.className = "insight-section";
+  const warningTitle = document.createElement("h3");
+  warningTitle.textContent = "危険サイン";
+  const warningList = document.createElement("div");
+  warningList.className = "insight-warning-list";
+  if (warnings.length === 0) {
+    const ok = document.createElement("p");
+    ok.className = "empty";
+    ok.textContent = "この期間では大きな危険サインはありません。記録が増えるほど分析が鋭くなります。";
+    warningList.append(ok);
+  } else {
+    warnings.forEach(([title, message]) => {
+      const item = document.createElement("div");
+      const strong = document.createElement("strong");
+      strong.textContent = title;
+      const small = document.createElement("small");
+      small.textContent = message;
+      item.append(strong, small);
+      warningList.append(item);
+    });
+  }
+  warningSection.append(warningTitle, warningList);
+
+  const recentSection = document.createElement("section");
+  recentSection.className = "insight-section";
+  const recentTitle = document.createElement("h3");
+  recentTitle.textContent = "最近の記録";
+  const recentList = document.createElement("div");
+  recentList.className = "detail-records";
+  [...subjectRecords]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5)
+    .forEach((record) => {
+      const row = document.createElement("div");
+      const memo = record.memo ? `・${record.memo}` : "";
+      row.textContent = `${record.date}・${record.activity || "その他"}・${formatMinutes(record.minutes)}${memo}`;
+      recentList.append(row);
+    });
+  recentSection.append(recentTitle, recentList);
+
+  subjectInsightBody.append(stats, activitySection, warningSection, recentSection);
+  subjectInsightDialog.showModal();
 }
 
 function updateCountdown() {
@@ -2424,6 +2672,10 @@ profileCloseButton.addEventListener("click", () => {
   profileDialog.close();
 });
 
+subjectInsightCloseButton.addEventListener("click", () => {
+  subjectInsightDialog.close();
+});
+
 profileForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = profileNameInput.value.trim();
@@ -2526,6 +2778,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=7").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=8").catch(() => {});
   });
 }

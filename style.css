@@ -835,6 +835,59 @@ header p {
   font-size: 0.82rem;
 }
 
+.subject-insight-dialog {
+  width: min(100% - 28px, 620px);
+}
+
+.subject-insight-body {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.insight-section {
+  padding: 14px;
+  border: 1px solid #e0e7ff;
+  border-radius: 16px;
+  background: #f8faff;
+}
+
+.insight-section h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.activity-average-list,
+.insight-warning-list {
+  display: grid;
+  gap: 8px;
+}
+
+.activity-average-list div,
+.insight-warning-list div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.activity-average-list strong,
+.insight-warning-list strong {
+  color: #1f2937;
+}
+
+.activity-average-list span,
+.insight-warning-list small {
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.insight-warning-list div {
+  border-left: 4px solid #f59e0b;
+}
+
 .card {
   margin-top: 16px;
   padding: 22px;
@@ -896,13 +949,19 @@ legend {
   margin-top: 14px;
 }
 
-.quick-fill > div {
+.quick-fill details {
   padding: 10px;
   border-radius: 14px;
   background: #f9fafb;
 }
 
-.quick-fill span,
+.quick-fill summary {
+  color: #4b5563;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .quick-fill small {
   display: block;
   color: #6b7280;
