@@ -10,3 +10,6 @@
 !manifest.webmanifest
 !service-worker.js
 !icon.svg
+!.github/
+!.github/workflows/
+!.github/workflows/pages.yml
