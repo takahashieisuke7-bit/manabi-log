@@ -20,7 +20,7 @@ const DEFAULT_ACTIVITY_OPTIONS = [
   "模試復習",
   "その他",
 ];
-const SUBJECT_ACTIVITY_SEPARATOR = "\u0000";
+const SUBJECT_ACTIVITY_SEPARATOR = " :: ";
 
 const form = document.querySelector("#studyForm");
 const goalForm = document.querySelector("#goalForm");
@@ -902,7 +902,7 @@ function renderQuickFillButtons() {
 
   const combos = new Map();
   records.forEach((record) => {
-    const key = `${record.subject}\u0000${record.activity || "その他"}`;
+    const key = subjectActivityKey(record);
     const current = combos.get(key) ?? {
       subject: record.subject,
       activity: record.activity || "その他",
