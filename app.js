@@ -20,6 +20,7 @@ const DEFAULT_ACTIVITY_OPTIONS = [
   "模試復習",
   "その他",
 ];
+const SUBJECT_ACTIVITY_SEPARATOR = "\u0000";
 
 const form = document.querySelector("#studyForm");
 const goalForm = document.querySelector("#goalForm");
@@ -690,6 +691,23 @@ function minutesByActivity(sourceRecords) {
   }, new Map());
 }
 
+function subjectActivityKey(record) {
+  return `${record.subject}${SUBJECT_ACTIVITY_SEPARATOR}${record.activity || "その他"}`;
+}
+
+function splitSubjectActivityKey(key) {
+  const [subject, activity = "その他"] = key.split(SUBJECT_ACTIVITY_SEPARATOR);
+  return { subject, activity };
+}
+
+function minutesBySubjectActivity(sourceRecords) {
+  return sourceRecords.reduce((totals, record) => {
+    const key = subjectActivityKey(record);
+    totals.set(key, (totals.get(key) ?? 0) + record.minutes);
+    return totals;
+  }, new Map());
+}
+
 function countByActivity(sourceRecords) {
   return sourceRecords.reduce((totals, record) => {
     const activity = record.activity || "その他";
@@ -865,8 +883,16 @@ function fillStudyForm({ subject, activity, minutes = 30, wordCount = 0, memo = 
 function renderQuickFillButtons() {
   recentRecordButtons.replaceChildren();
   templateButtons.replaceChildren();
+  const currentSubject = subjectInput.value.trim();
+  const prioritizeSubject = (items) => {
+    if (!currentSubject) return items;
+    return [
+      ...items.filter((item) => item.subject === currentSubject),
+      ...items.filter((item) => item.subject !== currentSubject),
+    ];
+  };
 
-  records.slice(0, 4).forEach((record) => {
+  prioritizeSubject(records).slice(0, 4).forEach((record) => {
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = `${record.subject} / ${record.activity || "その他"}`;
@@ -889,7 +915,11 @@ function renderQuickFillButtons() {
   });
 
   [...combos.values()]
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => {
+      const aPriority = currentSubject && a.subject === currentSubject ? 1 : 0;
+      const bPriority = currentSubject && b.subject === currentSubject ? 1 : 0;
+      return bPriority - aPriority || b.count - a.count;
+    })
     .slice(0, 5)
     .forEach((combo) => {
       const average = Math.round(combo.minutes.reduce((sum, value) => sum + value, 0) / combo.minutes.length);
@@ -1117,7 +1147,12 @@ function renderMonthlyRecap() {
   const monthRecords = recordsInRange(startKey, endKey);
   const total = monthRecords.reduce((sum, record) => sum + record.minutes, 0);
   const subjectTop = [...minutesBySubject(monthRecords).entries()].sort((a, b) => b[1] - a[1])[0];
-  const activityTop = [...minutesByActivity(monthRecords).entries()].sort((a, b) => b[1] - a[1])[0];
+  const activityTop = [...minutesBySubjectActivity(monthRecords).entries()]
+    .map(([key, minutes]) => {
+      const { subject, activity } = splitSubjectActivityKey(key);
+      return [`${subject} / ${activity}`, minutes];
+    })
+    .sort((a, b) => b[1] - a[1])[0];
   const words = monthRecords.reduce((sum, record) => sum + (Number(record.wordCount) || 0), 0);
   monthlyRecapRange.textContent = `${start.getFullYear()}年${start.getMonth() + 1}月`;
   monthlyRecap.replaceChildren();
@@ -1332,10 +1367,30 @@ function renderSubjectChart() {
   const endKey = localDateKey(end);
   const rangeRecords = records.filter((record) => record.date >= startKey && record.date <= endKey);
   const totals = chartMode === "activity"
-    ? minutesByActivity(rangeRecords)
+    ? minutesBySubjectActivity(rangeRecords)
     : minutesBySubject(rangeRecords);
-  const items = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-  const total = items.reduce((sum, [, minutes]) => sum + minutes, 0);
+  const items = [...totals.entries()]
+    .map(([key, minutes]) => {
+      if (chartMode === "activity") {
+        const { subject, activity } = splitSubjectActivityKey(key);
+        return {
+          key,
+          name: `${subject} / ${activity}`,
+          subject,
+          activity,
+          minutes,
+        };
+      }
+      return {
+        key,
+        name: key,
+        subject: key,
+        activity: "",
+        minutes,
+      };
+    })
+    .sort((a, b) => b.minutes - a.minutes);
+  const total = items.reduce((sum, item) => sum + item.minutes, 0);
   const colors = [
     "#4f46e5", "#06b6d4", "#22c55e", "#f59e0b", "#ef4444",
     "#8b5cf6", "#ec4899", "#14b8a6", "#84cc16", "#f97316",
@@ -1343,7 +1398,7 @@ function renderSubjectChart() {
 
   chartRange.textContent = chartPeriod === "day"
     ? `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日`
-    : `${formatShortDate(start)}〜${formatShortDate(end)}・${chartMode === "activity" ? "内容別" : "科目別"}`;
+    : `${formatShortDate(start)}〜${formatShortDate(end)}・${chartMode === "activity" ? "科目×内容別" : "科目別"}`;
   chartTotal.textContent = formatMinutes(total);
   chartLegend.replaceChildren();
   chartDetail.hidden = true;
@@ -1360,31 +1415,39 @@ function renderSubjectChart() {
   }
 
   let accumulated = 0;
-  const gradientParts = items.map(([, minutes], index) => {
+  const gradientParts = items.map((item, index) => {
     const startDegree = (accumulated / total) * 360;
-    accumulated += minutes;
+    accumulated += item.minutes;
     const endDegree = (accumulated / total) * 360;
     return `${colors[index % colors.length]} ${startDegree}deg ${endDegree}deg`;
   });
   pieChart.style.background = `conic-gradient(${gradientParts.join(", ")})`;
   pieChart.setAttribute(
     "aria-label",
-    items.map(([name, minutes]) => `${name} ${formatMinutes(minutes)}`).join("、"),
+    items.map((item) => `${item.name} ${formatMinutes(item.minutes)}`).join("、"),
   );
 
-  const showDetail = (name) => {
-    selectedChartItem = { mode: chartMode, name, startKey, endKey };
+  const showDetail = (item) => {
+    selectedChartItem = {
+      mode: chartMode,
+      key: item.key,
+      name: item.name,
+      subject: item.subject,
+      activity: item.activity,
+      startKey,
+      endKey,
+    };
     renderChartDetail(rangeRecords);
     if (chartMode === "subject") {
-      openSubjectInsightDialog(name, rangeRecords);
+      openSubjectInsightDialog(item.name, rangeRecords);
     }
   };
 
-  items.forEach(([name, minutes], index) => {
+  items.forEach((chartItem, index) => {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "legend-item";
-    item.addEventListener("click", () => showDetail(name));
+    item.addEventListener("click", () => showDetail(chartItem));
 
     const color = document.createElement("span");
     color.className = "legend-color";
@@ -1392,12 +1455,12 @@ function renderSubjectChart() {
 
     const label = document.createElement("span");
     label.className = "legend-subject";
-    label.textContent = name;
+    label.textContent = chartItem.name;
 
     const value = document.createElement("span");
     value.className = "legend-value";
-    const percentage = Math.round((minutes / total) * 100);
-    value.textContent = `${formatMinutes(minutes)}・${percentage}%`;
+    const percentage = Math.round((chartItem.minutes / total) * 100);
+    value.textContent = `${formatMinutes(chartItem.minutes)}・${percentage}%`;
 
     item.append(color, label, value);
     chartLegend.append(item);
@@ -1413,7 +1476,10 @@ function renderChartDetail(rangeRecords) {
 
   const targetRecords = rangeRecords.filter((record) => (
     selectedChartItem.mode === "activity"
-      ? (record.activity || "その他") === selectedChartItem.name
+      ? (
+        record.subject === selectedChartItem.subject
+        && (record.activity || "その他") === selectedChartItem.activity
+      )
       : record.subject === selectedChartItem.name
   ));
   if (targetRecords.length === 0) return;
@@ -1423,7 +1489,7 @@ function renderChartDetail(rangeRecords) {
   const shortest = Math.min(...targetRecords.map((record) => record.minutes));
   const wordTotal = targetRecords.reduce((sum, record) => sum + (Number(record.wordCount) || 0), 0);
   const subTotals = selectedChartItem.mode === "activity"
-    ? minutesBySubject(targetRecords)
+    ? new Map()
     : minutesByActivity(targetRecords);
 
   chartDetail.hidden = false;
@@ -2545,6 +2611,8 @@ addActivityOptionButton.addEventListener("click", () => {
   activityOptionInput.value = "";
 });
 
+subjectInput.addEventListener("input", renderQuickFillButtons);
+
 todoForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const text = todoInput.value.trim();
@@ -2778,6 +2846,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=8").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=9").catch(() => {});
   });
 }
