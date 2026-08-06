@@ -241,6 +241,77 @@ header p {
   font-size: 1.2rem;
 }
 
+.mission-box,
+.pace-advice {
+  padding: 12px;
+  border-radius: 14px;
+  color: #3730a3;
+  background: #eef2ff;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.roadmap-track {
+  overflow: hidden;
+  height: 12px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.roadmap-bar {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22d3ee, #4f46e5, #db2777);
+  transition: width 400ms ease;
+}
+
+.roadmap-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.roadmap-steps span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #6b7280;
+  background: #f3f4f6;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.roadmap-steps span.reached {
+  color: #fff;
+  background: #4f46e5;
+}
+
+.rival-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rival-list div {
+  padding: 10px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.rival-list span,
+.rival-list strong {
+  display: block;
+}
+
+.rival-list span {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .achievement {
   overflow: hidden;
 }
@@ -595,6 +666,26 @@ header p {
   box-shadow: 0 3px 8px rgb(79 70 229 / 22%);
 }
 
+.chart-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.chart-nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chart-nav button {
+  flex: 1;
+  min-height: 38px;
+  color: #4f46e5;
+  background: #eef2ff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .chart-layout {
   display: grid;
   grid-template-columns: minmax(160px, 210px) 1fr;
@@ -653,7 +744,13 @@ header p {
   grid-template-columns: 10px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
   font-size: 0.85rem;
+  text-align: left;
 }
 
 .legend-color {
@@ -678,6 +775,64 @@ header p {
 .chart-empty {
   color: #9ca3af;
   font-size: 0.85rem;
+}
+
+.chart-detail {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #e0e7ff;
+  border-radius: 16px;
+  background: #f8faff;
+}
+
+.chart-detail h3 {
+  margin: 0 0 12px;
+}
+
+.detail-stats,
+.monthly-recap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.detail-stats div,
+.monthly-recap div {
+  padding: 10px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.detail-stats span,
+.detail-stats strong,
+.monthly-recap span,
+.monthly-recap strong {
+  display: block;
+}
+
+.detail-stats span,
+.monthly-recap span {
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.detail-breakdown,
+.detail-records {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.detail-breakdown div,
+.detail-records div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.82rem;
 }
 
 .card {
@@ -720,6 +875,57 @@ legend {
   margin-top: 6px;
 }
 
+.activity-option-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.activity-option-row button {
+  min-width: 104px;
+  color: #4f46e5;
+  background: #eef2ff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.quick-fill {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.quick-fill > div {
+  padding: 10px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.quick-fill span,
+.quick-fill small {
+  display: block;
+  color: #6b7280;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.quick-buttons button {
+  min-height: 32px;
+  padding: 0 9px;
+  color: #3730a3;
+  background: #e0e7ff;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 input {
   width: 100%;
   padding: 13px 14px;
@@ -728,7 +934,21 @@ input {
   font: inherit;
 }
 
+select {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+}
+
 input:focus {
+  border-color: #4f46e5;
+  outline: 3px solid #e0e7ff;
+}
+
+select:focus {
   border-color: #4f46e5;
   outline: 3px solid #e0e7ff;
 }
@@ -1909,16 +2129,21 @@ li {
   }
 
   .todo-form,
-  .subject-goal-form {
+  .subject-goal-form,
+  .activity-option-row {
     grid-template-columns: 1fr;
   }
 
   .todo-form button,
-  .subject-goal-form button {
+  .subject-goal-form button,
+  .activity-option-row button {
     width: 100%;
   }
 
-  .review-grid {
+  .review-grid,
+  .detail-stats,
+  .monthly-recap,
+  .rival-list {
     grid-template-columns: 1fr;
   }
 

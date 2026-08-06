@@ -7,17 +7,32 @@ const PROFILE_KEY = "study-profile-v1";
 const MOCK_RESULTS_KEY = "study-mock-results-v1";
 const TODOS_KEY = "study-todos-v1";
 const SUBJECT_GOALS_KEY = "study-subject-goals-v1";
+const ACTIVITY_OPTIONS_KEY = "study-activity-options-v1";
 const EXAM_DATE = new Date("2027-01-16T09:30:00+09:00");
 const MAX_LEVEL_HOURS = 5000;
+const DEFAULT_ACTIVITY_OPTIONS = [
+  "東進受講",
+  "復習",
+  "問題演習",
+  "単語",
+  "長文",
+  "過去問",
+  "模試復習",
+  "その他",
+];
 
 const form = document.querySelector("#studyForm");
 const goalForm = document.querySelector("#goalForm");
 const subjectInput = document.querySelector("#subject");
+const activityTypeInput = document.querySelector("#activityType");
+const activityOptionInput = document.querySelector("#activityOptionInput");
+const addActivityOptionButton = document.querySelector("#addActivityOption");
 const studyHoursInput = document.querySelector("#studyHours");
 const studyMinutesInput = document.querySelector("#studyMinutes");
 const goalHoursInput = document.querySelector("#goalHours");
 const goalMinutesInput = document.querySelector("#goalMinutes");
 const wordCountInput = document.querySelector("#wordCount");
+const studyMemoInput = document.querySelector("#studyMemo");
 const recordList = document.querySelector("#recordList");
 const emptyMessage = document.querySelector("#emptyMessage");
 const todayTotal = document.querySelector("#todayTotal");
@@ -42,7 +57,12 @@ const pieChart = document.querySelector("#pieChart");
 const chartTotal = document.querySelector("#chartTotal");
 const chartRange = document.querySelector("#chartRange");
 const chartLegend = document.querySelector("#chartLegend");
+const chartDetail = document.querySelector("#chartDetail");
 const periodButtons = document.querySelectorAll("[data-period]");
+const chartModeButtons = document.querySelectorAll("[data-chart-mode]");
+const previousChartPeriodButton = document.querySelector("#previousChartPeriod");
+const currentChartPeriodButton = document.querySelector("#currentChartPeriod");
+const nextChartPeriodButton = document.querySelector("#nextChartPeriod");
 const deleteAllButton = document.querySelector("#deleteAll");
 const template = document.querySelector("#recordTemplate");
 const calendar = document.querySelector("#calendar");
@@ -111,6 +131,18 @@ const subjectGoalMinutesInput = document.querySelector("#subjectGoalMinutes");
 const subjectGoalList = document.querySelector("#subjectGoalList");
 const subjectGoalEmpty = document.querySelector("#subjectGoalEmpty");
 const subjectGoalCount = document.querySelector("#subjectGoalCount");
+const recentRecordButtons = document.querySelector("#recentRecordButtons");
+const templateButtons = document.querySelector("#templateButtons");
+const badgeMission = document.querySelector("#badgeMission");
+const requiredPace = document.querySelector("#requiredPace");
+const roadmapBar = document.querySelector("#roadmapBar");
+const roadmapSteps = document.querySelector("#roadmapSteps");
+const paceAdvice = document.querySelector("#paceAdvice");
+const rivalList = document.querySelector("#rivalList");
+const monthlyRecapRange = document.querySelector("#monthlyRecapRange");
+const monthlyRecap = document.querySelector("#monthlyRecap");
+const bestToast = document.querySelector("#bestToast");
+const bestToastMessage = document.querySelector("#bestToastMessage");
 
 let records = loadRecords();
 let dailyGoal = loadDailyGoal();
@@ -119,11 +151,17 @@ let profile = loadProfile();
 let mockResults = loadMockResults();
 let todos = loadTodos();
 let subjectGoals = loadSubjectGoals();
+let activityOptions = loadActivityOptions();
 let visibleMonth = new Date();
-let chartPeriod = "day";
+let chartPeriod = "month";
+let chartMode = "subject";
+let chartCursorDate = new Date();
+let selectedChartItem = null;
 let badgeFilter = "all";
 let levelUpTimer;
+let bestToastTimer;
 visibleMonth.setDate(1);
+chartCursorDate.setHours(0, 0, 0, 0);
 holidayDateInput.value = localDateKey();
 mockDateInput.value = localDateKey();
 profileNameInput.value = profile.name;
@@ -233,6 +271,14 @@ function loadSubjectGoals() {
   }
 }
 
+function loadActivityOptions() {
+  try {
+    return sanitizeActivityOptions(JSON.parse(localStorage.getItem(ACTIVITY_OPTIONS_KEY)) ?? []);
+  } catch {
+    return DEFAULT_ACTIVITY_OPTIONS;
+  }
+}
+
 function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -245,6 +291,10 @@ function sanitizeRecords(value) {
   if (!Array.isArray(value)) return [];
   return value.flatMap((record) => {
     const subject = typeof record?.subject === "string" ? record.subject.trim() : "";
+    const activity = typeof record?.activity === "string" && record.activity.trim()
+      ? record.activity.trim().slice(0, 24)
+      : "その他";
+    const memo = typeof record?.memo === "string" ? record.memo.trim().slice(0, 80) : "";
     const minutes = Number(record?.minutes);
     const wordCount = Number(record?.wordCount ?? 0);
     if (
@@ -258,6 +308,8 @@ function sanitizeRecords(value) {
     return [{
       id: String(record.id ?? createId()),
       subject,
+      activity,
+      memo,
       minutes,
       wordCount,
       date: record.date,
@@ -358,6 +410,17 @@ function sanitizeSubjectGoals(value) {
   return [...goals.values()].sort((a, b) => a.subject.localeCompare(b.subject, "ja"));
 }
 
+function sanitizeActivityOptions(value) {
+  const options = new Set(DEFAULT_ACTIVITY_OPTIONS);
+  if (Array.isArray(value)) {
+    value.forEach((item) => {
+      const option = typeof item === "string" ? item.trim().slice(0, 24) : "";
+      if (option) options.add(option);
+    });
+  }
+  return [...options];
+}
+
 function saveHolidays() {
   localStorage.setItem(HOLIDAYS_KEY, JSON.stringify(holidays));
 }
@@ -378,6 +441,10 @@ function saveSubjectGoals() {
   localStorage.setItem(SUBJECT_GOALS_KEY, JSON.stringify(subjectGoals));
 }
 
+function saveActivityOptions() {
+  localStorage.setItem(ACTIVITY_OPTIONS_KEY, JSON.stringify(activityOptions));
+}
+
 function saveDailyGoal() {
   if (dailyGoal > 0) {
     localStorage.setItem(GOAL_KEY, String(dailyGoal));
@@ -394,6 +461,7 @@ function saveAllData() {
   saveMockResults();
   saveTodos();
   saveSubjectGoals();
+  saveActivityOptions();
 }
 
 function setBackupStatus(message, type = "") {
@@ -415,6 +483,7 @@ function createBackupPayload() {
       mockResults,
       todos,
       subjectGoals,
+      activityOptions,
     },
   };
 }
@@ -449,6 +518,7 @@ function readBackupPayload(payload) {
     "mockResults",
     "todos",
     "subjectGoals",
+    "activityOptions",
   ]
     .some((key) => Object.prototype.hasOwnProperty.call(source, key));
   if (!hasBackupData) {
@@ -463,6 +533,7 @@ function readBackupPayload(payload) {
     mockResults: sanitizeMockResults(source.mockResults ?? []),
     todos: sanitizeTodos(source.todos ?? []),
     subjectGoals: sanitizeSubjectGoals(source.subjectGoals ?? []),
+    activityOptions: sanitizeActivityOptions(source.activityOptions ?? []),
   };
 }
 
@@ -484,6 +555,7 @@ async function importBackup(file) {
     mockResults = payload.mockResults;
     todos = payload.todos;
     subjectGoals = payload.subjectGoals;
+    activityOptions = payload.activityOptions;
     saveAllData();
 
     goalHoursInput.value = dailyGoal > 0 ? Math.floor(dailyGoal / 60) : 1;
@@ -556,20 +628,33 @@ function formatShortDate(date) {
 }
 
 function chartPeriodRange() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const start = new Date(now);
-  const end = new Date(now);
+  const cursor = new Date(chartCursorDate);
+  cursor.setHours(0, 0, 0, 0);
+  const start = new Date(cursor);
+  const end = new Date(cursor);
 
   if (chartPeriod === "week") {
-    const daysFromMonday = (now.getDay() + 6) % 7;
-    start.setDate(now.getDate() - daysFromMonday);
+    const daysFromMonday = (cursor.getDay() + 6) % 7;
+    start.setDate(cursor.getDate() - daysFromMonday);
     end.setDate(start.getDate() + 6);
   } else if (chartPeriod === "month") {
     start.setDate(1);
-    end.setMonth(now.getMonth() + 1, 0);
+    end.setMonth(cursor.getMonth() + 1, 0);
   }
   return { start, end };
+}
+
+function moveChartPeriod(direction) {
+  if (chartPeriod === "day") {
+    chartCursorDate.setDate(chartCursorDate.getDate() + direction);
+  } else if (chartPeriod === "week") {
+    chartCursorDate.setDate(chartCursorDate.getDate() + direction * 7);
+  } else {
+    chartCursorDate.setMonth(chartCursorDate.getMonth() + direction);
+  }
+  selectedChartItem = null;
+  renderSubjectChart();
+  renderMonthlyRecap();
 }
 
 function weekRange(offsetWeeks = 0) {
@@ -591,6 +676,23 @@ function minutesBySubject(sourceRecords) {
     totals.set(record.subject, (totals.get(record.subject) ?? 0) + record.minutes);
     return totals;
   }, new Map());
+}
+
+function minutesByActivity(sourceRecords) {
+  return sourceRecords.reduce((totals, record) => {
+    const activity = record.activity || "その他";
+    totals.set(activity, (totals.get(activity) ?? 0) + record.minutes);
+    return totals;
+  }, new Map());
+}
+
+function averageMinutes(sourceRecords) {
+  if (sourceRecords.length === 0) return 0;
+  return Math.round(sourceRecords.reduce((sum, record) => sum + record.minutes, 0) / sourceRecords.length);
+}
+
+function lastRecordDate(recordsForItem) {
+  return recordsForItem.reduce((latest, record) => record.date > latest ? record.date : latest, "");
 }
 
 function todayMinutesBySubject() {
@@ -707,6 +809,82 @@ function renderSubjectGoals() {
   });
 }
 
+function renderActivityOptions() {
+  activityTypeInput.replaceChildren();
+  activityOptions.forEach((option) => {
+    const item = document.createElement("option");
+    item.value = option;
+    item.textContent = option;
+    activityTypeInput.append(item);
+  });
+}
+
+function fillStudyForm({ subject, activity, minutes = 30, wordCount = 0, memo = "" }) {
+  subjectInput.value = subject ?? "";
+  if (activity && activityOptions.includes(activity)) {
+    activityTypeInput.value = activity;
+  }
+  studyHoursInput.value = Math.floor(minutes / 60);
+  studyMinutesInput.value = minutes % 60;
+  wordCountInput.value = wordCount || "";
+  studyMemoInput.value = memo || "";
+  subjectInput.focus();
+}
+
+function renderQuickFillButtons() {
+  recentRecordButtons.replaceChildren();
+  templateButtons.replaceChildren();
+
+  records.slice(0, 4).forEach((record) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = `${record.subject} / ${record.activity || "その他"}`;
+    button.addEventListener("click", () => fillStudyForm(record));
+    recentRecordButtons.append(button);
+  });
+
+  const combos = new Map();
+  records.forEach((record) => {
+    const key = `${record.subject}\u0000${record.activity || "その他"}`;
+    const current = combos.get(key) ?? {
+      subject: record.subject,
+      activity: record.activity || "その他",
+      count: 0,
+      minutes: [],
+    };
+    current.count += 1;
+    current.minutes.push(record.minutes);
+    combos.set(key, current);
+  });
+
+  [...combos.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .forEach((combo) => {
+      const average = Math.round(combo.minutes.reduce((sum, value) => sum + value, 0) / combo.minutes.length);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = `${combo.subject} / ${combo.activity}`;
+      button.addEventListener("click", () => fillStudyForm({
+        subject: combo.subject,
+        activity: combo.activity,
+        minutes: average,
+      }));
+      templateButtons.append(button);
+    });
+
+  if (recentRecordButtons.childElementCount === 0) {
+    const empty = document.createElement("small");
+    empty.textContent = "まだ最近の記録がありません。";
+    recentRecordButtons.append(empty);
+  }
+  if (templateButtons.childElementCount === 0) {
+    const empty = document.createElement("small");
+    empty.textContent = "記録が増えると自動で出ます。";
+    templateButtons.append(empty);
+  }
+}
+
 function renderWeeklyReview() {
   const current = weekRange(0);
   const previous = weekRange(-1);
@@ -753,6 +931,178 @@ function renderWeeklyReview() {
   }
 }
 
+function renderPaceAndRoadmap(totalMinutes) {
+  const totalHours = totalMinutes / 60;
+  const remainingHours = Math.max(0, MAX_LEVEL_HOURS - totalHours);
+  const remainingDays = Math.max(1, Math.ceil((EXAM_DATE.getTime() - Date.now()) / 86400000));
+  const neededPerDay = remainingHours / remainingDays;
+  const studyDates = [...new Set(records.map((record) => record.date))].sort();
+  const firstStudyDay = studyDates.length > 0 ? dayNumber(studyDates[0]) : dayNumber(localDateKey());
+  const elapsedDays = Math.max(1, dayNumber(localDateKey()) - firstStudyDay + 1);
+  const goalAchievedDays = dailyGoal > 0
+    ? studyDates.filter((date) => records
+      .filter((record) => record.date === date)
+      .reduce((sum, record) => sum + record.minutes, 0) >= dailyGoal).length
+    : 0;
+  const protectionTickets = dailyGoal > 0 ? Math.floor(goalAchievedDays / 5) : 0;
+  const currentPace = records.length === 0
+    ? 0
+    : totalHours / Math.max(1, new Set(records.map((record) => record.date)).size);
+
+  requiredPace.textContent = `必要 ${neededPerDay.toFixed(1)}時間/日`;
+  paceAdvice.textContent = remainingHours <= 0
+    ? "5000時間到達。ここからは質と仕上げの勝負。"
+    : `5000時間まで残り${Math.ceil(remainingHours)}時間。今の記録日ペースは約${currentPace.toFixed(1)}時間/日です。`;
+  roadmapBar.style.width = `${Math.min(100, (totalHours / MAX_LEVEL_HOURS) * 100)}%`;
+
+  roadmapSteps.replaceChildren();
+  [
+    [500, "基礎固め"],
+    [1000, "受験生化"],
+    [2000, "勝負開始"],
+    [3000, "合格圏へ接近"],
+    [4000, "仕上げ"],
+    [5000, "慶應到達"],
+  ].forEach(([hours, label]) => {
+    const step = document.createElement("span");
+    step.className = totalHours >= hours ? "reached" : "";
+    step.textContent = `${hours}h ${label}`;
+    roadmapSteps.append(step);
+  });
+
+  rivalList.replaceChildren();
+  [
+    ["5時間ペース", 5],
+    ["7時間ペース", 7],
+  ].forEach(([name, pace]) => {
+    const rivalHours = Math.min(MAX_LEVEL_HOURS, pace * elapsedDays);
+    const item = document.createElement("div");
+    const diff = totalHours - rivalHours;
+    item.innerHTML = `<span>${name}</span><strong>${diff >= 0 ? "+" : ""}${Math.round(diff)}時間</strong>`;
+    rivalList.append(item);
+  });
+
+  const ticketItem = document.createElement("div");
+  ticketItem.innerHTML = `<span>保護チケット目安</span><strong>${protectionTickets}枚</strong>`;
+  rivalList.append(ticketItem);
+}
+
+function buildBadgeDefinitions(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel) {
+  const totalHours = Math.floor(totalMinutes / 60);
+  const mockStats = calculateMockBadgeStats();
+  const badges = [
+    { name: "はじめの一歩", icon: "🌱", value: studyDayCount, goal: 1, unit: "日学習", level: 1 },
+    { name: "一時間の集中", icon: "⏱️", value: totalHours, goal: 1, unit: "時間", level: 1 },
+    { name: "三日坊主卒業", icon: "🔥", value: longestStreak, goal: 3, unit: "日連続", level: 1 },
+    { name: "努力の芽", icon: "🌿", value: totalHours, goal: 5, unit: "時間", level: 2 },
+    { name: "単語ハンター", icon: "📗", value: totalWordCount, goal: 100, unit: "単語", level: 2 },
+    { name: "七日間の炎", icon: "⭐", value: longestStreak, goal: 7, unit: "日連続", level: 2 },
+    { name: "十時間の探究者", icon: "🧭", value: totalHours, goal: 10, unit: "時間", level: 3 },
+    { name: "学習常連", icon: "📅", value: studyDayCount, goal: 10, unit: "日学習", level: 3 },
+    { name: "集中の職人", icon: "⚒️", value: totalHours, goal: 25, unit: "時間", level: 3 },
+    { name: "単語コレクター", icon: "📘", value: totalWordCount, goal: 500, unit: "単語", level: 4 },
+    { name: "継続の達人", icon: "🏅", value: longestStreak, goal: 14, unit: "日連続", level: 4 },
+    { name: "五十時間の猛者", icon: "⚡", value: totalHours, goal: 50, unit: "時間", level: 4 },
+    { name: "一か月の努力家", icon: "🗓️", value: studyDayCount, goal: 30, unit: "日学習", level: 5 },
+    { name: "単語マスター", icon: "📚", value: totalWordCount, goal: 1000, unit: "単語", level: 5 },
+    { name: "習慣化マスター", icon: "🏆", value: longestStreak, goal: 30, unit: "日連続", level: 5 },
+    { name: "百時間の賢者", icon: "🧙", value: totalHours, goal: 100, unit: "時間", level: 6 },
+    { name: "単語の賢者", icon: "🧠", value: totalWordCount, goal: 3000, unit: "単語", level: 6 },
+    { name: "百日学習者", icon: "🎖️", value: studyDayCount, goal: 100, unit: "日学習", level: 6 },
+    { name: "三百時間の王者", icon: "👑", value: totalHours, goal: 300, unit: "時間", level: 7 },
+    { name: "まなびの伝説", icon: "💎", value: longestStreak, goal: 100, unit: "日連続", level: 7 },
+  ];
+  const levelBadges = [
+    { name: "駆け出しの努力家", icon: "🥉", goal: 5, level: 1 },
+    { name: "学びの冒険者", icon: "🗺️", goal: 10, level: 2 },
+    { name: "継続の探究者", icon: "🔎", goal: 20, level: 2 },
+    { name: "鍛錬の職人", icon: "🛠️", goal: 30, level: 3 },
+    { name: "知識の開拓者", icon: "🚩", goal: 40, level: 3 },
+    { name: "折り返しの賢者", icon: "🔮", goal: 50, level: 4 },
+    { name: "不屈の挑戦者", icon: "🛡️", goal: 60, level: 4 },
+    { name: "努力の求道者", icon: "⚔️", goal: 70, level: 5 },
+    { name: "合格を狙う猛者", icon: "🎯", goal: 80, level: 5 },
+    { name: "限界を超える者", icon: "🌌", goal: 90, level: 6 },
+    { name: "夢の目前", icon: "🌠", goal: 99, level: 6 },
+    { name: "五千時間の覇者", icon: "👑", goal: 100, level: 7 },
+  ].map((badge) => ({ ...badge, value: currentLevel, unit: "レベル" }));
+  badges.push(...levelBadges);
+  badges.push(
+    { name: "五百時間の開拓者", icon: "🧭", value: totalHours, goal: 500, unit: "時間", level: 7 },
+    { name: "千時間の執念", icon: "🔥", value: totalHours, goal: 1000, unit: "時間", level: 7 },
+    { name: "二千時間の挑戦者", icon: "⚔️", value: totalHours, goal: 2000, unit: "時間", level: 7 },
+    { name: "三千時間の合格圏ハンター", icon: "🏹", value: totalHours, goal: 3000, unit: "時間", level: 7 },
+    { name: "四千時間の怪物", icon: "🐉", value: totalHours, goal: 4000, unit: "時間", level: 7 },
+    { name: "五千時間の覇者", icon: "👑", value: totalHours, goal: 5000, unit: "時間", level: 7 },
+    { name: "二百日継続の鉄人", icon: "🛡️", value: longestStreak, goal: 200, unit: "日連続", level: 7 },
+    { name: "一年継続の伝説", icon: "🌅", value: longestStreak, goal: 365, unit: "日連続", level: 7 },
+    { name: "二百日学習の実力者", icon: "📚", value: studyDayCount, goal: 200, unit: "日学習", level: 7 },
+    { name: "一年分の積み上げ", icon: "🗓️", value: studyDayCount, goal: 365, unit: "日学習", level: 7 },
+    { name: "英単語五千の武器庫", icon: "🧰", value: totalWordCount, goal: 5000, unit: "単語", level: 7 },
+    { name: "英単語一万の支配者", icon: "🦁", value: totalWordCount, goal: 10000, unit: "単語", level: 7 },
+    { name: "模試デビュー", icon: "📈", value: mockStats.resultCount, goal: 1, unit: "件", level: 1 },
+    { name: "総合偏差値の記録者", icon: "🎯", value: mockStats.totalResultCount, goal: 1, unit: "件", level: 2 },
+    { name: "模試を追う者", icon: "🔎", value: mockStats.totalMockCount, goal: 3, unit: "種類", level: 3 },
+    { name: "偏差値50突破", icon: "🚪", value: mockStats.bestAnyDeviation, goal: 50, unit: "偏差値", level: 3 },
+    { name: "偏差値55の壁破り", icon: "🧱", value: mockStats.bestAnyDeviation, goal: 55, unit: "偏差値", level: 4 },
+    { name: "偏差値60到達", icon: "🚀", value: mockStats.bestAnyDeviation, goal: 60, unit: "偏差値", level: 5 },
+    { name: "偏差値65の上位戦士", icon: "⚡", value: mockStats.bestAnyDeviation, goal: 65, unit: "偏差値", level: 6 },
+    { name: "偏差値70の怪物", icon: "💎", value: mockStats.bestAnyDeviation, goal: 70, unit: "偏差値", level: 7 },
+    { name: "総合55突破", icon: "🏁", value: mockStats.bestTotalDeviation, goal: 55, unit: "総合偏差値", level: 4 },
+    { name: "総合60到達", icon: "🏆", value: mockStats.bestTotalDeviation, goal: 60, unit: "総合偏差値", level: 5 },
+    { name: "総合65の勝負師", icon: "🥇", value: mockStats.bestTotalDeviation, goal: 65, unit: "総合偏差値", level: 6 },
+    { name: "総合70の合格請負人", icon: "🌟", value: mockStats.bestTotalDeviation, goal: 70, unit: "総合偏差値", level: 7 },
+    { name: "得意科目の芽", icon: "🌱", value: mockStats.subjectsOver55, goal: 1, unit: "科目", level: 3 },
+    { name: "二科目エース化", icon: "🦅", value: mockStats.subjectsOver60, goal: 2, unit: "科目", level: 5 },
+    { name: "三科目の柱", icon: "🏛️", value: mockStats.subjectsOver65, goal: 3, unit: "科目", level: 6 },
+    { name: "偏差値+3の反撃", icon: "↗️", value: mockStats.bestDeviationGain, goal: 3, unit: "UP", level: 4 },
+    { name: "偏差値+5の逆転劇", icon: "📣", value: mockStats.bestDeviationGain, goal: 5, unit: "UP", level: 5 },
+    { name: "偏差値+10の覚醒", icon: "✨", value: mockStats.bestDeviationGain, goal: 10, unit: "UP", level: 7 },
+  );
+  return badges;
+}
+
+function renderBadgeMission(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel) {
+  const candidates = buildBadgeDefinitions(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel)
+    .filter((badge) => badge.value < badge.goal)
+    .map((badge) => ({ ...badge, remaining: badge.goal - badge.value }))
+    .sort((a, b) => a.remaining - b.remaining);
+  const target = candidates[0];
+  badgeMission.textContent = target
+    ? `あと${formatBadgeValue(target.remaining)}${target.unit}で「${target.name}」`
+    : "今取れる称号は取り切っています。次は5000時間の山を進めよう。";
+}
+
+function renderMonthlyRecap() {
+  const { start, end } = (() => {
+    const cursor = new Date(chartCursorDate);
+    cursor.setDate(1);
+    const end = new Date(cursor);
+    end.setMonth(cursor.getMonth() + 1, 0);
+    return { start: cursor, end };
+  })();
+  const startKey = localDateKey(start);
+  const endKey = localDateKey(end);
+  const monthRecords = recordsInRange(startKey, endKey);
+  const total = monthRecords.reduce((sum, record) => sum + record.minutes, 0);
+  const subjectTop = [...minutesBySubject(monthRecords).entries()].sort((a, b) => b[1] - a[1])[0];
+  const activityTop = [...minutesByActivity(monthRecords).entries()].sort((a, b) => b[1] - a[1])[0];
+  const words = monthRecords.reduce((sum, record) => sum + (Number(record.wordCount) || 0), 0);
+  monthlyRecapRange.textContent = `${start.getFullYear()}年${start.getMonth() + 1}月`;
+  monthlyRecap.replaceChildren();
+  [
+    ["総勉強時間", formatMinutes(total)],
+    ["一番頑張った科目", subjectTop ? `${subjectTop[0]} ${formatMinutes(subjectTop[1])}` : "まだなし"],
+    ["一番多い内容", activityTop ? `${activityTop[0]} ${formatMinutes(activityTop[1])}` : "まだなし"],
+    ["英単語", `${words}個`],
+    ["月間称号", total >= 6000 ? "今月の継続王" : total >= 1800 ? "今月の努力家" : "ここから作る月"],
+  ].forEach(([label, value]) => {
+    const item = document.createElement("div");
+    item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    monthlyRecap.append(item);
+  });
+}
+
 function renderWeaknessAlerts() {
   const alerts = [];
   const todayTotals = todayMinutesBySubject();
@@ -773,6 +1123,40 @@ function renderWeaknessAlerts() {
   if (subjectGoals.length === 0) {
     alerts.push(["科目別目標が未設定", "英語・数学など、合格に必要な科目ごとの時間配分を決めよう。"]);
   }
+
+  const recentActivityTotals = minutesByActivity(recentRecords);
+  const lectureMinutes = recentActivityTotals.get("東進受講") ?? 0;
+  const reviewMinutes = recentActivityTotals.get("復習") ?? 0;
+  const practiceMinutes = recentActivityTotals.get("問題演習") ?? 0;
+  const mockReviewMinutes = recentActivityTotals.get("模試復習") ?? 0;
+  if (lectureMinutes >= 180 && reviewMinutes < lectureMinutes * 0.35) {
+    alerts.push([
+      "東進受講に対して復習が少なめ",
+      `直近2週間で受講${formatMinutes(lectureMinutes)}、復習${formatMinutes(reviewMinutes)}。受けっぱなし注意。`,
+    ]);
+  }
+  if (lectureMinutes >= 180 && practiceMinutes < lectureMinutes * 0.25) {
+    alerts.push([
+      "問題演習が少なめ",
+      "受講で理解したつもりになりやすいので、演習時間を今日のタスクに入れよう。",
+    ]);
+  }
+  if (mockResults.length > 0 && mockReviewMinutes === 0) {
+    alerts.push([
+      "模試復習の記録がありません",
+      "模試は受けた後が本番。模試復習を1つ記録すると分析が強くなります。",
+    ]);
+  }
+
+  ["単語", "過去問", "模試復習"].forEach((activity) => {
+    const latest = lastRecordDate(records.filter((record) => (record.activity || "その他") === activity));
+    if (latest && dayNumber(localDateKey()) - dayNumber(latest) >= 3) {
+      alerts.push([
+        `${activity}が空いています`,
+        `最後の記録は${latest}。放置すると戻すのに時間がかかります。`,
+      ]);
+    }
+  });
 
   subjectGoals.forEach((goal) => {
     const studied = todayTotals.get(goal.subject) ?? 0;
@@ -837,17 +1221,12 @@ function renderSubjectChart() {
   const { start, end } = chartPeriodRange();
   const startKey = localDateKey(start);
   const endKey = localDateKey(end);
-  const subjectTotals = new Map();
-
-  records
-    .filter((record) => record.date >= startKey && record.date <= endKey)
-    .forEach((record) => {
-      const current = subjectTotals.get(record.subject) ?? 0;
-      subjectTotals.set(record.subject, current + record.minutes);
-    });
-
-  const subjects = [...subjectTotals.entries()].sort((a, b) => b[1] - a[1]);
-  const total = subjects.reduce((sum, [, minutes]) => sum + minutes, 0);
+  const rangeRecords = records.filter((record) => record.date >= startKey && record.date <= endKey);
+  const totals = chartMode === "activity"
+    ? minutesByActivity(rangeRecords)
+    : minutesBySubject(rangeRecords);
+  const items = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const total = items.reduce((sum, [, minutes]) => sum + minutes, 0);
   const colors = [
     "#4f46e5", "#06b6d4", "#22c55e", "#f59e0b", "#ef4444",
     "#8b5cf6", "#ec4899", "#14b8a6", "#84cc16", "#f97316",
@@ -855,9 +1234,11 @@ function renderSubjectChart() {
 
   chartRange.textContent = chartPeriod === "day"
     ? `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日`
-    : `${formatShortDate(start)}〜${formatShortDate(end)}`;
+    : `${formatShortDate(start)}〜${formatShortDate(end)}・${chartMode === "activity" ? "内容別" : "科目別"}`;
   chartTotal.textContent = formatMinutes(total);
   chartLegend.replaceChildren();
+  chartDetail.hidden = true;
+  chartDetail.replaceChildren();
 
   if (total === 0) {
     pieChart.style.background = "#e5e7eb";
@@ -870,7 +1251,7 @@ function renderSubjectChart() {
   }
 
   let accumulated = 0;
-  const gradientParts = subjects.map(([, minutes], index) => {
+  const gradientParts = items.map(([, minutes], index) => {
     const startDegree = (accumulated / total) * 360;
     accumulated += minutes;
     const endDegree = (accumulated / total) * 360;
@@ -879,29 +1260,105 @@ function renderSubjectChart() {
   pieChart.style.background = `conic-gradient(${gradientParts.join(", ")})`;
   pieChart.setAttribute(
     "aria-label",
-    subjects.map(([subject, minutes]) => `${subject} ${formatMinutes(minutes)}`).join("、"),
+    items.map(([name, minutes]) => `${name} ${formatMinutes(minutes)}`).join("、"),
   );
 
-  subjects.forEach(([subject, minutes], index) => {
-    const item = document.createElement("div");
+  const showDetail = (name) => {
+    selectedChartItem = { mode: chartMode, name, startKey, endKey };
+    renderChartDetail(rangeRecords);
+  };
+
+  items.forEach(([name, minutes], index) => {
+    const item = document.createElement("button");
+    item.type = "button";
     item.className = "legend-item";
+    item.addEventListener("click", () => showDetail(name));
 
     const color = document.createElement("span");
     color.className = "legend-color";
     color.style.background = colors[index % colors.length];
 
-    const name = document.createElement("span");
-    name.className = "legend-subject";
-    name.textContent = subject;
+    const label = document.createElement("span");
+    label.className = "legend-subject";
+    label.textContent = name;
 
     const value = document.createElement("span");
     value.className = "legend-value";
     const percentage = Math.round((minutes / total) * 100);
     value.textContent = `${formatMinutes(minutes)}・${percentage}%`;
 
-    item.append(color, name, value);
+    item.append(color, label, value);
     chartLegend.append(item);
   });
+
+  if (selectedChartItem?.mode === chartMode) {
+    renderChartDetail(rangeRecords);
+  }
+}
+
+function renderChartDetail(rangeRecords) {
+  if (!selectedChartItem) return;
+
+  const targetRecords = rangeRecords.filter((record) => (
+    selectedChartItem.mode === "activity"
+      ? (record.activity || "その他") === selectedChartItem.name
+      : record.subject === selectedChartItem.name
+  ));
+  if (targetRecords.length === 0) return;
+
+  const total = targetRecords.reduce((sum, record) => sum + record.minutes, 0);
+  const longest = Math.max(...targetRecords.map((record) => record.minutes));
+  const shortest = Math.min(...targetRecords.map((record) => record.minutes));
+  const wordTotal = targetRecords.reduce((sum, record) => sum + (Number(record.wordCount) || 0), 0);
+  const subTotals = selectedChartItem.mode === "activity"
+    ? minutesBySubject(targetRecords)
+    : minutesByActivity(targetRecords);
+
+  chartDetail.hidden = false;
+  chartDetail.replaceChildren();
+
+  const title = document.createElement("h3");
+  title.textContent = `${selectedChartItem.name}の詳細`;
+  const stats = document.createElement("div");
+  stats.className = "detail-stats";
+  [
+    ["合計", formatMinutes(total)],
+    ["記録回数", `${targetRecords.length}回`],
+    ["平均", formatMinutes(averageMinutes(targetRecords))],
+    ["最長", formatMinutes(longest)],
+    ["最短", formatMinutes(shortest)],
+    ["英単語", `${wordTotal}個`],
+  ].forEach(([label, value]) => {
+    const item = document.createElement("div");
+    item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    stats.append(item);
+  });
+
+  const breakdown = document.createElement("div");
+  breakdown.className = "detail-breakdown";
+  [...subTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([name, minutes]) => {
+      const row = document.createElement("div");
+      row.innerHTML = `<span>${name}</span><strong>${formatMinutes(minutes)}</strong>`;
+      breakdown.append(row);
+    });
+
+  const recent = document.createElement("div");
+  recent.className = "detail-records";
+  [...targetRecords]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6)
+    .forEach((record) => {
+      const row = document.createElement("div");
+      const memo = record.memo ? `・${record.memo}` : "";
+      row.textContent = `${record.date}・${record.subject}・${record.activity || "その他"}・${formatMinutes(record.minutes)}${memo}`;
+      recent.append(row);
+    });
+
+  chartDetail.append(title, stats);
+  if (subTotals.size > 0) chartDetail.append(breakdown);
+  chartDetail.append(recent);
 }
 
 function updateCountdown() {
@@ -1650,6 +2107,15 @@ function showLevelUp(newLevel) {
   }, 3500);
 }
 
+function showBestUpdate(message) {
+  clearTimeout(bestToastTimer);
+  bestToastMessage.textContent = message;
+  bestToast.hidden = false;
+  bestToastTimer = setTimeout(() => {
+    bestToast.hidden = true;
+  }, 3200);
+}
+
 function render() {
   recordList.replaceChildren();
   emptyMessage.hidden = records.length > 0;
@@ -1657,8 +2123,10 @@ function render() {
 
   for (const record of records) {
     const item = template.content.cloneNode(true);
-    item.querySelector(".record-subject").textContent = record.subject;
-    item.querySelector(".record-date").textContent = record.date;
+    item.querySelector(".record-subject").textContent = `${record.subject} / ${record.activity || "その他"}`;
+    item.querySelector(".record-date").textContent = record.memo
+      ? `${record.date}・${record.memo}`
+      : record.date;
     const words = Number(record.wordCount) || 0;
     item.querySelector(".record-words").textContent =
       words > 0 ? `英単語 ${words}個` : "";
@@ -1732,6 +2200,11 @@ function render() {
   renderSubjectGoals();
   renderWeeklyReview();
   renderWeaknessAlerts();
+  renderActivityOptions();
+  renderQuickFillButtons();
+  renderPaceAndRoadmap(total);
+  renderBadgeMission(total, streaks.best, totalWordCount, studyDayCount, currentLevel);
+  renderMonthlyRecap();
   renderLevelAndProfile(total, streaks, unlockedBadgeCount);
   renderHolidays();
   renderMockResults();
@@ -1744,13 +2217,20 @@ form.addEventListener("submit", (event) => {
 
   const previousTotal = records.reduce((sum, record) => sum + record.minutes, 0);
   const previousLevel = calculateLevel(previousTotal).level;
+  const previousBestDay = Math.max(0, ...Object.values(studyMinutesByDate()));
+  const previousTodayTotal = records
+    .filter((record) => record.date === localDateKey())
+    .reduce((sum, record) => sum + record.minutes, 0);
   const subject = subjectInput.value.trim();
+  const activity = activityTypeInput.value;
+  const memo = studyMemoInput.value.trim();
   const studyHours = Number(studyHoursInput.value);
   const studyMinutes = Number(studyMinutesInput.value);
   const minutes = studyHours * 60 + studyMinutes;
   const wordCount = wordCountInput.value === "" ? 0 : Number(wordCountInput.value);
   if (
     !subject
+    || !activity
     || !Number.isInteger(studyHours) || studyHours < 0 || studyHours > 23
     || !Number.isInteger(studyMinutes) || studyMinutes < 0 || studyMinutes > 59
     || minutes < 1
@@ -1763,6 +2243,8 @@ form.addEventListener("submit", (event) => {
   records.unshift({
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     subject,
+    activity,
+    memo,
     minutes,
     wordCount,
     date: localDateKey(),
@@ -1773,7 +2255,11 @@ form.addEventListener("submit", (event) => {
   if (newLevel > previousLevel) {
     showLevelUp(newLevel);
   }
+  if (previousTodayTotal + minutes > previousBestDay) {
+    showBestUpdate(`1日の最高記録 ${formatMinutes(previousTodayTotal + minutes)}`);
+  }
   form.reset();
+  activityTypeInput.value = activity;
   subjectInput.focus();
 });
 
@@ -1793,6 +2279,22 @@ goalForm.addEventListener("submit", (event) => {
   dailyGoal = hours * 60 + minutes;
   saveDailyGoal();
   render();
+});
+
+addActivityOptionButton.addEventListener("click", () => {
+  const option = activityOptionInput.value.trim().slice(0, 24);
+  if (!option) {
+    alert("追加する内容を入力してください。");
+    return;
+  }
+  if (!activityOptions.includes(option)) {
+    activityOptions.push(option);
+    activityOptions = sanitizeActivityOptions(activityOptions);
+    saveActivityOptions();
+    renderActivityOptions();
+  }
+  activityTypeInput.value = option;
+  activityOptionInput.value = "";
 });
 
 todoForm.addEventListener("submit", (event) => {
@@ -1894,6 +2396,18 @@ mockForm.addEventListener("submit", (event) => {
     });
   }
   saveMockResults();
+  if (subject !== "総合" && deviation < 50) {
+    const shouldAddReview = confirm(`${subject}の偏差値が低めです。今日やることに「${subject} 模試復習」を追加しますか？`);
+    if (shouldAddReview) {
+      todos.unshift({
+        id: createId(),
+        text: `${subject} 模試復習`,
+        date: localDateKey(),
+        done: false,
+      });
+      saveTodos();
+    }
+  }
   render();
   mockSubjectInput.value = "";
   mockDeviationInput.value = "";
@@ -1950,10 +2464,31 @@ nextMonthButton.addEventListener("click", () => {
   renderCalendar();
 });
 
+previousChartPeriodButton.addEventListener("click", () => moveChartPeriod(-1));
+currentChartPeriodButton.addEventListener("click", () => {
+  chartCursorDate = new Date();
+  chartCursorDate.setHours(0, 0, 0, 0);
+  selectedChartItem = null;
+  renderSubjectChart();
+  renderMonthlyRecap();
+});
+nextChartPeriodButton.addEventListener("click", () => moveChartPeriod(1));
+
 periodButtons.forEach((button) => {
   button.addEventListener("click", () => {
     chartPeriod = button.dataset.period;
+    selectedChartItem = null;
     periodButtons.forEach((item) => item.classList.toggle("active", item === button));
+    renderSubjectChart();
+    renderMonthlyRecap();
+  });
+});
+
+chartModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    chartMode = button.dataset.chartMode;
+    selectedChartItem = null;
+    chartModeButtons.forEach((item) => item.classList.toggle("active", item === button));
     renderSubjectChart();
   });
 });
@@ -1991,6 +2526,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=6").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=7").catch(() => {});
   });
 }

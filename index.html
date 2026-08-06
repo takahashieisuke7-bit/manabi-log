@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=6">
+  <link rel="manifest" href="manifest.webmanifest?v=7">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <main class="container">
@@ -120,6 +120,27 @@
       </div>
     </section>
 
+    <section class="card mission-card" data-tab-panel="home">
+      <div class="section-title">
+        <h2>今日の称号ミッション</h2>
+        <span class="goal-display">狙い目</span>
+      </div>
+      <div id="badgeMission" class="mission-box">今日狙える称号を計算します。</div>
+    </section>
+
+    <section class="card pace-card" data-tab-panel="home">
+      <div class="section-title">
+        <h2>慶應ロードマップ</h2>
+        <span id="requiredPace" class="goal-display">計算中</span>
+      </div>
+      <div class="roadmap-track" aria-label="5000時間までの進捗">
+        <div id="roadmapBar" class="roadmap-bar"></div>
+      </div>
+      <div id="roadmapSteps" class="roadmap-steps"></div>
+      <div id="paceAdvice" class="pace-advice">5000時間までの必要ペースを表示します。</div>
+      <div id="rivalList" class="rival-list"></div>
+    </section>
+
     <section class="card weekly-review compact-details-card" data-tab-panel="home">
       <details id="weeklyDetails">
         <summary>
@@ -152,11 +173,22 @@
           <h2>科目別の勉強時間</h2>
           <p id="chartRange" class="chart-range"></p>
         </div>
-        <div class="period-switch" aria-label="集計期間">
-          <button type="button" data-period="day" class="active">日</button>
-          <button type="button" data-period="week">週</button>
-          <button type="button" data-period="month">月</button>
+        <div class="chart-controls">
+          <div class="period-switch" aria-label="集計軸">
+            <button type="button" data-chart-mode="subject" class="active">科目</button>
+            <button type="button" data-chart-mode="activity">内容</button>
+          </div>
+          <div class="period-switch" aria-label="集計期間">
+            <button type="button" data-period="day">日</button>
+            <button type="button" data-period="week">週</button>
+            <button type="button" data-period="month" class="active">月</button>
+          </div>
         </div>
+      </div>
+      <div class="chart-nav">
+        <button id="previousChartPeriod" type="button">前へ</button>
+        <button id="currentChartPeriod" type="button">今の期間</button>
+        <button id="nextChartPeriod" type="button">次へ</button>
       </div>
       <div class="chart-layout">
         <div id="pieChart" class="pie-chart" role="img" aria-label="科目別勉強時間の円グラフ">
@@ -167,6 +199,7 @@
         </div>
         <div id="chartLegend" class="chart-legend"></div>
       </div>
+      <div id="chartDetail" class="chart-detail" hidden></div>
     </section>
 
     <section class="card" data-tab-panel="badges" hidden>
@@ -203,6 +236,24 @@
         <label for="subject">科目</label>
         <input id="subject" maxlength="30" placeholder="例：英語" required>
 
+        <label for="activityType">内容</label>
+        <select id="activityType" required></select>
+        <div class="activity-option-row">
+          <input id="activityOptionInput" maxlength="24" placeholder="例：東進受講、青チャート">
+          <button id="addActivityOption" type="button">内容を追加</button>
+        </div>
+
+        <div class="quick-fill">
+          <div>
+            <span>最近の記録から再入力</span>
+            <div id="recentRecordButtons" class="quick-buttons"></div>
+          </div>
+          <div>
+            <span>よく使うテンプレート</span>
+            <div id="templateButtons" class="quick-buttons"></div>
+          </div>
+        </div>
+
         <fieldset class="duration-fields">
           <legend>勉強時間</legend>
           <div>
@@ -220,6 +271,9 @@
         <label for="wordCount">覚えた英単語数（任意）</label>
         <input id="wordCount" type="number" min="0" max="10000"
                inputmode="numeric" placeholder="例：20">
+
+        <label for="studyMemo">メモ（任意）</label>
+        <input id="studyMemo" maxlength="80" placeholder="例：東進 英文法 第12講、復習まで">
 
         <button type="submit">記録する</button>
       </form>
@@ -318,6 +372,14 @@
       <p class="calendar-note">
         紫＝学習、緑＝目標達成、水色＝休日、オレンジ＝救済
       </p>
+    </section>
+
+    <section class="card monthly-recap-card" data-tab-panel="analysis" hidden>
+      <div class="section-title">
+        <h2>月間振り返りカード</h2>
+        <span id="monthlyRecapRange" class="goal-display">今月</span>
+      </div>
+      <div id="monthlyRecap" class="monthly-recap"></div>
     </section>
 
     <section class="card mock-section" data-tab-panel="analysis" hidden>
@@ -433,6 +495,11 @@
     <strong id="levelUpMessage"></strong>
   </div>
 
+  <div id="bestToast" class="level-up-toast best-toast" hidden>
+    <span>BEST UPDATE!</span>
+    <strong id="bestToastMessage"></strong>
+  </div>
+
   <template id="recordTemplate">
     <li>
       <div>
@@ -447,6 +514,6 @@
     </li>
   </template>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
