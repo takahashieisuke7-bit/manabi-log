@@ -876,6 +876,17 @@ function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function setReadableDuration(element, text) {
+  element.replaceChildren();
+  text.split(/(\d+時間|\d+分)/).filter(Boolean).forEach((part) => {
+    const span = document.createElement("span");
+    span.className = "duration-part";
+    span.textContent = part;
+    element.append(span);
+    if (part.endsWith("時間")) element.append(document.createElement("wbr"));
+  });
+}
+
 function formatMinutes(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -1126,7 +1137,7 @@ function createScheduleItem(task, { compact = false } = {}) {
   checkbox.type = "checkbox";
   checkbox.className = "schedule-check";
   checkbox.checked = task.done;
-  checkbox.setAttribute("aria-label", `${task.material} ${formatTaskRange(task)}を完了`);
+  checkbox.setAttribute("aria-label", `${task.material} ${formatTaskRange(task)} ${taskTypeLabel(task.type)}を完了`);
   checkbox.addEventListener("change", () => {
     materialTasks = materialTasks.map((entry) => (
       entry.id === task.id ? { ...entry, done: checkbox.checked } : entry
@@ -1148,7 +1159,7 @@ function createScheduleItem(task, { compact = false } = {}) {
     task.fixed ? "固定" : "自動調整OK",
     task.manual ? "手動" : "自動",
   ];
-  meta.textContent = labels.join("・");
+  meta.textContent = compact ? [taskTypeLabel(task.type), task.fixed ? "固定" : ""].filter(Boolean).join("・") : labels.join("・");
   main.append(title, range, meta);
 
   const kind = document.createElement("span");
@@ -1479,7 +1490,7 @@ function renderWeeklyReview() {
     const small = document.createElement("span");
     small.textContent = label;
     const strong = document.createElement("strong");
-    strong.textContent = value;
+    setReadableDuration(strong, value);
     item.append(small, strong);
     weeklyReviewGrid.append(item);
   });
@@ -1896,8 +1907,8 @@ function renderSubjectChart() {
     .sort((a, b) => b.minutes - a.minutes);
   const total = items.reduce((sum, item) => sum + item.minutes, 0);
   const colors = [
-    "#4f46e5", "#06b6d4", "#22c55e", "#f59e0b", "#ef4444",
-    "#8b5cf6", "#ec4899", "#14b8a6", "#84cc16", "#f97316",
+    "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)",
+    "var(--chart-6)", "var(--chart-7)", "var(--chart-8)", "var(--chart-9)", "var(--chart-10)",
   ];
 
   chartRange.textContent = chartPeriod === "day"
@@ -1909,7 +1920,7 @@ function renderSubjectChart() {
   chartDetail.replaceChildren();
 
   if (total === 0) {
-    pieChart.style.background = "#e5e7eb";
+    pieChart.style.background = "var(--border)";
     pieChart.setAttribute("aria-label", "この期間の勉強記録はありません");
     const empty = document.createElement("p");
     empty.className = "chart-empty";
@@ -2826,7 +2837,8 @@ function createMockLineChart(titleText, events, series, featured = false) {
   card.append(legend);
 
   // 6〜8回程度は一目で比較でき、それ以上だけ横スクロールさせる。
-  const width = Math.max(360, events.length * 54 + 72);
+  const availableWidth = Math.max(280, Math.min(760, mockChart.clientWidth - 84));
+  const width = Math.max(availableWidth, events.length * 54 + 72);
   const height = featured ? 340 : 290;
   const margin = { top: 22, right: 24, bottom: 66, left: 48 };
   const plotWidth = width - margin.left - margin.right;
@@ -2937,7 +2949,7 @@ function createMockLineChart(titleText, events, series, featured = false) {
 
   scroll.append(svg);
   card.append(scroll);
-  if (events.length > 4) {
+  {
     const hint = document.createElement("small");
     hint.className = "chart-scroll-hint";
     hint.textContent = "← 横にスライドして続きを見る →";
@@ -2945,6 +2957,14 @@ function createMockLineChart(titleText, events, series, featured = false) {
     card.append(hint);
   }
   return card;
+}
+
+function refreshMockChartLayout() {
+  const opened = [...mockChart.querySelectorAll("details")].map((details) => details.open);
+  renderMockResults();
+  [...mockChart.querySelectorAll("details")].forEach((details, index) => {
+    if (opened[index] !== undefined) details.open = opened[index];
+  });
 }
 
 function updateChartScrollHints() {
@@ -3011,8 +3031,8 @@ function renderMockResults() {
         .filter((subject) => subject !== "総合")
         .sort((a, b) => a.localeCompare(b, "ja"));
       const colors = [
-        "#2563eb", "#dc2626", "#16a34a", "#d97706", "#0891b2",
-        "#db2777", "#7c3aed", "#65a30d", "#ea580c", "#475569",
+        "var(--chart-2)", "var(--chart-5)", "var(--chart-3)", "var(--chart-4)", "var(--chart-8)",
+        "var(--chart-7)", "var(--chart-1)", "var(--chart-9)", "var(--chart-10)", "var(--chart-6)",
       ];
       const colorBySubject = new Map(
         regularSubjects.map((subject, index) => [subject, colors[index % colors.length]]),
@@ -3030,7 +3050,7 @@ function renderMockResults() {
       body.append(createMockLineChart(
         "総合偏差値の推移",
         events,
-        [{ name: "総合", color: "#7c3aed", values: valuesFor("総合") }],
+        [{ name: "総合", color: "var(--chart-1)", values: valuesFor("総合") }],
         true,
       ));
       body.append(createMockLineChart(
@@ -3275,18 +3295,22 @@ function openRecordEditDialog(record) {
 }
 
 function switchTab(selectedTab) {
+  if (!["home", "schedule", "record", "analysis", "badges"].includes(selectedTab)) return;
+  document.body.dataset.screen = selectedTab;
   tabButtons.forEach((item) => {
     const selected = item.dataset.tab === selectedTab;
     item.classList.toggle("active", selected);
     item.setAttribute("aria-selected", String(selected));
+    item.tabIndex = selected ? 0 : -1;
   });
   tabPanels.forEach((panel) => {
     panel.hidden = panel.dataset.tabPanel !== selectedTab;
   });
   if (selectedTab === "analysis") {
+    refreshMockChartLayout();
     requestAnimationFrame(updateChartScrollHints);
   }
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function render() {
@@ -3334,8 +3358,8 @@ function render() {
   const studyDayCount = new Set(records.map((record) => record.date)).size;
   const currentLevel = calculateLevel(total).level;
 
-  allTotal.textContent = formatMinutes(total);
-  todayTotal.textContent = formatMinutes(today);
+  setReadableDuration(allTotal, formatMinutes(total));
+  setReadableDuration(todayTotal, formatMinutes(today));
   todayWords.textContent = `${todayWordCount}個`;
   allWords.textContent = `累計 ${totalWordCount}個`;
   currentStreak.textContent = `${streaks.current}日`;
@@ -3948,6 +3972,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=12").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=13").catch(() => {});
   });
 }

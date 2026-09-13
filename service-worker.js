@@ -1,11 +1,13 @@
-const CACHE_NAME = "manabi-log-v12";
+const CACHE_NAME = "manabi-log-v13";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=12",
-  "./app.js?v=12",
-  "./manifest.webmanifest?v=12",
+  "./style.css?v=13",
+  "./app.js?v=13",
+  "./manifest.webmanifest?v=13",
   "./icon.svg",
+  "./theme.js?v=13",
+  "./ui.js?v=13",
 ];
 
 self.addEventListener("install", (event) => {

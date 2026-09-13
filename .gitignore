@@ -7,6 +7,8 @@
 !index.html
 !style.css
 !app.js
+!theme.js
+!ui.js
 !manifest.webmanifest
 !service-worker.js
 !icon.svg
