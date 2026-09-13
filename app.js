@@ -24,6 +24,7 @@ const SUBJECT_ACTIVITY_SEPARATOR = " :: ";
 
 const form = document.querySelector("#studyForm");
 const goalForm = document.querySelector("#goalForm");
+const studyDateInput = document.querySelector("#studyDate");
 const subjectInput = document.querySelector("#subject");
 const activityTypeInput = document.querySelector("#activityType");
 const activityOptionInput = document.querySelector("#activityOptionInput");
@@ -74,6 +75,8 @@ const tabButtons = document.querySelectorAll("[data-tab]");
 const tabPanels = document.querySelectorAll("[data-tab-panel]");
 const levelNumber = document.querySelector("#levelNumber");
 const levelTitle = document.querySelector("#levelTitle");
+const levelSummary = document.querySelector("#levelSummary");
+const levelSummaryBadge = document.querySelector("#levelSummaryBadge");
 const nextLevelText = document.querySelector("#nextLevelText");
 const levelTrack = document.querySelector(".level-track");
 const levelBar = document.querySelector("#levelBar");
@@ -109,6 +112,20 @@ const subjectInsightDialog = document.querySelector("#subjectInsightDialog");
 const subjectInsightTitle = document.querySelector("#subjectInsightTitle");
 const subjectInsightBody = document.querySelector("#subjectInsightBody");
 const subjectInsightCloseButton = document.querySelector("#subjectInsightCloseButton");
+const recordEditDialog = document.querySelector("#recordEditDialog");
+const recordEditForm = document.querySelector("#recordEditForm");
+const recordEditCloseButton = document.querySelector("#recordEditCloseButton");
+const editRecordIdInput = document.querySelector("#editRecordId");
+const editStudyDateInput = document.querySelector("#editStudyDate");
+const editSubjectInput = document.querySelector("#editSubject");
+const editActivityTypeInput = document.querySelector("#editActivityType");
+const editStudyHoursInput = document.querySelector("#editStudyHours");
+const editStudyMinutesInput = document.querySelector("#editStudyMinutes");
+const editWordCountInput = document.querySelector("#editWordCount");
+const editStudyMemoInput = document.querySelector("#editStudyMemo");
+const recordStatus = document.querySelector("#recordStatus");
+const recordEditStatus = document.querySelector("#recordEditStatus");
+const goRecordButton = document.querySelector("#goRecordButton");
 const levelUpToast = document.querySelector("#levelUpToast");
 const levelUpMessage = document.querySelector("#levelUpMessage");
 const exportBackupButton = document.querySelector("#exportBackup");
@@ -167,6 +184,7 @@ let levelUpTimer;
 let bestToastTimer;
 visibleMonth.setDate(1);
 chartCursorDate.setHours(0, 0, 0, 0);
+studyDateInput.value = localDateKey();
 holidayDateInput.value = localDateKey();
 mockDateInput.value = localDateKey();
 profileNameInput.value = profile.name;
@@ -186,6 +204,31 @@ function loadRecords() {
 
 function saveRecords() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function tryCommitRecords(nextRecords) {
+  const sanitized = sanitizeRecords(nextRecords);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+    records = sanitized;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function setRecordStatus(message, type = "") {
+  if (!recordStatus) return;
+  recordStatus.textContent = message;
+  recordStatus.classList.toggle("success", type === "success");
+  recordStatus.classList.toggle("error", type === "error");
+}
+
+function setRecordEditStatus(message, type = "") {
+  if (!recordEditStatus) return;
+  recordEditStatus.textContent = message;
+  recordEditStatus.classList.toggle("success", type === "success");
+  recordEditStatus.classList.toggle("error", type === "error");
 }
 
 function loadDailyGoal() {
@@ -617,7 +660,7 @@ function getLevelTitle(level) {
     { level: 50, title: "折り返しの賢者" },
     { level: 60, title: "不屈の挑戦者" },
     { level: 70, title: "努力の求道者" },
-    { level: 80, title: "合格を狙う猛者" },
+    { level: 80, title: "本番を狙う猛者" },
     { level: 90, title: "限界を超える者" },
     { level: 99, title: "夢の目前" },
     { level: 100, title: "五千時間の覇者" },
@@ -719,6 +762,16 @@ function countByActivity(sourceRecords) {
 function averageMinutes(sourceRecords) {
   if (sourceRecords.length === 0) return 0;
   return Math.round(sourceRecords.reduce((sum, record) => sum + record.minutes, 0) / sourceRecords.length);
+}
+
+function createValuePair(label, value) {
+  const item = document.createElement("div");
+  const labelElement = document.createElement("span");
+  labelElement.textContent = label;
+  const valueElement = document.createElement("strong");
+  valueElement.textContent = value;
+  item.append(labelElement, valueElement);
+  return item;
 }
 
 function lastRecordDate(recordsForItem) {
@@ -859,17 +912,32 @@ function renderSubjectGoals() {
 }
 
 function renderActivityOptions() {
+  const selected = activityTypeInput.value;
+  const editSelected = editActivityTypeInput.value;
+  const options = sanitizeActivityOptions([
+    ...activityOptions,
+    ...records.map((record) => record.activity).filter(Boolean),
+  ]);
   activityTypeInput.replaceChildren();
-  activityOptions.forEach((option) => {
+  editActivityTypeInput.replaceChildren();
+  options.forEach((option) => {
     const item = document.createElement("option");
     item.value = option;
     item.textContent = option;
     activityTypeInput.append(item);
+
+    const editItem = document.createElement("option");
+    editItem.value = option;
+    editItem.textContent = option;
+    editActivityTypeInput.append(editItem);
   });
+  if (options.includes(selected)) activityTypeInput.value = selected;
+  if (options.includes(editSelected)) editActivityTypeInput.value = editSelected;
 }
 
 function fillStudyForm({ subject, activity, minutes = 30, wordCount = 0, memo = "" }) {
   subjectInput.value = subject ?? "";
+  studyDateInput.value = studyDateInput.value || localDateKey();
   if (activity && activityOptions.includes(activity)) {
     activityTypeInput.value = activity;
   }
@@ -995,7 +1063,8 @@ function renderWeeklyReview() {
 function renderPaceAndRoadmap(totalMinutes) {
   const totalHours = totalMinutes / 60;
   const remainingHours = Math.max(0, MAX_LEVEL_HOURS - totalHours);
-  const remainingDays = Math.max(1, Math.ceil((EXAM_DATE.getTime() - Date.now()) / 86400000));
+  const rawRemainingDays = Math.ceil((EXAM_DATE.getTime() - Date.now()) / 86400000);
+  const remainingDays = Math.max(1, rawRemainingDays);
   const neededPerDay = remainingHours / remainingDays;
   const studyDates = [...new Set(records.map((record) => record.date))].sort();
   const firstStudyDay = studyDates.length > 0 ? dayNumber(studyDates[0]) : dayNumber(localDateKey());
@@ -1010,10 +1079,18 @@ function renderPaceAndRoadmap(totalMinutes) {
     ? 0
     : totalHours / Math.max(1, new Set(records.map((record) => record.date)).size);
 
-  requiredPace.textContent = `必要 ${neededPerDay.toFixed(1)}時間/日`;
-  paceAdvice.textContent = remainingHours <= 0
-    ? "5000時間到達。ここからは質と仕上げの勝負。"
-    : `5000時間まで残り${Math.ceil(remainingHours)}時間。今の記録日ペースは約${currentPace.toFixed(1)}時間/日です。`;
+  if (rawRemainingDays <= 0) {
+    requiredPace.textContent = "期限を確認";
+    paceAdvice.textContent = "設定している期限を過ぎています。目標日や節目時間を見直して、次の作戦を立て直そう。";
+  } else if (neededPerDay > 24) {
+    requiredPace.textContent = "見直し推奨";
+    paceAdvice.textContent = `節目まで残り${Math.ceil(remainingHours)}時間。この期限だと1日${neededPerDay.toFixed(1)}時間が必要なので、目標日や節目を調整しよう。`;
+  } else {
+    requiredPace.textContent = `目安 ${neededPerDay.toFixed(1)}時間/日`;
+    paceAdvice.textContent = remainingHours <= 0
+      ? "5000時間の節目に到達。ここからは時間だけでなく、復習と演習の質を上げよう。"
+      : `5000時間の節目まで残り${Math.ceil(remainingHours)}時間。今の記録日ペースは約${currentPace.toFixed(1)}時間/日です。`;
+  }
   roadmapBar.style.width = `${Math.min(100, (totalHours / MAX_LEVEL_HOURS) * 100)}%`;
 
   roadmapSteps.replaceChildren();
@@ -1021,9 +1098,9 @@ function renderPaceAndRoadmap(totalMinutes) {
     [500, "基礎固め"],
     [1000, "受験生化"],
     [2000, "勝負開始"],
-    [3000, "合格圏へ接近"],
+    [3000, "応用強化"],
     [4000, "仕上げ"],
-    [5000, "慶應到達"],
+    [5000, "大きな節目"],
   ].forEach(([hours, label]) => {
     const step = document.createElement("span");
     step.className = totalHours >= hours ? "reached" : "";
@@ -1037,15 +1114,11 @@ function renderPaceAndRoadmap(totalMinutes) {
     ["7時間ペース", 7],
   ].forEach(([name, pace]) => {
     const rivalHours = Math.min(MAX_LEVEL_HOURS, pace * elapsedDays);
-    const item = document.createElement("div");
     const diff = totalHours - rivalHours;
-    item.innerHTML = `<span>${name}</span><strong>${diff >= 0 ? "+" : ""}${Math.round(diff)}時間</strong>`;
-    rivalList.append(item);
+    rivalList.append(createValuePair(name, `${diff >= 0 ? "+" : ""}${Math.round(diff)}時間`));
   });
 
-  const ticketItem = document.createElement("div");
-  ticketItem.innerHTML = `<span>保護チケット目安</span><strong>${protectionTickets}枚</strong>`;
-  rivalList.append(ticketItem);
+  rivalList.append(createValuePair("保護チケット目安", `${protectionTickets}枚`));
 }
 
 function buildBadgeDefinitions(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel) {
@@ -1082,7 +1155,7 @@ function buildBadgeDefinitions(totalMinutes, longestStreak, totalWordCount, stud
     { name: "折り返しの賢者", icon: "🔮", goal: 50, level: 4 },
     { name: "不屈の挑戦者", icon: "🛡️", goal: 60, level: 4 },
     { name: "努力の求道者", icon: "⚔️", goal: 70, level: 5 },
-    { name: "合格を狙う猛者", icon: "🎯", goal: 80, level: 5 },
+    { name: "本番を狙う猛者", icon: "🎯", goal: 80, level: 5 },
     { name: "限界を超える者", icon: "🌌", goal: 90, level: 6 },
     { name: "夢の目前", icon: "🌠", goal: 99, level: 6 },
     { name: "五千時間の覇者", icon: "👑", goal: 100, level: 7 },
@@ -1092,7 +1165,7 @@ function buildBadgeDefinitions(totalMinutes, longestStreak, totalWordCount, stud
     { name: "五百時間の開拓者", icon: "🧭", value: totalHours, goal: 500, unit: "時間", level: 7 },
     { name: "千時間の執念", icon: "🔥", value: totalHours, goal: 1000, unit: "時間", level: 7 },
     { name: "二千時間の挑戦者", icon: "⚔️", value: totalHours, goal: 2000, unit: "時間", level: 7 },
-    { name: "三千時間の合格圏ハンター", icon: "🏹", value: totalHours, goal: 3000, unit: "時間", level: 7 },
+    { name: "三千時間の応用ハンター", icon: "🏹", value: totalHours, goal: 3000, unit: "時間", level: 7 },
     { name: "四千時間の怪物", icon: "🐉", value: totalHours, goal: 4000, unit: "時間", level: 7 },
     { name: "五千時間の覇者", icon: "👑", value: totalHours, goal: 5000, unit: "時間", level: 7 },
     { name: "二百日継続の鉄人", icon: "🛡️", value: longestStreak, goal: 200, unit: "日連続", level: 7 },
@@ -1112,7 +1185,7 @@ function buildBadgeDefinitions(totalMinutes, longestStreak, totalWordCount, stud
     { name: "総合55突破", icon: "🏁", value: mockStats.bestTotalDeviation, goal: 55, unit: "総合偏差値", level: 4 },
     { name: "総合60到達", icon: "🏆", value: mockStats.bestTotalDeviation, goal: 60, unit: "総合偏差値", level: 5 },
     { name: "総合65の勝負師", icon: "🥇", value: mockStats.bestTotalDeviation, goal: 65, unit: "総合偏差値", level: 6 },
-    { name: "総合70の合格請負人", icon: "🌟", value: mockStats.bestTotalDeviation, goal: 70, unit: "総合偏差値", level: 7 },
+    { name: "総合70の上位ランナー", icon: "🌟", value: mockStats.bestTotalDeviation, goal: 70, unit: "総合偏差値", level: 7 },
     { name: "得意科目の芽", icon: "🌱", value: mockStats.subjectsOver55, goal: 1, unit: "科目", level: 3 },
     { name: "二科目エース化", icon: "🦅", value: mockStats.subjectsOver60, goal: 2, unit: "科目", level: 5 },
     { name: "三科目の柱", icon: "🏛️", value: mockStats.subjectsOver65, goal: 3, unit: "科目", level: 6 },
@@ -1163,9 +1236,7 @@ function renderMonthlyRecap() {
     ["英単語", `${words}個`],
     ["月間称号", total >= 6000 ? "今月の継続王" : total >= 1800 ? "今月の努力家" : "ここから作る月"],
   ].forEach(([label, value]) => {
-    const item = document.createElement("div");
-    item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
-    monthlyRecap.append(item);
+    monthlyRecap.append(createValuePair(label, value));
   });
 }
 
@@ -1507,9 +1578,7 @@ function renderChartDetail(rangeRecords) {
     ["最短", formatMinutes(shortest)],
     ["英単語", `${wordTotal}個`],
   ].forEach(([label, value]) => {
-    const item = document.createElement("div");
-    item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
-    stats.append(item);
+    stats.append(createValuePair(label, value));
   });
 
   const breakdown = document.createElement("div");
@@ -1517,9 +1586,7 @@ function renderChartDetail(rangeRecords) {
   [...subTotals.entries()]
     .sort((a, b) => b[1] - a[1])
     .forEach(([name, minutes]) => {
-      const row = document.createElement("div");
-      row.innerHTML = `<span>${name}</span><strong>${formatMinutes(minutes)}</strong>`;
-      breakdown.append(row);
+      breakdown.append(createValuePair(name, formatMinutes(minutes)));
     });
 
   const recent = document.createElement("div");
@@ -1540,13 +1607,7 @@ function renderChartDetail(rangeRecords) {
 }
 
 function createInsightStat(label, value) {
-  const item = document.createElement("div");
-  const span = document.createElement("span");
-  span.textContent = label;
-  const strong = document.createElement("strong");
-  strong.textContent = value;
-  item.append(span, strong);
-  return item;
+  return createValuePair(label, value);
 }
 
 function subjectWarnings(subject, sourceRecords) {
@@ -1836,80 +1897,12 @@ function badgeCategory(badge) {
 }
 
 function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount, currentLevel) {
-  const totalHours = Math.floor(totalMinutes / 60);
-  const mockStats = calculateMockBadgeStats();
-  const badges = [
-    { name: "はじめの一歩", icon: "🌱", value: studyDayCount, goal: 1, unit: "日学習", level: 1 },
-    { name: "一時間の集中", icon: "⏱️", value: totalHours, goal: 1, unit: "時間", level: 1 },
-    { name: "三日坊主卒業", icon: "🔥", value: longestStreak, goal: 3, unit: "日連続", level: 1 },
-    { name: "努力の芽", icon: "🌿", value: totalHours, goal: 5, unit: "時間", level: 2 },
-    { name: "単語ハンター", icon: "📗", value: totalWordCount, goal: 100, unit: "単語", level: 2 },
-    { name: "七日間の炎", icon: "⭐", value: longestStreak, goal: 7, unit: "日連続", level: 2 },
-    { name: "十時間の探究者", icon: "🧭", value: totalHours, goal: 10, unit: "時間", level: 3 },
-    { name: "学習常連", icon: "📅", value: studyDayCount, goal: 10, unit: "日学習", level: 3 },
-    { name: "集中の職人", icon: "⚒️", value: totalHours, goal: 25, unit: "時間", level: 3 },
-    { name: "単語コレクター", icon: "📘", value: totalWordCount, goal: 500, unit: "単語", level: 4 },
-    { name: "継続の達人", icon: "🏅", value: longestStreak, goal: 14, unit: "日連続", level: 4 },
-    { name: "五十時間の猛者", icon: "⚡", value: totalHours, goal: 50, unit: "時間", level: 4 },
-    { name: "一か月の努力家", icon: "🗓️", value: studyDayCount, goal: 30, unit: "日学習", level: 5 },
-    { name: "単語マスター", icon: "📚", value: totalWordCount, goal: 1000, unit: "単語", level: 5 },
-    { name: "習慣化マスター", icon: "🏆", value: longestStreak, goal: 30, unit: "日連続", level: 5 },
-    { name: "百時間の賢者", icon: "🧙", value: totalHours, goal: 100, unit: "時間", level: 6 },
-    { name: "単語の賢者", icon: "🧠", value: totalWordCount, goal: 3000, unit: "単語", level: 6 },
-    { name: "百日学習者", icon: "🎖️", value: studyDayCount, goal: 100, unit: "日学習", level: 6 },
-    { name: "三百時間の王者", icon: "👑", value: totalHours, goal: 300, unit: "時間", level: 7 },
-    { name: "まなびの伝説", icon: "💎", value: longestStreak, goal: 100, unit: "日連続", level: 7 },
-  ];
-  const levelBadges = [
-    { name: "駆け出しの努力家", icon: "🥉", goal: 5, level: 1 },
-    { name: "学びの冒険者", icon: "🗺️", goal: 10, level: 2 },
-    { name: "継続の探究者", icon: "🔎", goal: 20, level: 2 },
-    { name: "鍛錬の職人", icon: "🛠️", goal: 30, level: 3 },
-    { name: "知識の開拓者", icon: "🚩", goal: 40, level: 3 },
-    { name: "折り返しの賢者", icon: "🔮", goal: 50, level: 4 },
-    { name: "不屈の挑戦者", icon: "🛡️", goal: 60, level: 4 },
-    { name: "努力の求道者", icon: "⚔️", goal: 70, level: 5 },
-    { name: "合格を狙う猛者", icon: "🎯", goal: 80, level: 5 },
-    { name: "限界を超える者", icon: "🌌", goal: 90, level: 6 },
-    { name: "夢の目前", icon: "🌠", goal: 99, level: 6 },
-    { name: "五千時間の覇者", icon: "👑", goal: 100, level: 7 },
-  ].map((badge) => ({
-    ...badge,
-    value: currentLevel,
-    unit: "レベル",
-  }));
-  badges.push(...levelBadges);
-  badges.push(
-    { name: "五百時間の開拓者", icon: "🧭", value: totalHours, goal: 500, unit: "時間", level: 7 },
-    { name: "千時間の執念", icon: "🔥", value: totalHours, goal: 1000, unit: "時間", level: 7 },
-    { name: "二千時間の挑戦者", icon: "⚔️", value: totalHours, goal: 2000, unit: "時間", level: 7 },
-    { name: "三千時間の合格圏ハンター", icon: "🏹", value: totalHours, goal: 3000, unit: "時間", level: 7 },
-    { name: "四千時間の怪物", icon: "🐉", value: totalHours, goal: 4000, unit: "時間", level: 7 },
-    { name: "五千時間の覇者", icon: "👑", value: totalHours, goal: 5000, unit: "時間", level: 7 },
-    { name: "二百日継続の鉄人", icon: "🛡️", value: longestStreak, goal: 200, unit: "日連続", level: 7 },
-    { name: "一年継続の伝説", icon: "🌅", value: longestStreak, goal: 365, unit: "日連続", level: 7 },
-    { name: "二百日学習の実力者", icon: "📚", value: studyDayCount, goal: 200, unit: "日学習", level: 7 },
-    { name: "一年分の積み上げ", icon: "🗓️", value: studyDayCount, goal: 365, unit: "日学習", level: 7 },
-    { name: "英単語五千の武器庫", icon: "🧰", value: totalWordCount, goal: 5000, unit: "単語", level: 7 },
-    { name: "英単語一万の支配者", icon: "🦁", value: totalWordCount, goal: 10000, unit: "単語", level: 7 },
-    { name: "模試デビュー", icon: "📈", value: mockStats.resultCount, goal: 1, unit: "件", level: 1 },
-    { name: "総合偏差値の記録者", icon: "🎯", value: mockStats.totalResultCount, goal: 1, unit: "件", level: 2 },
-    { name: "模試を追う者", icon: "🔎", value: mockStats.totalMockCount, goal: 3, unit: "種類", level: 3 },
-    { name: "偏差値50突破", icon: "🚪", value: mockStats.bestAnyDeviation, goal: 50, unit: "偏差値", level: 3 },
-    { name: "偏差値55の壁破り", icon: "🧱", value: mockStats.bestAnyDeviation, goal: 55, unit: "偏差値", level: 4 },
-    { name: "偏差値60到達", icon: "🚀", value: mockStats.bestAnyDeviation, goal: 60, unit: "偏差値", level: 5 },
-    { name: "偏差値65の上位戦士", icon: "⚡", value: mockStats.bestAnyDeviation, goal: 65, unit: "偏差値", level: 6 },
-    { name: "偏差値70の怪物", icon: "💎", value: mockStats.bestAnyDeviation, goal: 70, unit: "偏差値", level: 7 },
-    { name: "総合55突破", icon: "🏁", value: mockStats.bestTotalDeviation, goal: 55, unit: "総合偏差値", level: 4 },
-    { name: "総合60到達", icon: "🏆", value: mockStats.bestTotalDeviation, goal: 60, unit: "総合偏差値", level: 5 },
-    { name: "総合65の勝負師", icon: "🥇", value: mockStats.bestTotalDeviation, goal: 65, unit: "総合偏差値", level: 6 },
-    { name: "総合70の合格請負人", icon: "🌟", value: mockStats.bestTotalDeviation, goal: 70, unit: "総合偏差値", level: 7 },
-    { name: "得意科目の芽", icon: "🌱", value: mockStats.subjectsOver55, goal: 1, unit: "科目", level: 3 },
-    { name: "二科目エース化", icon: "🦅", value: mockStats.subjectsOver60, goal: 2, unit: "科目", level: 5 },
-    { name: "三科目の柱", icon: "🏛️", value: mockStats.subjectsOver65, goal: 3, unit: "科目", level: 6 },
-    { name: "偏差値+3の反撃", icon: "↗️", value: mockStats.bestDeviationGain, goal: 3, unit: "UP", level: 4 },
-    { name: "偏差値+5の逆転劇", icon: "📣", value: mockStats.bestDeviationGain, goal: 5, unit: "UP", level: 5 },
-    { name: "偏差値+10の覚醒", icon: "✨", value: mockStats.bestDeviationGain, goal: 10, unit: "UP", level: 7 },
+  const badges = buildBadgeDefinitions(
+    totalMinutes,
+    longestStreak,
+    totalWordCount,
+    studyDayCount,
+    currentLevel,
   );
 
   badgeList.replaceChildren();
@@ -2396,11 +2389,13 @@ function renderLevelAndProfile(totalMinutes, streaks, unlockedBadgeCount) {
   levelBar.style.width = `${levelInfo.progress}%`;
   levelTrack.setAttribute("aria-valuenow", String(Math.round(levelInfo.progress)));
   nextLevelText.textContent = levelInfo.level === 100
-    ? "最高レベル到達。5000時間を積み上げた証です。"
+    ? "最高レベル到達。5000時間の節目まで積み上げました。"
     : `次のレベルまで ${formatMinutes(levelInfo.remainingMinutes)}`;
-  ultimateGoalLabel.textContent = profile.goal;
+  ultimateGoalLabel.textContent = `目標：${profile.goal}`;
   fiveThousandProgress.textContent =
-    `${Math.floor(totalMinutes / 60)} / ${MAX_LEVEL_HOURS}時間`;
+    `${Math.floor(totalMinutes / 60)} / ${MAX_LEVEL_HOURS}時間の節目`;
+  levelSummary.textContent = `${title}・累計${formatMinutes(totalMinutes)}`;
+  levelSummaryBadge.textContent = `Lv.${levelInfo.level}`;
 
   profileInitial.textContent = initial;
   profileLargeInitial.textContent = initial;
@@ -2430,6 +2425,80 @@ function showBestUpdate(message) {
   }, 3200);
 }
 
+function parseRecordFormValues({
+  id = createId(),
+  date,
+  subject,
+  activity,
+  memo,
+  hours,
+  minutes,
+  wordCount,
+}) {
+  const cleanSubject = subject.trim();
+  const cleanMemo = memo.trim().slice(0, 80);
+  const studyHours = Number(hours);
+  const studyMinutes = Number(minutes);
+  const totalMinutes = studyHours * 60 + studyMinutes;
+  const words = wordCount === "" ? 0 : Number(wordCount);
+
+  if (
+    !isDateKey(date)
+    || !cleanSubject
+    || !activity
+    || !Number.isInteger(studyHours) || studyHours < 0 || studyHours > 23
+    || !Number.isInteger(studyMinutes) || studyMinutes < 0 || studyMinutes > 59
+    || totalMinutes < 1
+    || !Number.isInteger(words) || words < 0 || words > 10000
+  ) {
+    return {
+      ok: false,
+      message: "日付・科目・内容・勉強時間を確認してください。時間は1分以上、23時間59分以内です。",
+    };
+  }
+
+  return {
+    ok: true,
+    record: {
+      id,
+      date,
+      subject: cleanSubject,
+      activity,
+      memo: cleanMemo,
+      minutes: totalMinutes,
+      wordCount: words,
+    },
+  };
+}
+
+function openRecordEditDialog(record) {
+  editRecordIdInput.value = record.id;
+  editStudyDateInput.value = record.date;
+  editSubjectInput.value = record.subject;
+  editActivityTypeInput.value = record.activity || "その他";
+  editStudyHoursInput.value = Math.floor(record.minutes / 60);
+  editStudyMinutesInput.value = record.minutes % 60;
+  editWordCountInput.value = record.wordCount || "";
+  editStudyMemoInput.value = record.memo || "";
+  setRecordEditStatus("");
+  recordEditDialog.showModal();
+}
+
+function switchTab(selectedTab) {
+  tabButtons.forEach((item) => {
+    const selected = item.dataset.tab === selectedTab;
+    item.classList.toggle("active", selected);
+    item.setAttribute("aria-selected", String(selected));
+  });
+  tabPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.tabPanel !== selectedTab;
+  });
+  if (selectedTab === "analysis") {
+    requestAnimationFrame(updateChartScrollHints);
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function render() {
   recordList.replaceChildren();
   emptyMessage.hidden = records.length > 0;
@@ -2445,9 +2514,16 @@ function render() {
     item.querySelector(".record-words").textContent =
       words > 0 ? `英単語 ${words}個` : "";
     item.querySelector(".record-minutes").textContent = formatMinutes(record.minutes);
+    item.querySelector(".edit-button").addEventListener("click", () => {
+      openRecordEditDialog(record);
+    });
     item.querySelector(".delete-button").addEventListener("click", () => {
-      records = records.filter((item) => item.id !== record.id);
-      saveRecords();
+      const nextRecords = records.filter((item) => item.id !== record.id);
+      if (!tryCommitRecords(nextRecords)) {
+        setRecordStatus("保存できなかったため、記録を削除できませんでした。ブラウザの空き容量や設定を確認してください。", "error");
+        return;
+      }
+      setRecordStatus("記録を削除しました。", "success");
       render();
     });
     recordList.append(item);
@@ -2535,45 +2611,39 @@ form.addEventListener("submit", (event) => {
   const previousTodayTotal = records
     .filter((record) => record.date === localDateKey())
     .reduce((sum, record) => sum + record.minutes, 0);
-  const subject = subjectInput.value.trim();
-  const activity = activityTypeInput.value;
-  const memo = studyMemoInput.value.trim();
-  const studyHours = Number(studyHoursInput.value);
-  const studyMinutes = Number(studyMinutesInput.value);
-  const minutes = studyHours * 60 + studyMinutes;
-  const wordCount = wordCountInput.value === "" ? 0 : Number(wordCountInput.value);
-  if (
-    !subject
-    || !activity
-    || !Number.isInteger(studyHours) || studyHours < 0 || studyHours > 23
-    || !Number.isInteger(studyMinutes) || studyMinutes < 0 || studyMinutes > 59
-    || minutes < 1
-    || !Number.isInteger(wordCount) || wordCount < 0 || wordCount > 10000
-  ) {
-    alert("勉強時間を1分以上、23時間59分以内で入力してください。");
+  const parsed = parseRecordFormValues({
+    date: studyDateInput.value,
+    subject: subjectInput.value,
+    activity: activityTypeInput.value,
+    memo: studyMemoInput.value,
+    hours: studyHoursInput.value,
+    minutes: studyMinutesInput.value,
+    wordCount: wordCountInput.value,
+  });
+  if (!parsed.ok) {
+    setRecordStatus(parsed.message, "error");
     return;
   }
 
-  records.unshift({
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    subject,
-    activity,
-    memo,
-    minutes,
-    wordCount,
-    date: localDateKey(),
-  });
-  saveRecords();
+  const nextRecords = [parsed.record, ...records];
+  if (!tryCommitRecords(nextRecords)) {
+    setRecordStatus("保存できませんでした。入力内容は残しています。ブラウザの空き容量やプライベートモード設定を確認してください。", "error");
+    return;
+  }
+
   render();
-  const newLevel = calculateLevel(previousTotal + minutes).level;
+  setRecordStatus("記録しました。", "success");
+  const newLevel = calculateLevel(previousTotal + parsed.record.minutes).level;
   if (newLevel > previousLevel) {
     showLevelUp(newLevel);
   }
-  if (previousTodayTotal + minutes > previousBestDay) {
-    showBestUpdate(`1日の最高記録 ${formatMinutes(previousTodayTotal + minutes)}`);
+  if (parsed.record.date === localDateKey() && previousTodayTotal + parsed.record.minutes > previousBestDay) {
+    showBestUpdate(`1日の最高記録 ${formatMinutes(previousTodayTotal + parsed.record.minutes)}`);
   }
+  const keepActivity = parsed.record.activity;
   form.reset();
-  activityTypeInput.value = activity;
+  studyDateInput.value = localDateKey();
+  activityTypeInput.value = keepActivity;
   subjectInput.focus();
 });
 
@@ -2744,6 +2814,47 @@ subjectInsightCloseButton.addEventListener("click", () => {
   subjectInsightDialog.close();
 });
 
+recordEditCloseButton.addEventListener("click", () => {
+  recordEditDialog.close();
+});
+
+recordEditForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const recordId = editRecordIdInput.value;
+  const original = records.find((record) => record.id === recordId);
+  if (!original) {
+    setRecordEditStatus("編集する記録が見つかりませんでした。画面を更新して確認してください。", "error");
+    return;
+  }
+
+  const parsed = parseRecordFormValues({
+    id: recordId,
+    date: editStudyDateInput.value,
+    subject: editSubjectInput.value,
+    activity: editActivityTypeInput.value,
+    memo: editStudyMemoInput.value,
+    hours: editStudyHoursInput.value,
+    minutes: editStudyMinutesInput.value,
+    wordCount: editWordCountInput.value,
+  });
+  if (!parsed.ok) {
+    setRecordEditStatus(parsed.message, "error");
+    return;
+  }
+
+  const nextRecords = records.map((record) => (
+    record.id === recordId ? parsed.record : record
+  ));
+  if (!tryCommitRecords(nextRecords)) {
+    setRecordEditStatus("保存できませんでした。入力内容は残しています。ブラウザの空き容量や設定を確認してください。", "error");
+    return;
+  }
+
+  render();
+  setRecordStatus("記録を編集しました。", "success");
+  recordEditDialog.close();
+});
+
 profileForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = profileNameInput.value.trim();
@@ -2768,10 +2879,19 @@ backupFileInput.addEventListener("change", () => {
 deleteAllButton.addEventListener("click", (event) => {
   event.stopPropagation();
   if (confirm("すべての勉強記録を削除しますか？")) {
-    records = [];
-    saveRecords();
+    if (!tryCommitRecords([])) {
+      setRecordStatus("保存できなかったため、記録を削除できませんでした。ブラウザの空き容量や設定を確認してください。", "error");
+      return;
+    }
+    setRecordStatus("すべての勉強記録を削除しました。", "success");
     render();
   }
+});
+
+goRecordButton.addEventListener("click", () => {
+  switchTab("record");
+  studyDateInput.value = studyDateInput.value || localDateKey();
+  subjectInput.focus();
 });
 
 previousMonthButton.addEventListener("click", () => {
@@ -2823,18 +2943,7 @@ badgeFilterButtons.forEach((button) => {
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    const selectedTab = button.dataset.tab;
-    tabButtons.forEach((item) => {
-      const selected = item === button;
-      item.classList.toggle("active", selected);
-      item.setAttribute("aria-selected", String(selected));
-    });
-    tabPanels.forEach((panel) => {
-      panel.hidden = panel.dataset.tabPanel !== selectedTab;
-    });
-    if (selectedTab === "analysis") {
-      requestAnimationFrame(updateChartScrollHints);
-    }
+    switchTab(button.dataset.tab);
   });
 });
 
@@ -2846,6 +2955,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=9").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=10").catch(() => {});
   });
 }

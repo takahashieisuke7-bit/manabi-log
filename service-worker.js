@@ -1,10 +1,10 @@
-const CACHE_NAME = "manabi-log-v9";
+const CACHE_NAME = "manabi-log-v10";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=9",
-  "./app.js?v=9",
-  "./manifest.webmanifest?v=9",
+  "./style.css?v=10",
+  "./app.js?v=10",
+  "./manifest.webmanifest?v=10",
   "./icon.svg",
 ];
 

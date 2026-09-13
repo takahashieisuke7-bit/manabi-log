@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=9">
+  <link rel="manifest" href="manifest.webmanifest?v=10">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <main class="container">
@@ -26,7 +26,7 @@
       </button>
     </header>
 
-    <section class="countdown" aria-label="共通テストまでの残り時間">
+    <section class="countdown home-secondary" aria-label="共通テストまでの残り時間" data-tab-panel="home">
       <span>2027年 共通テスト初日まで</span>
       <strong id="countdown">計算中...</strong>
       <small>2027年1月16日（土）9:30</small>
@@ -81,25 +81,42 @@
       </div>
     </section>
 
-    <section class="level-card card" data-tab-panel="home">
-      <div class="level-heading">
-        <div>
-          <span>LEVEL</span>
-          <strong id="levelNumber">1</strong>
+    <section class="quick-record-card card" data-tab-panel="home">
+      <div>
+        <span>すぐ記録</span>
+        <strong>終わったら、忘れる前に残す。</strong>
+      </div>
+      <button id="goRecordButton" type="button">勉強を記録する</button>
+    </section>
+
+    <section class="level-card card compact-details-card" data-tab-panel="home">
+      <details>
+        <summary>
+          <span>
+            <strong>レベル・積み上げ</strong>
+            <small id="levelSummary">学習の節目を確認</small>
+          </span>
+          <span id="levelSummaryBadge" class="goal-display">Lv.1</span>
+        </summary>
+        <div class="level-heading">
+          <div>
+            <span>LEVEL</span>
+            <strong id="levelNumber">1</strong>
+          </div>
+          <div>
+            <span id="levelTitle">見習い学習者</span>
+            <small id="nextLevelText">次のレベルまで計算中...</small>
+          </div>
         </div>
-        <div>
-          <span id="levelTitle">見習い学習者</span>
-          <small id="nextLevelText">次のレベルまで計算中...</small>
+        <div class="level-track" role="progressbar" aria-label="次のレベルまでの進捗"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="levelBar" class="level-bar"></div>
         </div>
-      </div>
-      <div class="level-track" role="progressbar" aria-label="次のレベルまでの進捗"
-           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div id="levelBar" class="level-bar"></div>
-      </div>
-      <div class="ultimate-goal">
-        <span id="ultimateGoalLabel">慶應大学合格</span>
-        <strong id="fiveThousandProgress">0 / 5000時間</strong>
-      </div>
+        <div class="ultimate-goal">
+          <span id="ultimateGoalLabel">慶應大学合格</span>
+          <strong id="fiveThousandProgress">0 / 5000時間</strong>
+        </div>
+      </details>
     </section>
 
     <section class="achievement card" aria-label="今日の目標達成率" data-tab-panel="home">
@@ -120,28 +137,38 @@
       </div>
     </section>
 
-    <section class="card mission-card" data-tab-panel="home">
-      <div class="section-title">
-        <h2>今日の称号ミッション</h2>
-        <span class="goal-display">狙い目</span>
-      </div>
-      <div id="badgeMission" class="mission-box">今日狙える称号を計算します。</div>
+    <section class="card mission-card compact-details-card" data-tab-panel="home">
+      <details>
+        <summary>
+          <span>
+            <strong>今日の称号ミッション</strong>
+            <small>ゲーム要素は必要な時だけ</small>
+          </span>
+          <span class="goal-display">狙い目</span>
+        </summary>
+        <div id="badgeMission" class="mission-box">今日狙える称号を計算します。</div>
+      </details>
     </section>
 
-    <section class="card pace-card" data-tab-panel="home">
-      <div class="section-title">
-        <h2>慶應ロードマップ</h2>
-        <span id="requiredPace" class="goal-display">計算中</span>
-      </div>
-      <div class="roadmap-track" aria-label="5000時間までの進捗">
-        <div id="roadmapBar" class="roadmap-bar"></div>
-      </div>
-      <div id="roadmapSteps" class="roadmap-steps"></div>
-      <div id="paceAdvice" class="pace-advice">5000時間までの必要ペースを表示します。</div>
-      <div id="rivalList" class="rival-list"></div>
+    <section class="card pace-card compact-details-card" data-tab-panel="home">
+      <details>
+        <summary>
+          <span>
+            <strong>学習時間ロードマップ</strong>
+          <small>目標までの積み上げを確認</small>
+          </span>
+          <span id="requiredPace" class="goal-display">計算中</span>
+        </summary>
+        <div class="roadmap-track" aria-label="5000時間までの進捗">
+          <div id="roadmapBar" class="roadmap-bar"></div>
+        </div>
+        <div id="roadmapSteps" class="roadmap-steps"></div>
+        <div id="paceAdvice" class="pace-advice">学習時間の節目までのペースを表示します。</div>
+        <div id="rivalList" class="rival-list"></div>
+      </details>
     </section>
 
-    <section class="card weekly-review compact-details-card" data-tab-panel="home">
+    <section class="card weekly-review compact-details-card" data-tab-panel="analysis" hidden>
       <details id="weeklyDetails">
         <summary>
           <span>
@@ -155,7 +182,7 @@
       </details>
     </section>
 
-    <section class="card weakness-card" data-tab-panel="home">
+    <section class="card weakness-card" data-tab-panel="analysis" hidden>
       <div class="section-title">
         <h2>弱点アラート</h2>
         <span class="goal-display">自動分析</span>
@@ -233,15 +260,21 @@
     <section class="card" data-tab-panel="record" hidden>
       <h2>勉強を記録</h2>
       <form id="studyForm">
+        <label for="studyDate">日付</label>
+        <input id="studyDate" type="date" required>
+
         <label for="subject">科目</label>
         <input id="subject" maxlength="30" placeholder="例：英語" required>
 
         <label for="activityType">内容</label>
         <select id="activityType" required></select>
-        <div class="activity-option-row">
+        <details class="optional-field-group">
+          <summary>内容の選択肢を追加する</summary>
+          <div class="activity-option-row">
           <input id="activityOptionInput" maxlength="24" placeholder="例：東進受講、青チャート">
           <button id="addActivityOption" type="button">内容を追加</button>
-        </div>
+          </div>
+        </details>
 
         <div class="quick-fill">
           <details>
@@ -276,6 +309,7 @@
         <input id="studyMemo" maxlength="80" placeholder="例：東進 英文法 第12講、復習まで">
 
         <button type="submit">記録する</button>
+        <p id="recordStatus" class="form-status" role="status" aria-live="polite"></p>
       </form>
     </section>
 
@@ -429,7 +463,7 @@
         <summary>
           <span>
             <strong>勉強記録</strong>
-            <small>開くと過去の記録確認・削除ができます</small>
+            <small>開くと過去の記録確認・編集・削除ができます</small>
           </span>
           <button id="deleteAll" class="text-button" type="button">すべて削除</button>
         </summary>
@@ -499,6 +533,50 @@
     <div id="subjectInsightBody" class="subject-insight-body"></div>
   </dialog>
 
+  <dialog id="recordEditDialog" class="profile-dialog record-edit-dialog">
+    <div class="dialog-header">
+      <h2>記録を編集</h2>
+      <button id="recordEditCloseButton" class="dialog-close" type="button"
+              aria-label="記録編集を閉じる">×</button>
+    </div>
+    <form id="recordEditForm" class="record-edit-form">
+      <input id="editRecordId" type="hidden">
+
+      <label for="editStudyDate">日付</label>
+      <input id="editStudyDate" type="date" required>
+
+      <label for="editSubject">科目</label>
+      <input id="editSubject" maxlength="30" required>
+
+      <label for="editActivityType">内容</label>
+      <select id="editActivityType" required></select>
+
+      <fieldset class="duration-fields">
+        <legend>勉強時間</legend>
+        <div>
+          <label for="editStudyHours">時間</label>
+          <input id="editStudyHours" type="number" min="0" max="23"
+                 inputmode="numeric" required>
+        </div>
+        <div>
+          <label for="editStudyMinutes">分</label>
+          <input id="editStudyMinutes" type="number" min="0" max="59"
+                 inputmode="numeric" required>
+        </div>
+      </fieldset>
+
+      <label for="editWordCount">覚えた英単語数（任意）</label>
+      <input id="editWordCount" type="number" min="0" max="10000"
+             inputmode="numeric">
+
+      <label for="editStudyMemo">メモ（任意）</label>
+      <input id="editStudyMemo" maxlength="80">
+
+      <button type="submit">変更を保存</button>
+      <p id="recordEditStatus" class="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+
   <div id="levelUpToast" class="level-up-toast" hidden>
     <span>LEVEL UP!</span>
     <strong id="levelUpMessage"></strong>
@@ -518,11 +596,12 @@
       </div>
       <div class="record-actions">
         <span class="record-minutes"></span>
+        <button class="edit-button" type="button" aria-label="記録を編集">編集</button>
         <button class="delete-button" type="button" aria-label="記録を削除">×</button>
       </div>
     </li>
   </template>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

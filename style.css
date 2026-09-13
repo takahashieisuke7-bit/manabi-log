@@ -11,13 +11,30 @@
 
 body {
   margin: 0;
+  background:
+    radial-gradient(circle at top, rgb(224 231 255 / 70%), transparent 310px),
+    #f8fafc;
 }
 
 .container {
+  display: flex;
+  flex-direction: column;
   width: min(100% - 32px, 620px);
   margin: 0 auto;
   padding: 40px 0 64px;
 }
+
+.app-header { order: 1; }
+.app-tabs { order: 2; }
+[data-tab-panel] { order: 10; }
+.todo-card { order: 10; }
+.achievement { order: 20; }
+.quick-record-card { order: 30; }
+.summary { order: 40; }
+.countdown.home-secondary { order: 50; }
+.level-card { order: 60; }
+.mission-card { order: 70; }
+.pace-card { order: 80; }
 
 header {
   margin-bottom: 24px;
@@ -69,11 +86,12 @@ header p {
 
 .countdown {
   margin-bottom: 16px;
-  padding: 22px;
+  padding: 16px 18px;
   border-radius: 20px;
-  color: #fff;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  box-shadow: 0 12px 28px rgb(79 70 229 / 22%);
+  color: #4338ca;
+  border: 1px solid #e0e7ff;
+  background: #fff;
+  box-shadow: none;
 }
 
 .countdown span,
@@ -84,12 +102,12 @@ header p {
 
 .countdown span,
 .countdown small {
-  color: #e0e7ff;
+  color: #6b7280;
 }
 
 .countdown strong {
-  margin: 6px 0;
-  font-size: clamp(1.35rem, 6vw, 2rem);
+  margin: 4px 0;
+  font-size: clamp(1.05rem, 5vw, 1.35rem);
 }
 
 .app-tabs {
@@ -143,13 +161,13 @@ header p {
 .summary div,
 .card {
   border: 1px solid #e5e7eb;
-  border-radius: 20px;
+  border-radius: 22px;
   background: #fff;
-  box-shadow: 0 8px 24px rgb(31 41 55 / 6%);
+  box-shadow: 0 4px 18px rgb(31 41 55 / 5%);
 }
 
 .summary div {
-  padding: 18px;
+  padding: 14px;
 }
 
 .summary span,
@@ -164,7 +182,7 @@ header p {
 
 .summary strong {
   margin-top: 4px;
-  font-size: 1.5rem;
+  font-size: 1.28rem;
 }
 
 .summary small {
@@ -174,8 +192,8 @@ header p {
 }
 
 .todo-card {
-  border-color: #c7d2fe;
-  background: linear-gradient(145deg, #fff, #f5f7ff);
+  border-color: #ddd6fe;
+  background: #fff;
 }
 
 .todo-form {
@@ -314,15 +332,52 @@ header p {
 
 .achievement {
   overflow: hidden;
+  border-color: #c4b5fd;
+  background: linear-gradient(180deg, #fff, #f8f7ff);
+}
+
+.quick-record-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border-color: #c4b5fd;
+  background: #4f46e5;
+  color: #fff;
+}
+
+.quick-record-card span,
+.quick-record-card strong {
+  display: block;
+}
+
+.quick-record-card span {
+  color: #c7d2fe;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.quick-record-card strong {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.quick-record-card button {
+  min-width: 132px;
+  padding: 0 16px;
+  color: #3730a3;
+  background: #fff;
+  font-weight: 900;
 }
 
 .level-card {
-  color: #fff;
-  background: linear-gradient(145deg, #111827, #312e81);
+  color: #1f2937;
+  background: #fff;
 }
 
 .level-card.card {
-  padding: 18px;
+  padding: 0;
 }
 
 .level-heading {
@@ -343,7 +398,7 @@ header p {
 }
 
 .level-heading > div:first-child span {
-  color: #a5b4fc;
+  color: #6366f1;
   font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -360,7 +415,7 @@ header p {
 
 .level-heading > div:last-child small {
   margin-top: 4px;
-  color: #c7d2fe;
+  color: #6b7280;
 }
 
 .level-track {
@@ -368,7 +423,7 @@ header p {
   height: 12px;
   margin-top: 13px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 18%);
+  background: #e5e7eb;
 }
 
 .level-bar {
@@ -400,7 +455,7 @@ header p {
 
 .ultimate-goal span {
   overflow: hidden;
-  color: #c7d2fe;
+  color: #6b7280;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -890,7 +945,7 @@ header p {
 
 .card {
   margin-top: 16px;
-  padding: 22px;
+  padding: 20px;
 }
 
 h2 {
@@ -933,6 +988,25 @@ legend {
   grid-template-columns: 1fr auto;
   gap: 8px;
   margin-top: 8px;
+}
+
+.optional-field-group {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.optional-field-group summary {
+  color: #4f46e5;
+  font-size: 0.8rem;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.optional-field-group summary::-webkit-details-marker {
+  display: none;
 }
 
 .activity-option-row button {
@@ -1010,6 +1084,22 @@ input:focus {
 select:focus {
   border-color: #4f46e5;
   outline: 3px solid #e0e7ff;
+}
+
+.form-status {
+  min-height: 1.4em;
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.form-status.success {
+  color: #166534;
+}
+
+.form-status.error {
+  color: #b91c1c;
 }
 
 button {
@@ -2047,6 +2137,19 @@ li {
   font-size: 1.3rem;
 }
 
+.edit-button {
+  min-height: 34px;
+  padding: 0 10px;
+  color: #4f46e5;
+  background: #eef2ff;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.record-edit-form {
+  margin-top: 16px;
+}
+
 .record-history-card {
   padding: 0;
 }
@@ -2176,6 +2279,14 @@ li {
 
   .card {
     padding: 18px;
+  }
+
+  .quick-record-card {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-record-card button {
+    width: 100%;
   }
 
   .goal-form {
