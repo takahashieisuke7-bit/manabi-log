@@ -233,7 +233,7 @@ let materialTasks = loadMaterialTasks();
 let scheduleSettings = loadScheduleSettings();
 let lastReschedule = loadLastReschedule();
 let visibleMonth = new Date();
-let chartPeriod = "month";
+let chartPeriod = "day";
 let chartMode = "subject";
 let chartCursorDate = new Date();
 let selectedChartItem = null;
@@ -3948,6 +3948,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=11").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=12").catch(() => {});
   });
 }
