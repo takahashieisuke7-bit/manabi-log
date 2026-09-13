@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=10">
+  <link rel="manifest" href="manifest.webmanifest?v=11">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
   <main class="container">
@@ -39,6 +39,8 @@
               role="tab" aria-selected="false">記録</button>
       <button type="button" data-tab="analysis"
               role="tab" aria-selected="false">分析</button>
+      <button type="button" data-tab="schedule"
+              role="tab" aria-selected="false">予定</button>
       <button type="button" data-tab="badges"
               role="tab" aria-selected="false">称号</button>
     </nav>
@@ -57,6 +59,19 @@
       </form>
       <div id="todoList" class="todo-list"></div>
       <p id="todoEmpty" class="empty">今日のやることはまだありません。</p>
+    </section>
+
+    <section class="card today-material-card" data-tab-panel="home">
+      <div class="section-title">
+        <div>
+          <h2>今日の教材予定</h2>
+          <p class="setting-note">予定の完了チェックです。勉強時間は別で記録します。</p>
+        </div>
+        <span id="todayScheduleBadge" class="goal-display">0 / 0</span>
+      </div>
+      <div id="todayScheduleList" class="schedule-list compact"></div>
+      <p id="todayScheduleEmpty" class="empty">今日の教材予定はありません。</p>
+      <button id="goScheduleButton" class="secondary-button" type="button">予定を管理する</button>
     </section>
 
     <section class="summary" aria-label="勉強時間の合計" data-tab-panel="home">
@@ -227,6 +242,157 @@
         <div id="chartLegend" class="chart-legend"></div>
       </div>
       <div id="chartDetail" class="chart-detail" hidden></div>
+    </section>
+
+    <section class="card schedule-create-card" data-tab-panel="schedule" hidden>
+      <div class="section-title">
+        <div>
+          <h2>教材スケジュールを作る</h2>
+          <p class="setting-note">数字の範囲を、勉強する曜日に自動で割り振ります。</p>
+        </div>
+        <span class="goal-display">無料保存</span>
+      </div>
+      <form id="materialPlanForm" class="material-plan-form">
+        <div>
+          <label for="materialName">教材名</label>
+          <input id="materialName" maxlength="40" placeholder="例：ターゲット1900" required>
+        </div>
+        <div>
+          <label for="materialUnit">単位</label>
+          <select id="materialUnit" required>
+            <option value="単語番号">単語番号</option>
+            <option value="ページ">ページ</option>
+            <option value="問題番号">問題番号</option>
+            <option value="講">講</option>
+            <option value="項目">項目</option>
+          </select>
+        </div>
+        <div>
+          <label for="materialRangeStart">開始範囲</label>
+          <input id="materialRangeStart" type="number" min="1" max="99999" inputmode="numeric" placeholder="1" required>
+        </div>
+        <div>
+          <label for="materialRangeEnd">終了範囲</label>
+          <input id="materialRangeEnd" type="number" min="1" max="99999" inputmode="numeric" placeholder="800" required>
+        </div>
+        <div>
+          <label for="materialStartDate">開始日</label>
+          <input id="materialStartDate" type="date" required>
+        </div>
+        <div>
+          <label for="materialEndDate">終えたい日</label>
+          <input id="materialEndDate" type="date" required>
+        </div>
+        <fieldset class="weekday-picker">
+          <legend>勉強する曜日</legend>
+          <label><input type="checkbox" name="materialWeekday" value="1" checked>月</label>
+          <label><input type="checkbox" name="materialWeekday" value="2" checked>火</label>
+          <label><input type="checkbox" name="materialWeekday" value="3" checked>水</label>
+          <label><input type="checkbox" name="materialWeekday" value="4" checked>木</label>
+          <label><input type="checkbox" name="materialWeekday" value="5" checked>金</label>
+          <label><input type="checkbox" name="materialWeekday" value="6">土</label>
+          <label><input type="checkbox" name="materialWeekday" value="0">日</label>
+        </fieldset>
+        <button type="submit">自動で予定を作成</button>
+      </form>
+      <p id="scheduleStatus" class="form-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card" data-tab-panel="schedule" hidden>
+      <details class="schedule-details">
+        <summary>
+          <span>
+            <strong>手動で予定を追加</strong>
+            <small>日付と範囲を直接決めたい時に使います</small>
+          </span>
+        </summary>
+        <form id="manualScheduleForm" class="manual-schedule-form">
+          <div>
+            <label for="manualMaterialName">教材名</label>
+            <input id="manualMaterialName" maxlength="40" required>
+          </div>
+          <div>
+            <label for="manualMaterialUnit">単位</label>
+            <select id="manualMaterialUnit" required>
+              <option value="単語番号">単語番号</option>
+              <option value="ページ">ページ</option>
+              <option value="問題番号">問題番号</option>
+              <option value="講">講</option>
+              <option value="項目">項目</option>
+            </select>
+          </div>
+          <div>
+            <label for="manualScheduleDate">日付</label>
+            <input id="manualScheduleDate" type="date" required>
+          </div>
+          <div>
+            <label for="manualScheduleType">種類</label>
+            <select id="manualScheduleType" required>
+              <option value="new">新規</option>
+              <option value="review">復習</option>
+            </select>
+          </div>
+          <div>
+            <label for="manualRangeStart">開始範囲</label>
+            <input id="manualRangeStart" type="number" min="1" max="99999" inputmode="numeric" required>
+          </div>
+          <div>
+            <label for="manualRangeEnd">終了範囲</label>
+            <input id="manualRangeEnd" type="number" min="1" max="99999" inputmode="numeric" required>
+          </div>
+          <label class="inline-checkbox">
+            <input id="manualScheduleFixed" type="checkbox" checked>
+            固定する
+          </label>
+          <button type="submit">手動予定を追加</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="card" data-tab-panel="schedule" hidden>
+      <details class="schedule-details">
+        <summary>
+          <span>
+            <strong>復習・再調整ルール</strong>
+            <small>復習間隔と多すぎ警告の基準</small>
+          </span>
+        </summary>
+        <form id="scheduleSettingsForm" class="schedule-settings-form">
+          <label for="reviewOffsets">復習間隔（日後）</label>
+          <input id="reviewOffsets" maxlength="30" placeholder="1,3,7,14" required>
+          <div class="duration-fields">
+            <div>
+              <label for="maxNewUnitsPerDay">新規の多すぎ基準</label>
+              <input id="maxNewUnitsPerDay" type="number" min="1" max="9999" inputmode="numeric" required>
+            </div>
+            <div>
+              <label for="maxTotalUnitsPerDay">復習込みの多すぎ基準</label>
+              <input id="maxTotalUnitsPerDay" type="number" min="1" max="9999" inputmode="numeric" required>
+            </div>
+          </div>
+          <button type="submit">ルールを保存</button>
+        </form>
+        <p class="setting-note">初期値は、復習が1日後・3日後・7日後・14日後、新規100項目/日、復習込み150項目/日です。</p>
+      </details>
+    </section>
+
+    <section class="card schedule-overview-card" data-tab-panel="schedule" hidden>
+      <div class="section-title">
+        <div>
+          <h2>教材ごとの予定と進捗</h2>
+          <p id="scheduleSummary" class="setting-note">予定を作るとここに表示されます。</p>
+        </div>
+        <button id="rescheduleButton" class="secondary-button compact-button" type="button">未完了を再調整</button>
+      </div>
+      <div id="rescheduleSummary" class="reschedule-summary" hidden></div>
+      <button id="undoRescheduleButton" class="secondary-button" type="button" hidden>直前の再調整を取り消す</button>
+      <label for="scheduleMaterialFilter">表示する教材</label>
+      <select id="scheduleMaterialFilter">
+        <option value="all">すべての教材</option>
+      </select>
+      <div id="materialProgressList" class="material-progress-list"></div>
+      <div id="scheduleList" class="schedule-list"></div>
+      <p id="scheduleEmpty" class="empty">教材スケジュールはまだありません。</p>
     </section>
 
     <section class="card" data-tab-panel="badges" hidden>
@@ -481,7 +647,7 @@
           <span class="goal-display">無料</span>
         </summary>
         <p class="setting-note">
-          勉強記録、目標、休日、プロフィール、模試結果を1つのファイルに保存できます。
+          勉強記録、目標、休日、プロフィール、模試結果、教材スケジュールを1つのファイルに保存できます。
           スマホの機種変更やブラウザのデータ削除に備えて、ときどき保存しておくのがおすすめです。
         </p>
         <div class="backup-actions">
@@ -577,6 +743,60 @@
     </form>
   </dialog>
 
+  <dialog id="scheduleEditDialog" class="profile-dialog schedule-edit-dialog">
+    <div class="dialog-header">
+      <h2>教材予定を編集</h2>
+      <button id="scheduleEditCloseButton" class="dialog-close" type="button"
+              aria-label="教材予定編集を閉じる">×</button>
+    </div>
+    <form id="scheduleEditForm" class="record-edit-form">
+      <input id="editScheduleId" type="hidden">
+
+      <label for="editScheduleDate">日付</label>
+      <input id="editScheduleDate" type="date" required>
+
+      <label for="editScheduleMaterial">教材名</label>
+      <input id="editScheduleMaterial" maxlength="40" required>
+
+      <label for="editScheduleUnit">単位</label>
+      <select id="editScheduleUnit" required>
+        <option value="単語番号">単語番号</option>
+        <option value="ページ">ページ</option>
+        <option value="問題番号">問題番号</option>
+        <option value="講">講</option>
+        <option value="項目">項目</option>
+      </select>
+
+      <label for="editScheduleType">種類</label>
+      <select id="editScheduleType" required>
+        <option value="new">新規</option>
+        <option value="review">復習</option>
+      </select>
+
+      <fieldset class="duration-fields">
+        <legend>学習範囲</legend>
+        <div>
+          <label for="editScheduleStart">開始</label>
+          <input id="editScheduleStart" type="number" min="1" max="99999"
+                 inputmode="numeric" required>
+        </div>
+        <div>
+          <label for="editScheduleEnd">終了</label>
+          <input id="editScheduleEnd" type="number" min="1" max="99999"
+                 inputmode="numeric" required>
+        </div>
+      </fieldset>
+
+      <label class="inline-checkbox">
+        <input id="editScheduleFixed" type="checkbox">
+        この予定を固定する
+      </label>
+
+      <button type="submit">予定を保存</button>
+      <p id="scheduleEditStatus" class="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+
   <div id="levelUpToast" class="level-up-toast" hidden>
     <span>LEVEL UP!</span>
     <strong id="levelUpMessage"></strong>
@@ -602,6 +822,6 @@
     </li>
   </template>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>
