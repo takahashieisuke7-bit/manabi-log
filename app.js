@@ -1169,18 +1169,19 @@ function createScheduleItem(task, { compact = false } = {}) {
     const edit = document.createElement("button");
     edit.type = "button";
     edit.textContent = "編集";
+    edit.setAttribute("aria-label", `${task.material} ${taskTypeLabel(task.type)} ${formatTaskRange(task)}を編集`);
     edit.disabled=task.done;
     edit.addEventListener("click", () => openScheduleEditDialog(task));
 
     const pin = document.createElement("button");
     pin.type = "button";
     pin.textContent = task.fixed ? "固定解除" : "固定";
+    pin.disabled=task.done;
     pin.addEventListener("click", () => {
-      materialTasks = materialTasks.map((entry) => (
-        entry.id === task.id ? { ...entry, fixed: !entry.fixed } : entry
-      ));
-      saveMaterialTasks();
-      render();
+      openScheduleEditDialog(task);
+      editScheduleFixedInput.checked=!task.fixed;
+      updateTaskEditHint();
+      previewTaskEdit();
     });
 
     const remove = document.createElement("button");
@@ -1322,6 +1323,7 @@ function renderSchedule() {
     rescheduleSummary.hidden = false;
     rescheduleSummary.textContent = lastReschedule.summary;
     undoRescheduleButton.hidden = false;
+    undoRescheduleButton.textContent=lastReschedule.operation==="edit"?"直前の編集を取り消す":"直前の再調整を取り消す";
   } else {
     rescheduleSummary.hidden = true;
     rescheduleSummary.textContent = "";
@@ -2300,7 +2302,7 @@ function setScheduleEditStatus(message, type = "") {
 }
 
 function saveScheduleSnapshot(beforeTasks, afterTasks, summary, before = scheduleState()) {
-  lastReschedule={beforeTasks:sanitizeMaterialTasks(beforeTasks),afterTasks:sanitizeMaterialTasks(afterTasks),
+  lastReschedule={operation:"reschedule",beforeTasks:sanitizeMaterialTasks(beforeTasks),afterTasks:sanitizeMaterialTasks(afterTasks),
     beforePlans:before.plans,afterPlans:structuredClone(materialPlans),beforeHolidays:before.holidays,afterHolidays:[...holidays],summary,createdAt:new Date().toISOString()};
   saveLastReschedule();
 }
@@ -3117,7 +3119,8 @@ function openScheduleEditDialog(task) {
   editScheduleFixedInput.checked = task.fixed;
   editScheduleMaterialInput.disabled=Boolean(task.planId);
   editScheduleUnitInput.disabled=Boolean(task.planId);
-  editScheduleTypeInput.disabled=Boolean(task.planId);
+  editScheduleTypeInput.disabled=true;
+  initializeTaskEdit(task);
   setScheduleEditStatus("");
   scheduleEditDialog.showModal();
 }
@@ -3568,72 +3571,7 @@ recordEditForm.addEventListener("submit", (event) => {
   recordEditDialog.close();
 });
 
-scheduleEditForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const taskId = editScheduleIdInput.value;
-  const original = materialTasks.find((task) => task.id === taskId);
-  if (!original) {
-    setScheduleEditStatus("編集する予定が見つかりませんでした。画面を更新して確認してください。", "error");
-    return;
-  }
-
-  const parsed = parseScheduleFormValues({
-    id: taskId,
-    planId: original.planId,
-    sourceNewId: original.sourceNewId,
-    material: editScheduleMaterialInput.value,
-    unit: editScheduleUnitInput.value,
-    date: editScheduleDateInput.value,
-    type: editScheduleTypeInput.value,
-    start: editScheduleStartInput.value,
-    end: editScheduleEndInput.value,
-    fixed: editScheduleFixedInput.checked,
-    done: original.done,
-    manual: original.manual,
-    createdAt: original.createdAt,
-  });
-  if (!parsed.ok) {
-    setScheduleEditStatus(parsed.message, "error");
-    return;
-  }
-
-  if(original.done){setScheduleEditStatus("完了済みの実績は変更できません。必要なら完了を取り消してください。","error");return;}
-  if(original.planId && parsed.task.type!==original.type){setScheduleEditStatus("教材に紐づく予定の新規／復習は変更できません。","error");return;}
-  const plan=planById(original.planId);
-  if(plan && (parsed.task.start<plan.start || parsed.task.end>plan.end)){setScheduleEditStatus("教材全体の範囲内で指定してください。","error");return;}
-  if(original.type==="new" && original.planId && materialTasks.some(t=>t.id!==taskId && t.planId===original.planId && t.type==="new" && t.start<=parsed.task.end && parsed.task.start<=t.end)) {
-    setScheduleEditStatus("別の日の新規学習と範囲が重なります。先に隣の日の範囲を調整してください。","error");return;
-  }
-  if(materialTasks.some(t=>t.sourceNewId===taskId&&(t.fixed||t.done)) && (original.start!==parsed.task.start||original.end!==parsed.task.end)){
-    setScheduleEditStatus("固定・完了済みの復習があるため、この範囲は変更できません。","error");return;
-  }
-  parsed.task={...original,...parsed.task,manual:true,originalDate:original.date,requestedDate:parsed.task.type==="review"?parsed.task.date:""};
-  materialTasks = materialTasks.map((task) => task.id === taskId ? parsed.task : task);
-  saveMaterialTasks();
-  if (original.type === "new" && parsed.task.type !== "new") {
-    materialTasks = materialTasks.filter((task) => !(
-      task.type === "review"
-      && task.sourceNewId === taskId
-      && !task.done
-      && !task.fixed
-    ));
-    saveMaterialTasks();
-  } else if (
-    parsed.task.type === "new"
-    && (
-      original.date !== parsed.task.date
-      || original.start !== parsed.task.start
-      || original.end !== parsed.task.end
-      || original.material !== parsed.task.material
-      || original.unit !== parsed.task.unit
-    )
-  ) {
-    adjustReviewsForNewTask(parsed.task);
-  }
-  setScheduleStatus("教材予定を編集しました。新規予定を動かした場合は、未完了の復習予定も調整しました。", "success");
-  render();
-  scheduleEditDialog.close();
-});
+scheduleEditForm.addEventListener("submit", event => { event.preventDefault(); previewTaskEdit(); });
 
 profileForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -3692,17 +3630,7 @@ rescheduleButton.addEventListener("click", () => {
 });
 
 undoRescheduleButton.addEventListener("click", () => {
-  if(!lastReschedule)return;
-  if(JSON.stringify(sanitizeMaterialTasks(materialTasks))!==JSON.stringify(lastReschedule.afterTasks)
-    || (lastReschedule.afterPlans && JSON.stringify(materialPlans)!==JSON.stringify(lastReschedule.afterPlans))
-    || (lastReschedule.afterHolidays && JSON.stringify(holidays)!==JSON.stringify(lastReschedule.afterHolidays))) {
-    setScheduleStatus("再調整後に予定・実績・休日が変更されたため、取り消せません。現在の変更を保持しました。","error");return;
-  }
-  materialTasks=sanitizeMaterialTasks(lastReschedule.beforeTasks);
-  if(lastReschedule.beforePlans)materialPlans=lastReschedule.beforePlans;
-  if(lastReschedule.beforeHolidays)holidays=lastReschedule.beforeHolidays;
-  saveMaterialTasks();saveMaterialPlans();saveHolidays();lastReschedule=null;saveLastReschedule();
-  setScheduleStatus("直前の再調整を取り消しました。休日と教材設定も元に戻しました。","success");render();
+  undoScheduleChange();
 });
 
 previousMonthButton.addEventListener("click", () => {
@@ -3766,6 +3694,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=14").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=15").catch(() => {});
   });
 }

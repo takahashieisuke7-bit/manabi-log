@@ -1,4 +1,21 @@
 .schedule-month-toolbar{display:grid;grid-template-columns:44px 1fr 44px auto;align-items:center;gap:8px;margin:24px 0 16px}
+.edit-quantity{display:block;font-size:18px;font-weight:700;color:var(--text);background:var(--surface-alt);padding:16px;border-radius:12px}
+.edit-context{font-size:18px;font-weight:700;margin:4px 0 12px}
+.is-linked #editScheduleMaterial,.is-linked #editScheduleUnit,.is-linked #editScheduleType,.is-linked label[for="editScheduleMaterial"],.is-linked label[for="editScheduleUnit"],.is-linked label[for="editScheduleType"]{display:none}
+.edit-conflict-details{border:1px solid var(--border);border-radius:12px;padding:12px;margin:12px 0}
+.edit-conflict-details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
+.edit-conflict-details label{display:block;margin-top:12px}.edit-conflict-details select{margin-top:6px}
+.edit-impact{padding:12px 16px;border-left:3px solid var(--accent);background:var(--accent-soft);line-height:1.7;margin:8px 0}
+.edit-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.schedule-change-dialog{width:min(760px,calc(100% - 24px));max-width:760px}
+.schedule-change-list{max-height:40vh;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:0 16px;overscroll-behavior:contain}
+.schedule-change-row{padding:12px 0;border-bottom:1px solid var(--border)}
+.schedule-change-row:last-child{border-bottom:0}.schedule-change-row p{font-size:15px;line-height:1.7;overflow-wrap:anywhere;margin:4px 0}
+.schedule-change-row p:first-child{color:var(--muted)}
+.edit-confirm-actions{position:sticky;bottom:-1px;display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;background:var(--surface);padding:16px 0 4px;margin-top:16px}
+#scheduleChangeNotes p{line-height:1.7;padding:10px;background:var(--warning-soft);border-radius:8px}
+#scheduleChangeStatus{color:var(--danger)}
+@media(max-width:560px){.edit-confirm-actions{grid-template-columns:1fr 1fr}.edit-confirm-actions>button:last-child{grid-column:1/-1}.schedule-change-list{max-height:32vh}.edit-dialog-actions>button{font-size:15px;padding:12px 8px}}
 .schedule-month-toolbar h3{text-align:center;font-size:22px;margin:0;font-variant-numeric:tabular-nums}
 .schedule-month-toolbar button{padding:8px;min-height:44px}
 .schedule-legend{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0;color:var(--muted);font-size:14px}

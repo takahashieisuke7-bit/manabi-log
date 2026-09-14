@@ -145,7 +145,7 @@
         });
         result = result.filter(t=>t.sourceNewId!==source.id).concat(reviews);
       }
-      if (plan.mode === "quantity" && newWork.length) plan.endDate = newWork.map(t=>t.date).sort().at(-1);
+      // Keep the user's target date; the actual completion date is derived from tasks.
     }
     result = result.map(t => {
       if (onlyPlanId || t.done || t.fixed || (t.planId && plans.some(p=>p.id===t.planId))) return t;
@@ -176,5 +176,164 @@
     for (const t of tasks) {const unit=quantityUnit(t.unit);output[t.type][unit]=(output[t.type][unit]||0)+size(t);}
     return output;
   }
-  return {add,next,studyDay,create,reschedule,complete,hydrate,reviewsFor,conflicts,totals,quantityUnit,rangeLabel,size};
+  const overlaps = (a,b) => a.start<=b.end && b.start<=a.end;
+  const changedTask = (a,b) => !a || !b || ["date","start","end","fixed","type","material","unit","done","completedDate"].some(k=>a[k]!==b[k]);
+  function difference(before,after) {
+    const old=new Map(before.map(t=>[t.id,t])), fresh=new Map(after.map(t=>[t.id,t]));
+    return [...new Set([...old.keys(),...fresh.keys()])].flatMap(id=>changedTask(old.get(id),fresh.get(id))?[{before:old.get(id)||null,after:fresh.get(id)||null}]:[]);
+  }
+  function syncSource(tasks,source,plan,holidays,makeId) {
+    const linked=tasks.filter(t=>t.sourceNewId===source.id).map(t=>t.done||t.fixed?t:{...t,manual:false,requestedDate:""});
+    return tasks.filter(t=>t.sourceNewId!==source.id).concat(reviewsFor(source,plan,holidays,makeId,linked));
+  }
+  function validateRange(task) {
+    if(!Number.isInteger(task.start)||!Number.isInteger(task.end)||task.start<1||task.end<task.start||task.end>99999)throw new Error("範囲は1〜99999の整数で、終了を開始以上にしてください。");
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(task.date)||!Number.isFinite(Date.parse(task.date)))throw new Error("実施日を入力してください。");
+  }
+  function resultForEdit(before,tasks,plans,holidays,notes=[]) {
+    const collisions=conflicts(tasks,plans,holidays);
+    if(collisions.length) notes.push(`固定を維持するため、休日・復習基準日との衝突が${collisions.length}件残ります：${collisions.map(t=>`${t.date} ${t.material} ${rangeLabel(t)}`).join("、")}`);
+    return {tasks,plans,holidays:[...holidays],changes:difference(before,tasks),notes};
+  }
+  function editTask(tasks,plans,holidays,id,changes,options,makeId) {
+    let result=hydrate(tasks,plans,holidays);
+    const original=result.find(t=>t.id===id);
+    if(!original||original.done)throw new Error("完了済みの実績は変更できません。");
+    const plan=plans.find(p=>p.id===original.planId), updatedPlans=plans.map(p=>({...p}));
+    const target={...original,date:changes.date,start:Number(changes.start),end:Number(changes.end),fixed:Boolean(changes.fixed)};
+    if(!plan){target.material=String(changes.material??original.material).trim().slice(0,40);target.unit=String(changes.unit??original.unit).trim().slice(0,12);if(!target.material||!target.unit)throw new Error("教材名と単位を入力してください。");}
+    validateRange(target);
+    const rangeChanged=target.start!==original.start||target.end!==original.end;
+    let dayChanged=target.date!==original.date;
+    const notes=[];
+    // Pin-only edits do not move dates, ranges or dependent work.
+    if(!rangeChanged&&!dayChanged) return resultForEdit(tasks,result.map(t=>t.id===id?target:t),updatedPlans,holidays);
+    target.manual=true; target.originalDate=original.date;
+    if(!studyDay(target.date,plan||{},holidays)) {
+      if(options.holiday==="keep")notes.push(`${target.date}は休日・学習曜日外ですが、この予定は指定日を維持します。`);
+      else {target.date=next(target.date,plan||{},holidays);notes.push(`休日・学習曜日外のため、実施日を${changes.date}から${target.date}へ移します。`);}
+      dayChanged=target.date!==original.date;
+    }
+    const fixedOnDate=date=>result.filter(t=>t.id!==id&&t.sourceNewId!==id&&t.fixed&&!t.done&&t.date===date);
+    if(fixedOnDate(target.date).length) {
+      if(options.fixedDate==="next") {
+        const beforeDate=target.date;
+        for(let i=0;fixedOnDate(target.date).length;i++) {
+          if(i>3660)throw new Error("固定予定を避けられる日が見つかりません。指定日での併存を選ぶか、日付を見直してください。");
+          target.date=next(add(target.date,1),plan||{},holidays);
+        }
+        dayChanged=target.date!==original.date;
+        notes.push(`同日の固定予定を保護して、${beforeDate}から${target.date}へ移します。`);
+      } else notes.push(`${target.date}の固定予定は変更せず、この予定を同じ日に追加します。日別の合計量を確認してください。`);
+    }
+    if(target.type==="review") {
+      const source=result.find(t=>t.id===target.sourceNewId);
+      if(source && (target.start<source.start||target.end>source.end))throw new Error("復習範囲は、対応する新規学習の範囲内で指定してください。");
+      if(source && target.date<(source.completedDate||source.date))throw new Error("復習日は、対応する新規学習の日以降にしてください。");
+      target.requestedDate=target.date;
+      return resultForEdit(tasks,result.map(t=>t.id===id?target:t),updatedPlans,holidays,notes);
+    }
+    if(!plan) {
+      if(rangeChanged) {
+        if(result.some(t=>t.id!==id&&t.type==="new"&&t.material===target.material&&t.unit===target.unit&&overlaps(t,target)))throw new Error("同じ教材の予定と範囲が重なります。範囲を見直してください。");
+        const rest=[];
+        if(target.start>original.start)rest.push([original.start,Math.min(original.end,target.start-1)]);
+        if(target.end<original.end)rest.push([Math.max(original.start,target.end+1),original.end]);
+        for(const [start,end] of rest)result.push({...original,id:makeId(),date:next(add(target.date,1),{},holidays),start,end,fixed:false,manual:true,originalDate:original.date});
+        if(rest.length)notes.push("手動予定の残りの範囲を、翌学習日の新しい手動予定として残します。");
+      }
+      return resultForEdit(tasks,result.map(t=>t.id===id?target:t),updatedPlans,holidays,notes);
+    }
+    if(target.start<plan.start||target.end>plan.end)throw new Error(`教材全体の範囲（${plan.start}〜${plan.end}）内で指定してください。`);
+    const linked=result.filter(t=>t.sourceNewId===id);
+    if(rangeChanged&&linked.some(t=>t.done))throw new Error("完了済みの復習があるため、この新規学習の範囲は変更できません。日付のみの変更は可能です。");
+    if(rangeChanged&&linked.some(t=>t.fixed)) {
+      if(options.fixed!=="release")throw new Error("この範囲には固定された復習があります。「衝突する未完了の固定を解除して調整」を選ぶか、範囲を戻してください。");
+      result=result.map(t=>t.sourceNewId===id&&!t.done?{...t,fixed:false}:t);
+      notes.push("範囲に紐づく未完了の固定復習を解除して調整します。");
+    }
+    if(rangeChanged) {
+      const others=result.filter(t=>t.planId===plan.id&&t.type==="new"&&t.id!==id);
+      for(const t of others.filter(t=>overlaps(t,target))) {
+        if(t.done||result.some(r=>r.sourceNewId===t.id&&r.done))throw new Error("完了済みの学習・復習範囲と重なるため変更できません。入力範囲を見直してください。");
+        if(t.start<original.start)throw new Error("前の予定と重なっています。先に前の予定を編集してください。");
+        if(t.fixed||result.some(r=>r.sourceNewId===t.id&&r.fixed)) {
+          if(options.fixed!=="release")throw new Error("後続の固定予定と範囲が重なります。固定を維持して範囲を戻すか、衝突する未完了の固定を解除してください。");
+          result=result.map(r=>(r.id===t.id||r.sourceNewId===t.id)&&!r.done?{...r,fixed:false}:r);
+          notes.push(`${t.date} ${rangeLabel(t)}に関する未完了の固定を解除します。`);
+        }
+      }
+      const protectedSources=new Set(result.filter(t=>t.done||t.fixed).map(t=>t.sourceNewId));
+      const movable=result.filter(t=>t.planId===plan.id&&t.type==="new"&&t.id!==id&&t.start>=original.start&&!t.done&&!t.fixed&&!protectedSources.has(t.id));
+      const ids=new Set(movable.map(t=>t.id));
+      const retained=result.filter(t=>t.planId===plan.id&&t.type==="new"&&t.id!==id&&!ids.has(t.id));
+      const reserved=[...retained,target];
+      const remaining=[];let begin=null;
+      for(let n=Math.min(original.start,target.start);n<=plan.end;n++) {
+        const free=!reserved.some(t=>t.start<=n&&n<=t.end);
+        if(free&&begin===null)begin=n;
+        if(begin!==null&&(!free||n===plan.end)){remaining.push({start:begin,end:free?n:n-1});begin=null;}
+      }
+      let allocationPlan=plan;
+      if(options.extend)allocationPlan={...plan,mode:"quantity",dailyQuantity:plan.mode==="quantity"?plan.dailyQuantity:Math.max(1,size(original))};
+      const fresh=allocate(allocationPlan,holidays,remaining,add(target.date,1),makeId,movable,reserved);
+      result=result.filter(t=>!ids.has(t.id)&&!ids.has(t.sourceNewId));
+      result.push(...fresh);
+      // Reuse review identity where the new source range stayed the same.
+      for(const t of fresh) {
+        const oldReviews=tasks.filter(r=>r.sourceNewId===t.id);
+        result.push(...oldReviews);
+        result=syncSource(result,t,plan,holidays,makeId);
+      }
+      if(options.extend&&fresh.length) {
+        const editedPlan=updatedPlans.find(p=>p.id===plan.id);
+        editedPlan.endDate=[editedPlan.endDate,...fresh.map(t=>t.date),target.date].sort().at(-1);
+        if(editedPlan.endDate!==plan.endDate)notes.push(`残りの範囲を保つため、新規終了目標日を${plan.endDate}から${editedPlan.endDate}へ延ばします。`);
+      }
+      notes.push("変更した範囲の残りと後続の未完了範囲を、翌学習日以降へ重複なく再配分します。");
+    }
+    result=result.map(t=>t.id===id?target:t);
+    if(options.fixed==="release"&&dayChanged) {
+      result=result.map(t=>t.sourceNewId===id&&t.fixed&&!t.done?{...t,fixed:false}:t);
+    }
+    result=syncSource(result,target,plan,holidays,makeId);
+    if(target.date>plan.endDate)notes.push(`変更した新規学習日は終了目標日（${plan.endDate}）を過ぎています。`);
+    return resultForEdit(tasks,result,updatedPlans,holidays,notes);
+  }
+  function editPlan(tasks,plans,holidays,id,changes,options,makeId,today) {
+    const original=plans.find(p=>p.id===id);if(!original)throw new Error("教材が見つかりません。");
+    const plan={...original,...changes};
+    if(!plan.weekdays.length)throw new Error("勉強する曜日を1つ以上選んでください。");
+    if(!Number.isInteger(plan.dailyQuantity)||plan.dailyQuantity<1||plan.dailyQuantity>99999)throw new Error("1日の量は1〜99999で指定してください。");
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(plan.endDate)||plan.endDate<plan.startDate)throw new Error("終了目標日は開始日以降にしてください。");
+    const updatedPlans=plans.map(p=>p.id===id?plan:{...p});
+    let result=hydrate(tasks,plans,holidays);const notes=[];
+    if(options.fixed==="release") {
+      const conflicting=new Set(conflicts(result,updatedPlans,holidays).filter(t=>t.planId===id).map(t=>t.id));
+      result=result.map(t=>conflicting.has(t.id)&&!t.done?{...t,fixed:false}:t);
+      if(conflicting.size)notes.push(`休日・曜日と衝突する未完了の固定${conflicting.size}件を解除して調整します。`);
+    }
+    const protectedSources=new Set(result.filter(t=>t.done||t.fixed).map(t=>t.sourceNewId));
+    const movable=result.filter(t=>t.planId===id&&t.type==="new"&&!t.done&&!t.fixed&&!protectedSources.has(t.id));
+    const ids=new Set(movable.map(t=>t.id));
+    const reserved=result.filter(t=>t.planId===id&&t.type==="new"&&!ids.has(t.id));
+    const ranges=[];let begin=null;
+    for(let n=plan.start;n<=plan.end;n++) {
+      const free=!reserved.some(t=>t.start<=n&&n<=t.end);
+      if(free&&begin===null)begin=n;
+      if(begin!==null&&(!free||n===plan.end)){ranges.push({start:begin,end:free?n:n-1});begin=null;}
+    }
+    const fresh=allocate(plan,holidays,ranges,[today,plan.startDate].sort().at(-1),makeId,movable,reserved);
+    result=result.filter(t=>!ids.has(t.id)&&!ids.has(t.sourceNewId)).concat(fresh);
+    for(const source of result.filter(t=>t.planId===id&&t.type==="new")) {
+      if(ids.has(source.id))result.push(...tasks.filter(r=>r.sourceNewId===source.id));
+      result=syncSource(result,source,plan,holidays,makeId);
+    }
+    if(plan.mode==="quantity"&&fresh.length) {
+      const calculated=result.filter(t=>t.planId===id&&t.type==="new").map(t=>t.date).sort().at(-1);
+      notes.push(`1日の量を優先：新規終了予定 ${calculated}（終了目標 ${plan.endDate}）。${calculated>plan.endDate?"終了目標を超えます。期限を優先する場合は配分の基準を変更してください。":""}`);
+    }
+    return resultForEdit(tasks,result,updatedPlans,holidays,notes);
+  }
+  return {add,next,studyDay,create,reschedule,complete,hydrate,reviewsFor,conflicts,totals,quantityUnit,rangeLabel,size,editTask,editPlan,difference};
 });

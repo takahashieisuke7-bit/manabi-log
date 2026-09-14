@@ -19,3 +19,5 @@
 !schedule-engine.js
 !schedule-ui.js
 !schedule.css
+
+!schedule-edit.js

@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#101113">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=14">
+  <link rel="manifest" href="manifest.webmanifest?v=15">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=14"></script>
-  <link rel="stylesheet" href="style.css?v=14">
-<link rel="stylesheet" href="schedule.css?v=14">
+  <script src="theme.js?v=15"></script>
+  <link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="schedule.css?v=15">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -156,7 +156,7 @@
       <div class="schedule-month-toolbar"><button id="schedulePrevMonth" type="button" class="secondary-button" aria-label="予定の前の月">‹</button><h3 id="scheduleMonthTitle"></h3><button id="scheduleNextMonth" type="button" class="secondary-button" aria-label="予定の次の月">›</button><button id="scheduleGoToday" type="button" class="secondary-button">今日</button></div>
       <div class="schedule-legend"><span class="schedule-kind">新規</span><span class="schedule-kind review">復習</span><span>休：休日・学習曜日外</span></div>
       <div id="scheduleMonthGrid" class="schedule-month-grid" aria-label="学習予定の月カレンダー"></div>
-      <p class="setting-note">日付を選ぶと範囲と量を確認できます。復習日は新規学習の完了まで仮の予定です。</p>
+      <p class="setting-note">日付を選び、予定の「編集」から日付・範囲・固定を変更できます。復習日は新規学習の完了まで仮の予定です。</p>
       <div class="schedule-adjust-toolbar"><button id="rescheduleButton" class="secondary-button compact-button" type="button">未完了を再調整</button><button id="undoRescheduleButton" class="secondary-button" type="button" hidden>直前の再調整を取り消す</button></div>
       <p id="scheduleStatus" class="form-status" role="status" aria-live="polite"></p>
       <div id="rescheduleSummary" class="reschedule-summary" hidden></div>
@@ -689,6 +689,7 @@
     </div>
     <form id="scheduleEditForm" class="record-edit-form">
       <input id="editScheduleId" type="hidden">
+      <p id="editScheduleContext" class="edit-context"></p>
 
       <label for="editScheduleDate">日付</label>
       <input id="editScheduleDate" type="date" required>
@@ -730,13 +731,38 @@
         この予定を固定する
       </label>
 
-      <button type="submit">予定を保存</button>
+      <output id="editScheduleQuantity" class="edit-quantity" aria-live="polite"></output>
+      <p id="editScheduleImpact" class="edit-impact"></p>
+      <details id="editConflictDetails" class="edit-conflict-details"><summary>休日・固定予定との調整方法</summary>
+      <label for="editHolidayChoice">休日・学習曜日外の日は</label><select id="editHolidayChoice"><option value="next">次の学習日へ移す</option><option value="keep">指定日を例外として維持する</option></select>
+      <label for="editFixedChoice">関連する固定予定と衝突したら</label><select id="editFixedChoice"><option value="keep">固定を維持する（範囲衝突は入力を見直す）</option><option value="release">衝突する未完了の固定を解除して調整</option></select>
+      <label for="editFixedDateChoice">同じ日に別の固定予定がある場合</label><select id="editFixedDateChoice"><option value="keep">固定予定を保ち、同じ日に取り組む</option><option value="next">固定予定のない次の学習日へ移す</option></select>
+      <label class="inline-checkbox"><input id="editExtendDeadline" type="checkbox">残りが期限内に収まらない場合、終了日を延ばして配分する</label>
+      </details>
+      <p class="setting-note">完了済みの実績は変更しません。範囲の残りは後続へ配分し、未完了の復習も調整します。</p>
+      <div class="edit-dialog-actions"><button id="scheduleEditCancel" type="button" class="secondary-button">キャンセル</button><button type="submit">変更内容を確認</button></div>
       <p id="scheduleEditStatus" class="form-status" role="status" aria-live="polite"></p>
     </form>
   </dialog>
 
   <dialog id="scheduleCompletionDialog" class="profile-dialog" aria-label="学習を完了する"><div class="dialog-header"><h2>学習を完了する</h2><button id="scheduleCompletionClose" class="dialog-close" type="button" aria-label="完了を閉じる">×</button></div><form id="scheduleCompletionForm"><p id="scheduleCompletionLabel"></p><label for="scheduleCompletedDate">実際に完了した日</label><input id="scheduleCompletedDate" type="date" required><p class="setting-note">新規学習は、この日を基準に未完了の復習日を調整します。固定済み・完了済みの復習は保持します。</p><p id="scheduleCompletionStatus" role="status"></p><button type="submit">完了を保存</button></form></dialog>
-  <dialog id="materialSettingsDialog" class="profile-dialog" aria-label="教材の設定"><div class="dialog-header"><h2 id="materialSettingsTitle">教材の設定</h2><button id="materialSettingsClose" class="dialog-close" type="button" aria-label="教材の設定を閉じる">×</button></div><form id="materialSettingsForm"><label for="planEndDate">新規学習を終えたい日</label><input id="planEndDate" type="date" required><label for="planDailyQuantity">1日の量（量から計算する教材）</label><input id="planDailyQuantity" type="number" min="1" max="99999" required><label class="inline-checkbox"><input id="planReviewEnabled" type="checkbox">復習する</label><label for="planReviewOffsets">最初の学習から何日後に復習するか</label><input id="planReviewOffsets" maxlength="80"><p class="setting-note">変更時は未完了の予定を再調整します。固定・手動の範囲・完了済み実績は維持します。「直前の再調整を取り消す」で設定も戻せます。</p><p id="materialSettingsStatus" role="status"></p><button type="submit">設定を保存して再調整</button></form></dialog>
+  <dialog id="materialSettingsDialog" class="profile-dialog" aria-label="教材の設定"><div class="dialog-header"><h2 id="materialSettingsTitle">教材の設定</h2><button id="materialSettingsClose" class="dialog-close" type="button" aria-label="教材の設定を閉じる">×</button></div>
+    <form id="materialSettingsForm">
+      <label for="planMode">配分の基準</label><select id="planMode"><option value="quantity">1日の量を優先する</option><option value="deadline">終了目標日を優先して量を計算する</option></select>
+      <label for="planDailyQuantity">1日に進める量</label><input id="planDailyQuantity" type="number" min="1" max="99999" required inputmode="numeric">
+      <label for="planEndDate">新規学習の終了目標日</label><input id="planEndDate" type="date" required>
+      <p id="planModeHelp" class="setting-note"></p>
+      <fieldset id="planWeekdays" class="weekday-picker"><legend>勉強する曜日</legend><label><input type="checkbox" name="planWeekday" value="1">月</label><label><input type="checkbox" name="planWeekday" value="2">火</label><label><input type="checkbox" name="planWeekday" value="3">水</label><label><input type="checkbox" name="planWeekday" value="4">木</label><label><input type="checkbox" name="planWeekday" value="5">金</label><label><input type="checkbox" name="planWeekday" value="6">土</label><label><input type="checkbox" name="planWeekday" value="0">日</label></fieldset>
+      <label class="inline-checkbox"><input id="planReviewEnabled" type="checkbox">復習する</label><label for="planReviewOffsets">最初の学習から何日後に復習するか</label><input id="planReviewOffsets" maxlength="80">
+      <label for="planFixedChoice">曜日・休日と固定予定が衝突したら</label><select id="planFixedChoice"><option value="keep">固定を維持する（例外日として残す）</option><option value="release">衝突する未完了の固定を解除して調整</option></select>
+      <p class="edit-impact">後続の予定・復習にも影響する変更です。未完了の予定へ反映し、完了済み実績を保持します。</p>
+      <p id="materialSettingsStatus" class="form-status" role="status"></p><div class="edit-dialog-actions"><button id="materialSettingsCancel" type="button" class="secondary-button">キャンセル</button><button type="submit">変更内容を確認</button></div>
+    </form></dialog>
+  <dialog id="scheduleChangeDialog" class="profile-dialog schedule-change-dialog" aria-label="変更内容の確認"><div class="dialog-header"><h2>変更内容の確認</h2><button id="scheduleChangeClose" class="dialog-close" type="button" aria-label="変更の確認をキャンセル">×</button></div>
+    <p id="scheduleChangeScope" class="edit-impact"></p><div id="scheduleChangeSettings"></div><div id="scheduleChangeNotes"></div><p id="scheduleChangeCounts"></p>
+    <div id="scheduleChangeList" class="schedule-change-list"></div><p id="scheduleChangeStatus" class="form-status" role="status"></p>
+    <div class="edit-confirm-actions"><button id="scheduleChangeCancel" class="secondary-button" type="button">キャンセル</button><button id="scheduleChangeBack" class="secondary-button" type="button">入力に戻る</button><button id="scheduleChangeSave" type="button">この内容で保存</button></div>
+  </dialog>
   <div id="levelUpToast" class="level-up-toast" hidden>
     <span>LEVEL UP!</span>
     <strong id="levelUpMessage"></strong>
@@ -762,9 +788,10 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=14"></script>
-  <script src="schedule-ui.js?v=14"></script>
-  <script src="app.js?v=14"></script>
-  <script src="ui.js?v=14"></script>
+  <script src="schedule-engine.js?v=15"></script>
+  <script src="schedule-ui.js?v=15"></script>
+  <script src="schedule-edit.js?v=15"></script>
+  <script src="app.js?v=15"></script>
+  <script src="ui.js?v=15"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ function sanitizeScheduleSnapshot(value) {
   return {beforeTasks:sanitizeMaterialTasks(value.beforeTasks),afterTasks:sanitizeMaterialTasks(value.afterTasks),
     ...(Array.isArray(value.beforePlans)?{beforePlans:sanitizeMaterialPlans(value.beforePlans),afterPlans:sanitizeMaterialPlans(value.afterPlans)}:{}),
     ...(Array.isArray(value.beforeHolidays)?{beforeHolidays:sanitizeHolidays(value.beforeHolidays),afterHolidays:sanitizeHolidays(value.afterHolidays)}:{}),
+    operation:value.operation==="edit"?"edit":"reschedule",
     summary:typeof value.summary==="string"?value.summary.slice(0,2000):"",createdAt:value.createdAt||new Date().toISOString()};
 }
 function parseOffsets(text) {
@@ -107,13 +108,7 @@ function commitScheduleCompletion(task,date) {
     scheduleElement("scheduleCompletionDialog").close();render();return true;
   }catch(error){setScheduleStatus(error.message,"error");scheduleElement("scheduleCompletionStatus").textContent=error.message;render();return false;}
 }
-function openMaterialSettings(plan) {
-  editingPlanId=plan.id;scheduleElement("materialSettingsTitle").textContent=`${plan.material}の設定`;
-  scheduleElement("planEndDate").value=plan.endDate;scheduleElement("planEndDate").disabled=plan.mode==="quantity";
-  scheduleElement("planDailyQuantity").value=plan.dailyQuantity;scheduleElement("planDailyQuantity").disabled=plan.mode!=="quantity";
-  scheduleElement("planReviewEnabled").checked=plan.reviewEnabled!==false;scheduleElement("planReviewOffsets").value=plan.reviewOffsets.join(",");
-  scheduleElement("materialSettingsStatus").textContent="";scheduleElement("materialSettingsDialog").showModal();
-}
+function openMaterialSettings(plan) { initializePlanEdit(plan); }
 document.addEventListener("DOMContentLoaded",()=>{
   materialPlanForm.addEventListener("input",updateMaterialDraft);materialPlanForm.addEventListener("change",updateMaterialDraft);
   scheduleElement("materialReviewOffsets").value=scheduleSettings.reviewOffsets.join(",");updateMaterialDraft();
@@ -123,13 +118,5 @@ document.addEventListener("DOMContentLoaded",()=>{
   scheduleElement("scheduleCompletionClose").addEventListener("click",()=>scheduleElement("scheduleCompletionDialog").close());
   scheduleElement("scheduleCompletionForm").addEventListener("submit",event=>{event.preventDefault();const task=materialTasks.find(t=>t.id===completionTaskId);if(task)commitScheduleCompletion(task,scheduleElement("scheduleCompletedDate").value);});
   scheduleElement("materialSettingsClose").addEventListener("click",()=>scheduleElement("materialSettingsDialog").close());
-  scheduleElement("materialSettingsForm").addEventListener("submit",event=>{
-    event.preventDefault();const plan=planById(editingPlanId);if(!plan)return;
-    try{const enabled=scheduleElement("planReviewEnabled").checked,offsets=enabled?parseOffsets(scheduleElement("planReviewOffsets").value):plan.reviewOffsets;
-      const end=scheduleElement("planEndDate").value,quantity=Number(scheduleElement("planDailyQuantity").value);
-      if(plan.mode!=="quantity"&&end<plan.startDate)throw new Error("終了日は開始日以降にしてください。");
-      const before=scheduleState();Object.assign(plan,{reviewEnabled:enabled,reviewOffsets:offsets,endDate:end,dailyQuantity:quantity});
-      setScheduleStatus(redistributeAllPlans(localDateKey(),before,plan.id),"success");scheduleElement("materialSettingsDialog").close();render();
-    }catch(error){scheduleElement("materialSettingsStatus").textContent=error.message;}
-  });
+  scheduleElement("materialSettingsForm").addEventListener("submit",event=>{event.preventDefault();previewPlanEdit();});
 });
