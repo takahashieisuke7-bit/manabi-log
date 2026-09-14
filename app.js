@@ -416,18 +416,7 @@ function loadScheduleSettings() {
 }
 
 function loadLastReschedule() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(LAST_RESCHEDULE_KEY));
-    if (!saved || typeof saved !== "object") return null;
-    return {
-      beforeTasks: sanitizeMaterialTasks(saved.beforeTasks ?? []),
-      afterTasks: sanitizeMaterialTasks(saved.afterTasks ?? []),
-      summary: typeof saved.summary === "string" ? saved.summary.slice(0, 240) : "",
-      createdAt: typeof saved.createdAt === "string" ? saved.createdAt : new Date().toISOString(),
-    };
-  } catch {
-    return null;
-  }
+  try { return sanitizeScheduleSnapshot(JSON.parse(localStorage.getItem(LAST_RESCHEDULE_KEY))); } catch { return null; }
 }
 
 function createId() {
@@ -635,6 +624,9 @@ function sanitizeMaterialPlans(value) {
       endDate: plan.endDate,
       weekdays: sanitizeWeekdays(plan.weekdays),
       reviewOffsets: sanitizeReviewOffsets(plan.reviewOffsets),
+      reviewEnabled: plan.reviewEnabled !== false,
+      mode: plan.mode === "quantity" ? "quantity" : "deadline",
+      dailyQuantity: Math.max(1, Math.min(99999, Math.floor(Number(plan.dailyQuantity) || 1))),
       createdAt: typeof plan.createdAt === "string" ? plan.createdAt : new Date().toISOString(),
     }];
   });
@@ -663,6 +655,11 @@ function sanitizeMaterialTasks(value) {
       fixed: Boolean(task.fixed),
       done: Boolean(task.done),
       manual: Boolean(task.manual),
+      completedDate: task.done ? (isDateKey(task.completedDate) ? task.completedDate : task.date) : "",
+      reviewOffset: Number.isInteger(task.reviewOffset) && task.reviewOffset > 0 ? task.reviewOffset : 0,
+      dueDate: isDateKey(task.dueDate) ? task.dueDate : "",
+      originalDate: isDateKey(task.originalDate) ? task.originalDate : "",
+      requestedDate: isDateKey(task.requestedDate) ? task.requestedDate : "",
       createdAt: typeof task.createdAt === "string" ? task.createdAt : new Date().toISOString(),
     }];
   });
@@ -815,16 +812,7 @@ function readBackupPayload(payload) {
     materialPlans: sanitizeMaterialPlans(source.materialPlans ?? []),
     materialTasks: sanitizeMaterialTasks(source.materialTasks ?? []),
     scheduleSettings: sanitizeScheduleSettings(source.scheduleSettings ?? {}),
-    lastReschedule: source.lastReschedule ? {
-      beforeTasks: sanitizeMaterialTasks(source.lastReschedule.beforeTasks ?? []),
-      afterTasks: sanitizeMaterialTasks(source.lastReschedule.afterTasks ?? []),
-      summary: typeof source.lastReschedule.summary === "string"
-        ? source.lastReschedule.summary.slice(0, 240)
-        : "",
-      createdAt: typeof source.lastReschedule.createdAt === "string"
-        ? source.lastReschedule.createdAt
-        : new Date().toISOString(),
-    } : null,
+    lastReschedule: sanitizeScheduleSnapshot(source.lastReschedule),
   };
 }
 
@@ -1138,12 +1126,12 @@ function createScheduleItem(task, { compact = false } = {}) {
   checkbox.className = "schedule-check";
   checkbox.checked = task.done;
   checkbox.setAttribute("aria-label", `${task.material} ${formatTaskRange(task)} ${taskTypeLabel(task.type)}を完了`);
+  const source=materialTasks.find(t=>t.id===task.sourceNewId);
+  checkbox.disabled=Boolean(!task.done && source && !source.done);
   checkbox.addEventListener("change", () => {
-    materialTasks = materialTasks.map((entry) => (
-      entry.id === task.id ? { ...entry, done: checkbox.checked } : entry
-    ));
-    saveMaterialTasks();
-    render();
+    checkbox.checked=task.done;
+    if(task.done) { commitScheduleCompletion(task, ""); return; }
+    openScheduleCompletion(task);
   });
 
   const main = document.createElement("div");
@@ -1155,11 +1143,17 @@ function createScheduleItem(task, { compact = false } = {}) {
   const meta = document.createElement("small");
   const labels = [
     task.date,
-    taskTypeLabel(task.type),
-    task.fixed ? "固定" : "自動調整OK",
-    task.manual ? "手動" : "自動",
-  ];
+    task.fixed ? "固定" : "",
+    task.manual ? "手動調整" : "",
+  ].filter(Boolean);
   meta.textContent = compact ? [taskTypeLabel(task.type), task.fixed ? "固定" : ""].filter(Boolean).join("・") : labels.join("・");
+  if(task.done) labels.push(`完了 ${task.completedDate || task.date}`);
+  else if(source && !source.done) labels.push("新規学習の完了待ち");
+  else if(task.date < localDateKey()) labels.push("未完了・期限超過");
+  if(task.dueDate && task.dueDate!==task.date) labels.push(`基準日 ${task.dueDate} → ${task.date}`);
+  else if(task.originalDate && task.originalDate!==task.date) labels.push(`移動前 ${task.originalDate} → ${task.date}`);
+  if(task.fixed && ScheduleEngine.conflicts([task,...(source?[source]:[])],materialPlans,holidays).length) labels.push("固定の衝突あり・編集で調整");
+  meta.textContent=labels.join("・");
   main.append(title, range, meta);
 
   const kind = document.createElement("span");
@@ -1175,6 +1169,7 @@ function createScheduleItem(task, { compact = false } = {}) {
     const edit = document.createElement("button");
     edit.type = "button";
     edit.textContent = "編集";
+    edit.disabled=task.done;
     edit.addEventListener("click", () => openScheduleEditDialog(task));
 
     const pin = document.createElement("button");
@@ -1193,12 +1188,14 @@ function createScheduleItem(task, { compact = false } = {}) {
     remove.className = "danger";
     remove.textContent = "削除";
     remove.addEventListener("click", () => {
-      if (!confirm("この教材予定を削除しますか？")) return;
+      if (task.done || materialTasks.some(t=>t.sourceNewId===task.id && (t.done || t.fixed))) { setScheduleStatus("完了済み、または固定・完了済み復習に紐づく予定は削除できません。", "error"); return; }
+      if (!confirm("この教材予定と紐づく未完了の復習を削除しますか？")) return;
       materialTasks = materialTasks.filter((entry) => entry.id !== task.id && entry.sourceNewId !== task.id);
       saveMaterialTasks();
       render();
     });
 
+    remove.disabled=task.done;
     actions.append(edit, pin, remove);
     item.append(actions);
   }
@@ -1233,8 +1230,26 @@ function renderMaterialProgress() {
     const name = document.createElement("strong");
     name.textContent = plan.material;
     const progress = document.createElement("span");
-    progress.textContent = `${doneNew} / ${total} ${plan.unit} 完了・${plan.startDate}〜${plan.endDate}`;
-    card.append(name, progress);
+    const all=tasksForPlan(plan.id),newEnd=all.filter(t=>t.type==="new").map(t=>t.completedDate||t.date).sort().at(-1)||plan.endDate;
+    const reviewEnd=all.filter(t=>t.type==="review").map(t=>t.completedDate||t.date).sort().at(-1);
+    progress.textContent=`${doneNew} / ${total}${ScheduleEngine.quantityUnit(plan.unit)} 完了`;
+    const dates=document.createElement("p"); dates.className="material-end-dates";
+    dates.textContent=`新規終了 ${newEnd}　／　最終復習 ${reviewEnd||"なし"}${all.some(t=>t.type==="new"&&!t.done)?"（予定）":""}`;
+    const settings=document.createElement("button");settings.type="button";settings.className="secondary-button compact-button";settings.textContent="教材の設定";
+    settings.addEventListener("click",()=>openMaterialSettings(plan));
+    card.append(name, progress, dates, settings);
+    let nextRange=plan.start;
+    const gaps=[];
+    for(const task of [...planTasks].sort((a,b)=>a.start-b.start)) {
+      if(task.start>nextRange)gaps.push({start:nextRange,end:task.start-1,unit:plan.unit});
+      nextRange=Math.max(nextRange,task.end+1);
+    }
+    if(nextRange<=plan.end)gaps.push({start:nextRange,end:plan.end,unit:plan.unit});
+    if(gaps.length) {
+      const notice=document.createElement("p");notice.className="schedule-load-warning";
+      notice.textContent=`未割当の範囲：${gaps.slice(0,3).map(formatTaskRange).join("、")}${gaps.length>3?" ほか":""}。各日の範囲を編集して割り当ててください。`;
+      card.append(notice);
+    }
     materialProgressList.append(card);
   });
   const manualMaterials = [...new Set(
@@ -1280,13 +1295,15 @@ function renderSchedule() {
   renderTodaySchedule();
   renderScheduleFilter();
   renderMaterialProgress();
+  renderScheduleCalendar();
 
   const selectedMaterial = scheduleMaterialFilter.value;
   const visibleTasks = materialTasks
-    .filter((task) => selectedMaterial === "all" || task.material === selectedMaterial)
+    .filter((task) => (selectedMaterial === "all" || task.material === selectedMaterial) && task.date === scheduleSelectedDate)
     .sort((a, b) => (
       a.date.localeCompare(b.date)
       || Number(a.done) - Number(b.done)
+      || (a.type === b.type ? 0 : a.type === "new" ? -1 : 1)
       || a.material.localeCompare(b.material, "ja")
       || a.start - b.start
     ));
@@ -2229,9 +2246,7 @@ function rangeSize(task) {
   return Math.max(0, Number(task.end) - Number(task.start) + 1);
 }
 
-function formatTaskRange(task) {
-  return `${task.start}〜${task.end} ${task.unit}`;
-}
+function formatTaskRange(task) { return ScheduleEngine.rangeLabel(task); }
 
 function taskTypeLabel(type) {
   return type === "review" ? "復習" : "新規";
@@ -2284,92 +2299,17 @@ function setScheduleEditStatus(message, type = "") {
   scheduleEditStatus.classList.toggle("error", type === "error");
 }
 
-function saveScheduleSnapshot(beforeTasks, afterTasks, summary) {
-  lastReschedule = {
-    beforeTasks: sanitizeMaterialTasks(beforeTasks),
-    afterTasks: sanitizeMaterialTasks(afterTasks),
-    summary,
-    createdAt: new Date().toISOString(),
-  };
+function saveScheduleSnapshot(beforeTasks, afterTasks, summary, before = scheduleState()) {
+  lastReschedule={beforeTasks:sanitizeMaterialTasks(beforeTasks),afterTasks:sanitizeMaterialTasks(afterTasks),
+    beforePlans:before.plans,afterPlans:structuredClone(materialPlans),beforeHolidays:before.holidays,afterHolidays:[...holidays],summary,createdAt:new Date().toISOString()};
   saveLastReschedule();
 }
 
-function generateReviewTasks(newTask, plan) {
-  return plan.reviewOffsets.map((offset) => ({
-    id: createId(),
-    planId: plan.id,
-    sourceNewId: newTask.id,
-    material: newTask.material,
-    unit: newTask.unit,
-    date: nextStudyDay(addDays(newTask.date, offset), plan.weekdays),
-    start: newTask.start,
-    end: newTask.end,
-    type: "review",
-    fixed: false,
-    done: false,
-    manual: false,
-    createdAt: new Date().toISOString(),
-  }));
-}
+function generateReviewTasks(newTask, plan) { return ScheduleEngine.reviewsFor(newTask,plan,holidays,createId); }
 
 function generatePlanTasks(plan) {
-  const dates = studyDaysBetween(plan.startDate, plan.endDate, plan.weekdays);
-  if (dates.length === 0) {
-    return {
-      ok: false,
-      message: "開始日〜終了日の中に、休日を除いた勉強日がありません。曜日か休日を見直してください。",
-    };
-  }
-
-  const totalUnits = plan.end - plan.start + 1;
-  const unitsPerDay = Math.ceil(totalUnits / dates.length);
-  if (unitsPerDay > scheduleSettings.maxNewUnitsPerDay) {
-    const ok = confirm(`1日あたり新規${unitsPerDay}${plan.unit}になり、設定した多すぎ基準（${scheduleSettings.maxNewUnitsPerDay}${plan.unit}）を超えます。このまま作成しますか？`);
-    if (!ok) {
-      return {
-        ok: false,
-        message: "予定作成を止めました。範囲・締切・曜日をゆるめると現実的になります。",
-      };
-    }
-  }
-
-  const newTasks = [];
-  let cursor = plan.start;
-  dates.forEach((date) => {
-    if (cursor > plan.end) return;
-    const end = Math.min(plan.end, cursor + unitsPerDay - 1);
-    newTasks.push({
-      id: createId(),
-      planId: plan.id,
-      sourceNewId: "",
-      material: plan.material,
-      unit: plan.unit,
-      date,
-      start: cursor,
-      end,
-      type: "new",
-      fixed: false,
-      done: false,
-      manual: false,
-      createdAt: new Date().toISOString(),
-    });
-    cursor = end + 1;
-  });
-
-  const reviewTasks = newTasks.flatMap((task) => generateReviewTasks(task, plan));
-  const tooHeavyDays = totalUnitsByDate([...newTasks, ...reviewTasks])
-    .filter(([, units]) => units > scheduleSettings.maxTotalUnitsPerDay);
-  if (tooHeavyDays.length > 0) {
-    const ok = confirm(`復習込みで${tooHeavyDays.length}日が多すぎ基準（${scheduleSettings.maxTotalUnitsPerDay}${plan.unit}）を超えます。このまま作成しますか？`);
-    if (!ok) {
-      return {
-        ok: false,
-        message: "予定作成を止めました。復習間隔を減らすか、締切を伸ばすのがおすすめです。",
-      };
-    }
-  }
-
-  return { ok: true, tasks: [...newTasks, ...reviewTasks], unitsPerDay };
+  try { const result=ScheduleEngine.create(plan,holidays,createId); Object.assign(plan,result.plan); return {ok:true,...result}; }
+  catch(error) { return {ok:false,message:error.message}; }
 }
 
 function totalUnitsByDate(tasks) {
@@ -2381,126 +2321,24 @@ function totalUnitsByDate(tasks) {
 }
 
 function redistributePlan(planId, startFromKey = localDateKey()) {
-  const plan = planById(planId);
-  if (!plan) return { moved: 0, reviews: 0, warnings: [] };
-
-  const before = [...materialTasks];
-  const planTasks = tasksForPlan(planId);
-  const movableNewTasks = planTasks
-    .filter((task) => task.type === "new" && !task.done && !task.fixed)
-    .sort((a, b) => a.start - b.start);
-  if (movableNewTasks.length === 0) {
-    return { moved: 0, reviews: 0, warnings: [] };
-  }
-
-  const remainingUnitNumbers = [];
-  movableNewTasks.forEach((task) => {
-    for (let unit = task.start; unit <= task.end; unit += 1) {
-      remainingUnitNumbers.push(unit);
-    }
-  });
-  const startDate = [startFromKey, plan.startDate, ...movableNewTasks.map((task) => task.date)]
-    .sort()[0] < startFromKey
-    ? startFromKey
-    : [startFromKey, plan.startDate, ...movableNewTasks.map((task) => task.date)].sort()[0];
-  const dates = studyDaysBetween(startDate, plan.endDate, plan.weekdays);
-  const warnings = [];
-  if (dates.length === 0) {
-    warnings.push(`${plan.material}は残り期間に勉強日がありません。締切か曜日を見直してください。`);
-    return { moved: 0, reviews: 0, warnings };
-  }
-
-  const remainingUnits = remainingUnitNumbers.length;
-  const unitsPerDay = Math.ceil(remainingUnits / dates.length);
-  if (unitsPerDay > scheduleSettings.maxNewUnitsPerDay) {
-    warnings.push(`${plan.material}は1日あたり新規${unitsPerDay}${plan.unit}です。締切・範囲・曜日の見直し推奨。`);
-  }
-
-  const movableNewIds = new Set(movableNewTasks.map((task) => task.id));
-  const generated = [];
-  let unitIndex = 0;
-  dates.forEach((date) => {
-    const dailyUnits = remainingUnitNumbers.slice(unitIndex, unitIndex + unitsPerDay);
-    if (dailyUnits.length === 0) return;
-    unitIndex += dailyUnits.length;
-    const ranges = [];
-    let rangeStart = dailyUnits[0];
-    let rangeEnd = dailyUnits[0];
-    dailyUnits.slice(1).forEach((unit) => {
-      if (unit === rangeEnd + 1) {
-        rangeEnd = unit;
-      } else {
-        ranges.push([rangeStart, rangeEnd]);
-        rangeStart = unit;
-        rangeEnd = unit;
-      }
-    });
-    ranges.push([rangeStart, rangeEnd]);
-    ranges.forEach(([start, end]) => {
-      generated.push({
-        id: createId(),
-        planId: plan.id,
-        sourceNewId: "",
-        material: plan.material,
-        unit: plan.unit,
-        date,
-        start,
-        end,
-        type: "new",
-        fixed: false,
-        done: false,
-        manual: false,
-        createdAt: new Date().toISOString(),
-      });
-    });
-  });
-  const reviews = generated.flatMap((task) => generateReviewTasks(task, plan));
-
-  materialTasks = materialTasks.filter((task) => {
-    if (movableNewIds.has(task.id)) return false;
-    if (task.type === "review" && movableNewIds.has(task.sourceNewId) && !task.done && !task.fixed) return false;
-    return true;
-  });
-  materialTasks = sanitizeMaterialTasks([...materialTasks, ...generated, ...reviews]);
-  saveMaterialTasks();
-  const moved = generated.filter((task) => !before.some((old) => (
-    old.material === task.material
-    && old.type === task.type
-    && old.start === task.start
-    && old.end === task.end
-    && old.date === task.date
-  ))).length;
-  return { moved, reviews: reviews.length, warnings };
+  const result=ScheduleEngine.reschedule(materialTasks, materialPlans, holidays,startFromKey,createId,planId);
+  materialTasks=sanitizeMaterialTasks(result.tasks);saveMaterialTasks();return result;
 }
 
-function redistributeAllPlans(startFromKey = localDateKey()) {
-  const before = [...materialTasks];
-  const results = materialPlans.map((plan) => redistributePlan(plan.id, startFromKey));
-  const moved = results.reduce((sum, result) => sum + result.moved, 0);
-  const reviews = results.reduce((sum, result) => sum + result.reviews, 0);
-  const warnings = results.flatMap((result) => result.warnings);
-  const summary = [
-    `未完了の自動予定を${moved}件再調整`,
-    `復習予定を${reviews}件作り直し`,
-    ...warnings,
-  ].join("。");
-  saveScheduleSnapshot(before, materialTasks, summary);
+function redistributeAllPlans(startFromKey = localDateKey(), before = scheduleState(), onlyPlanId = "") {
+  const result=ScheduleEngine.reschedule(materialTasks,materialPlans,holidays,startFromKey,createId,onlyPlanId);
+  materialTasks=sanitizeMaterialTasks(result.tasks); materialPlans=sanitizeMaterialPlans(result.plans);
+  saveMaterialTasks();saveMaterialPlans();saveHolidays();
+  const summary=[`未完了の予定を${result.moved}件再調整しました。固定・完了済みの予定は保持しました。`,...result.warnings].join(" ");
+  saveScheduleSnapshot(before.tasks,materialTasks,summary,before);
   return summary;
 }
 
 function adjustReviewsForNewTask(newTask) {
-  const plan = planById(newTask.planId);
-  if (!plan || newTask.type !== "new") return;
-  materialTasks = materialTasks.filter((task) => !(
-    task.type === "review"
-    && task.sourceNewId === newTask.id
-    && !task.done
-    && !task.fixed
-  ));
-  materialTasks = sanitizeMaterialTasks([
-    ...materialTasks,
-    ...generateReviewTasks(newTask, plan),
-  ]);
+  const plan=planById(newTask.planId);if(!plan||newTask.type!=="new")return;
+  materialTasks=ScheduleEngine.hydrate(materialTasks,materialPlans,holidays);
+  const linked=materialTasks.filter(t=>t.sourceNewId===newTask.id);
+  materialTasks=sanitizeMaterialTasks(materialTasks.filter(t=>t.sourceNewId!==newTask.id).concat(ScheduleEngine.reviewsFor(newTask,plan,holidays,createId,linked)));
   saveMaterialTasks();
 }
 
@@ -2785,9 +2623,9 @@ function renderHolidays() {
     removeButton.textContent = "×";
     removeButton.setAttribute("aria-label", `${date}の休日設定を削除`);
     removeButton.addEventListener("click", () => {
+      const before=scheduleState();
       holidays = holidays.filter((holiday) => holiday !== date);
-      saveHolidays();
-      const summary = redistributeAllPlans(date);
+      const summary = redistributeAllPlans(localDateKey(),before);
       setScheduleStatus(summary, "success");
       render();
     });
@@ -3277,6 +3115,9 @@ function openScheduleEditDialog(task) {
   editScheduleStartInput.value = task.start;
   editScheduleEndInput.value = task.end;
   editScheduleFixedInput.checked = task.fixed;
+  editScheduleMaterialInput.disabled=Boolean(task.planId);
+  editScheduleUnitInput.disabled=Boolean(task.planId);
+  editScheduleTypeInput.disabled=Boolean(task.planId);
   setScheduleEditStatus("");
   scheduleEditDialog.showModal();
 }
@@ -3547,55 +3388,15 @@ subjectGoalForm.addEventListener("submit", (event) => {
 
 materialPlanForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const range = sanitizeRangeStartEnd(materialRangeStartInput.value, materialRangeEndInput.value);
-  const weekdays = [...document.querySelectorAll("input[name='materialWeekday']:checked")]
-    .map((input) => Number(input.value));
-  const material = materialNameInput.value.trim();
-  const unit = materialUnitInput.value.trim();
-  const startDate = materialStartDateInput.value;
-  const endDate = materialEndDateInput.value;
-  if (
-    !material || !unit || !range
-    || !isDateKey(startDate) || !isDateKey(endDate)
-    || dayNumber(startDate) > dayNumber(endDate)
-    || weekdays.length === 0
-  ) {
-    setScheduleStatus("教材名・範囲・開始日・終了日・曜日を確認してください。", "error");
-    return;
-  }
-
-  const plan = {
-    id: createId(),
-    material: material.slice(0, 40),
-    unit: unit.slice(0, 12),
-    start: range.start,
-    end: range.end,
-    startDate,
-    endDate,
-    weekdays: sanitizeWeekdays(weekdays),
-    reviewOffsets: sanitizeReviewOffsets(scheduleSettings.reviewOffsets),
-    createdAt: new Date().toISOString(),
-  };
-  const generated = generatePlanTasks(plan);
-  if (!generated.ok) {
-    setScheduleStatus(generated.message, "error");
-    return;
-  }
-
-  materialPlans = sanitizeMaterialPlans([...materialPlans, plan]);
-  materialTasks = sanitizeMaterialTasks([...materialTasks, ...generated.tasks]);
-  saveMaterialPlans();
-  saveMaterialTasks();
-  lastReschedule = null;
-  saveLastReschedule();
-  materialPlanForm.reset();
-  materialStartDateInput.value = localDateKey();
-  materialEndDateInput.value = localDateKey();
-  document.querySelectorAll("input[name='materialWeekday']").forEach((input) => {
-    input.checked = ["1", "2", "3", "4", "5"].includes(input.value);
-  });
-  setScheduleStatus(`${plan.material}を作成しました。新規${generated.unitsPerDay}${plan.unit}/日を目安に、復習も自動で入れました。`, "success");
-  render();
+  const parsed=readMaterialDraft();
+  if(!parsed.ok){setScheduleStatus(parsed.message,"error");return;}
+  const plan=parsed.plan,generated=generatePlanTasks(plan);
+  if(!generated.ok){setScheduleStatus(generated.message,"error");return;}
+  materialPlans=sanitizeMaterialPlans([...materialPlans,plan]);materialTasks=sanitizeMaterialTasks([...materialTasks,...generated.tasks]);
+  saveMaterialPlans();saveMaterialTasks();lastReschedule=null;saveLastReschedule();
+  scheduleSelectedDate=plan.startDate;scheduleMonth=plan.startDate.slice(0,7);
+  setScheduleStatus(`${plan.material}を作成しました。新規 ${generated.unitsPerDay}${ScheduleEngine.quantityUnit(plan.unit)}/日が目安です。復習は新規学習の完了日に合わせて調整します。`,"success");
+  materialPlanForm.reset();materialStartDateInput.value=localDateKey();materialEndDateInput.value=localDateKey();scheduleElement("materialReviewOffsets").value=scheduleSettings.reviewOffsets.join(",");updateMaterialDraft();render();
 });
 
 manualScheduleForm.addEventListener("submit", (event) => {
@@ -3641,35 +3442,14 @@ scheduleSettingsForm.addEventListener("submit", (event) => {
   maxNewUnitsPerDayInput.value = scheduleSettings.maxNewUnitsPerDay;
   maxTotalUnitsPerDayInput.value = scheduleSettings.maxTotalUnitsPerDay;
   saveScheduleSettings();
-  setScheduleStatus("復習・再調整ルールを保存しました。既存予定に反映する場合は「未完了を再調整」を押してください。", "success");
+  setScheduleStatus("新しい教材の復習間隔の初期値と、単位ごとの負担基準を保存しました。既存教材は「教材の設定」で変更できます。", "success");
 });
 
 holidayForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const date = holidayDateInput.value;
-  if (!date || holidays.includes(date)) {
-    alert(date ? "その日はすでに休日に設定されています。" : "休日の日付を選んでください。");
-    return;
-  }
-
-  holidays.push(date);
-  saveHolidays();
-  const fixedOnHoliday = materialTasks.filter((task) => task.date === date && task.fixed && !task.done);
-  if (fixedOnHoliday.length > 0) {
-    const moveFixed = confirm(`${date}に固定された教材予定が${fixedOnHoliday.length}件あります。OKで近い勉強日に移動、キャンセルで休日でも予定を維持します。`);
-    if (moveFixed) {
-      materialTasks = materialTasks.map((task) => {
-        if (!(task.date === date && task.fixed && !task.done)) return task;
-        const plan = planById(task.planId);
-        const weekdays = plan?.weekdays ?? [0, 1, 2, 3, 4, 5, 6];
-        return { ...task, date: nextStudyDay(addDays(date, 1), weekdays) };
-      });
-      saveMaterialTasks();
-    }
-  }
-  const summary = redistributeAllPlans(date);
-  setScheduleStatus(summary, "success");
-  render();
+  event.preventDefault();const date=holidayDateInput.value;
+  if(!isDateKey(date)||holidays.includes(date)){setScheduleStatus("有効な日付を選んでください。その日がすでに休日の場合は追加できません。","error");return;}
+  const before=scheduleState();holidays.push(date);
+  setScheduleStatus(redistributeAllPlans(localDateKey(),before),"success");render();
 });
 
 mockForm.addEventListener("submit", (event) => {
@@ -3817,9 +3597,18 @@ scheduleEditForm.addEventListener("submit", (event) => {
     return;
   }
 
-  materialTasks = materialTasks.map((task) => (
-    task.id === taskId ? parsed.task : task
-  ));
+  if(original.done){setScheduleEditStatus("完了済みの実績は変更できません。必要なら完了を取り消してください。","error");return;}
+  if(original.planId && parsed.task.type!==original.type){setScheduleEditStatus("教材に紐づく予定の新規／復習は変更できません。","error");return;}
+  const plan=planById(original.planId);
+  if(plan && (parsed.task.start<plan.start || parsed.task.end>plan.end)){setScheduleEditStatus("教材全体の範囲内で指定してください。","error");return;}
+  if(original.type==="new" && original.planId && materialTasks.some(t=>t.id!==taskId && t.planId===original.planId && t.type==="new" && t.start<=parsed.task.end && parsed.task.start<=t.end)) {
+    setScheduleEditStatus("別の日の新規学習と範囲が重なります。先に隣の日の範囲を調整してください。","error");return;
+  }
+  if(materialTasks.some(t=>t.sourceNewId===taskId&&(t.fixed||t.done)) && (original.start!==parsed.task.start||original.end!==parsed.task.end)){
+    setScheduleEditStatus("固定・完了済みの復習があるため、この範囲は変更できません。","error");return;
+  }
+  parsed.task={...original,...parsed.task,manual:true,originalDate:original.date,requestedDate:parsed.task.type==="review"?parsed.task.date:""};
+  materialTasks = materialTasks.map((task) => task.id === taskId ? parsed.task : task);
   saveMaterialTasks();
   if (original.type === "new" && parsed.task.type !== "new") {
     materialTasks = materialTasks.filter((task) => !(
@@ -3886,14 +3675,15 @@ goRecordButton.addEventListener("click", () => {
 });
 
 goScheduleButton.addEventListener("click", () => {
+  scheduleSelectedDate=localDateKey();scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();
   switchTab("schedule");
 });
 
 scheduleMaterialFilter.addEventListener("change", renderSchedule);
 
 rescheduleButton.addEventListener("click", () => {
-  if (materialPlans.length === 0) {
-    setScheduleStatus("自動再調整できる教材プランがまだありません。", "error");
+  if (materialTasks.length === 0) {
+    setScheduleStatus("再調整する教材予定がまだありません。", "error");
     return;
   }
   const summary = redistributeAllPlans(localDateKey());
@@ -3902,13 +3692,17 @@ rescheduleButton.addEventListener("click", () => {
 });
 
 undoRescheduleButton.addEventListener("click", () => {
-  if (!lastReschedule) return;
-  materialTasks = sanitizeMaterialTasks(lastReschedule.beforeTasks);
-  saveMaterialTasks();
-  lastReschedule = null;
-  saveLastReschedule();
-  setScheduleStatus("直前の再調整を取り消しました。", "success");
-  render();
+  if(!lastReschedule)return;
+  if(JSON.stringify(sanitizeMaterialTasks(materialTasks))!==JSON.stringify(lastReschedule.afterTasks)
+    || (lastReschedule.afterPlans && JSON.stringify(materialPlans)!==JSON.stringify(lastReschedule.afterPlans))
+    || (lastReschedule.afterHolidays && JSON.stringify(holidays)!==JSON.stringify(lastReschedule.afterHolidays))) {
+    setScheduleStatus("再調整後に予定・実績・休日が変更されたため、取り消せません。現在の変更を保持しました。","error");return;
+  }
+  materialTasks=sanitizeMaterialTasks(lastReschedule.beforeTasks);
+  if(lastReschedule.beforePlans)materialPlans=lastReschedule.beforePlans;
+  if(lastReschedule.beforeHolidays)holidays=lastReschedule.beforeHolidays;
+  saveMaterialTasks();saveMaterialPlans();saveHolidays();lastReschedule=null;saveLastReschedule();
+  setScheduleStatus("直前の再調整を取り消しました。休日と教材設定も元に戻しました。","success");render();
 });
 
 previousMonthButton.addEventListener("click", () => {
@@ -3972,6 +3766,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=13").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=14").catch(() => {});
   });
 }

@@ -1,0 +1,48 @@
+.schedule-month-toolbar{display:grid;grid-template-columns:44px 1fr 44px auto;align-items:center;gap:8px;margin:24px 0 16px}
+.schedule-month-toolbar h3{text-align:center;font-size:22px;margin:0;font-variant-numeric:tabular-nums}
+.schedule-month-toolbar button{padding:8px;min-height:44px}
+.schedule-legend{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0;color:var(--muted);font-size:14px}
+.schedule-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.schedule-weekday{text-align:center;padding:8px 0;font-weight:600;color:var(--muted)}
+.schedule-date{position:relative;min-height:120px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:5px;padding:10px 8px;border-radius:10px;background:var(--surface-alt);border:1px solid var(--border);color:var(--text);font-size:14px;box-shadow:none;min-width:0}
+.schedule-date:hover{background:var(--accent-soft);transform:none}
+.schedule-date[aria-pressed=true]{border:2px solid var(--accent);background:var(--accent-soft);padding:9px 7px}
+.date-number{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.3}
+.is-today .date-number{background:var(--accent);color:var(--on-accent);border-radius:50%;min-width:26px;text-align:center}
+.date-count{font-size:14px;font-weight:500;color:var(--muted)}
+.is-holiday .date-number{color:var(--warning)}
+.is-holiday.is-today .date-number{color:var(--on-accent)}
+.date-kinds{display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.4;overflow-wrap:anywhere;text-align:left}
+.date-kinds .new{color:var(--success)}.date-kinds .review{color:var(--accent)}
+.date-amount{font-size:12px;line-height:1.5;text-align:left;overflow-wrap:anywhere;color:var(--muted)}
+.date-done{color:var(--success);font-size:12px}
+.schedule-day-heading{display:flex;gap:12px;justify-content:space-between;align-items:center;margin:28px 0 12px;border-top:1px solid var(--border);padding-top:22px}
+.schedule-day-heading h3{font-size:21px;margin:0;scroll-margin-top:24px}
+.schedule-day-heading>button{width:auto;flex-shrink:0;max-width:none}
+.schedule-day-totals{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;background:var(--surface-alt);padding:18px;border-radius:12px}
+.schedule-day-totals>div{display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.schedule-day-totals strong{font-size:22px;color:var(--text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.schedule-load-warning{grid-column:1/-1;color:var(--warning);margin:0}
+.schedule-attention{background:var(--warning-soft);border:1px solid var(--warning);border-radius:12px;padding:16px;color:var(--text);margin-top:20px}
+.schedule-attention p{margin:0 0 12px;line-height:1.7}.schedule-attention button{margin:4px 6px 4px 0;text-align:left}
+.material-progress-details{border-top:1px solid var(--border);margin-top:24px;padding-top:20px}
+.material-progress-details>summary{font-weight:700;cursor:pointer;padding:8px 0;min-height:44px}
+.material-progress-card{display:flex;flex-direction:column;gap:8px;padding:18px 0;border-bottom:1px solid var(--border);background:transparent;box-shadow:none;border-radius:0}
+.material-progress-card>strong{order:-2;font-size:17px}.material-progress-card>span{order:-1}
+.material-progress-card>button{align-self:flex-start}.material-end-dates{font-size:14px;color:var(--muted);line-height:1.7;margin:0}
+.material-plan-form .wide-field{grid-column:1/-1}.review-settings{padding:16px;background:var(--surface-alt);border-radius:12px}
+.material-draft-preview{border-left:3px solid var(--accent);padding:12px 16px;background:var(--accent-soft);font-size:15px;line-height:1.8}
+.schedule-item .schedule-main small{font-size:14px;line-height:1.65}.schedule-item.done .schedule-main{opacity:1}
+.schedule-item .schedule-main>span{font-size:16px;line-height:1.6}.schedule-check:disabled{opacity:.5;cursor:not-allowed}
+.schedule-list:not(.compact){max-height:none;overflow:visible;scrollbar-gutter:auto}
+.schedule-completion-status{color:var(--danger)}
+.schedule-adjust-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+#scheduleStatus:empty{display:none}
+#scheduleCompletionForm,#materialSettingsForm{display:grid;gap:12px}
+#scheduleCompletionStatus,#materialSettingsStatus{color:var(--danger);margin:0}
+.screen-schedule .schedule-layout{grid-template-columns:minmax(0,1.9fr) minmax(300px,1fr)}
+@media(max-width:1100px){.date-amount{display:none}.schedule-date{min-height:105px}}
+@media(max-width:900px){.screen-schedule .schedule-layout{grid-template-columns:1fr}.schedule-tools{min-width:0}.schedule-date{min-height:104px}}
+@media(max-width:560px){.schedule-month-grid{gap:3px}.schedule-overview-card{padding:16px 12px}.schedule-date{min-height:96px;padding:6px 3px;border-radius:7px;gap:4px}.schedule-date[aria-pressed=true]{padding:5px 2px}.date-number{font-size:18px}.date-kinds{display:flex;flex-direction:column;gap:0;font-size:12px}.date-count{font-size:12px}.schedule-month-toolbar h3{font-size:20px}.schedule-day-totals{padding:14px;gap:10px}.schedule-day-totals strong{font-size:20px}.schedule-day-heading{gap:6px}.schedule-day-heading h3{font-size:19px}.material-plan-form .wide-field{min-width:0}.schedule-item{column-gap:8px}.schedule-item .schedule-main>strong{overflow-wrap:anywhere}}
+@media(prefers-reduced-motion:reduce){.schedule-date{transition:none}}
+@media(max-width:560px){.screen-schedule .page-heading{flex-direction:row;align-items:center;gap:12px}.screen-schedule .page-heading>div{min-width:0}.screen-schedule .page-heading>div>p:last-child{display:none}.screen-schedule .page-heading h2{font-size:24px}.screen-schedule .page-heading>button{width:auto;white-space:nowrap;font-size:14px;padding:10px;min-height:44px}.schedule-month-toolbar{margin-top:18px}.schedule-overview-card>.section-title{margin-bottom:12px}}
