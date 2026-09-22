@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#101113">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=16">
+  <link rel="manifest" href="manifest.webmanifest?v=17">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=16"></script>
-  <link rel="stylesheet" href="style.css?v=16">
-<link rel="stylesheet" href="schedule.css?v=16">
+  <script src="theme.js?v=17"></script>
+  <link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="schedule.css?v=17">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -149,14 +149,14 @@
           <p id="scheduleSummary" class="setting-note">予定を作るとここに表示されます。</p>
         </div>
       </div>
-      <label for="scheduleMaterialFilter">表示する教材</label>
+      <details class="schedule-filter"><summary>教材を絞り込む</summary><label for="scheduleMaterialFilter">表示する教材</label>
       <select id="scheduleMaterialFilter">
         <option value="all">すべての教材</option>
       </select>
-      <div class="schedule-month-toolbar"><button id="schedulePrevMonth" type="button" class="secondary-button" aria-label="予定の前の月">‹</button><h3 id="scheduleMonthTitle"></h3><button id="scheduleNextMonth" type="button" class="secondary-button" aria-label="予定の次の月">›</button><button id="scheduleGoToday" type="button" class="secondary-button">今日の予定</button></div><p id="scheduleSelectedLabel" class="selected-day-label" aria-live="polite"></p>
-      <div class="schedule-legend"><span class="schedule-kind">新規</span><span class="schedule-kind review">復習</span><span>○ 未完了</span><span>✓ 完了</span><span>休：休日・学習曜日外</span></div>
+      </details><div class="schedule-month-toolbar"><button id="schedulePrevMonth" type="button" class="secondary-button" aria-label="予定の前の月">‹</button><h3 id="scheduleMonthTitle"></h3><button id="scheduleNextMonth" type="button" class="secondary-button" aria-label="予定の次の月">›</button></div><div class="schedule-selection-toolbar"><button id="scheduleGoToday" type="button" class="secondary-button">今日に戻る</button><p id="scheduleSelectedLabel" class="selected-day-label" aria-live="polite"></p></div>
+      <div class="schedule-legend"><span>新：新規</span><span>復：復習</span><span>✓：完了数</span><span>休：休日</span><span>9+：10件以上</span></div>
       <div id="scheduleMonthGrid" class="schedule-month-grid" aria-label="学習予定の月カレンダー"></div>
-      <p class="setting-note">日付を選び、予定の「編集」から日付・範囲・固定を変更できます。復習日は新規学習の完了まで仮の予定です。</p>
+      <p class="setting-note">日付を選ぶと詳細を表示。復習日は新規学習の完了まで仮の日程です。</p>
       <div class="schedule-day-heading"><h3 id="scheduleDayTitle"></h3><button id="scheduleDayHoliday" type="button" class="secondary-button compact-button">休日にする</button></div>
       <div id="scheduleDayTotals" class="schedule-day-totals" aria-live="polite"></div>
       <div id="scheduleList" class="schedule-list"></div>
@@ -755,7 +755,7 @@
     <div class="dialog-header"><h2 id="scheduleCompletionTitle">学習を完了・記録</h2><button id="scheduleCompletionClose" class="dialog-close" type="button" aria-label="完了を閉じる">×</button></div>
     <form id="scheduleCompletionForm" novalidate><p id="scheduleCompletionLabel" class="edit-context"></p><p id="completionRecordNote"></p>
       <div id="completionFields"><label for="scheduleCompletedDate">実際に学習した日</label><input id="scheduleCompletedDate" type="date" required>
-      <label for="completionMinutes">実際に使った時間（分）</label><input id="completionMinutes" type="number" inputmode="numeric" min="1" max="1439" placeholder="例：25">
+      <div class="time-presets" aria-label="学習時間の候補"><button type="button" data-completion-minutes="15">15分</button><button type="button" data-completion-minutes="30">30分</button><button type="button" data-completion-minutes="60">60分</button></div><label for="completionMinutes">実際に使った時間（分）</label><input id="completionMinutes" type="number" inputmode="numeric" min="1" max="1439" placeholder="例：25">
       <label for="completionSubject">科目</label><input id="completionSubject" list="subjectOptions" maxlength="30" placeholder="科目を選択・入力"><p id="completionSubjectHint" class="setting-note"></p>
       <p class="setting-note">学習した日に時間を計上し、新規学習の復習日も調整します。</p></div>
       <div id="completionUndoFields" hidden><p id="completionUndoNote"></p><button id="completionKeepRecord" type="button" class="secondary-button">記録を残して取り消す</button><button id="completionDeleteRecord" type="button" class="secondary-button">記録も削除して取り消す</button></div>
@@ -775,8 +775,8 @@
       <p id="materialSettingsStatus" class="form-status" role="status"></p><div class="edit-dialog-actions"><button id="materialSettingsCancel" type="button" class="secondary-button">キャンセル</button><button type="submit">変更内容を確認</button></div>
     </form></dialog>
   <dialog id="scheduleChangeDialog" class="profile-dialog schedule-change-dialog" aria-label="変更内容の確認"><div class="dialog-header"><h2>変更内容の確認</h2><button id="scheduleChangeClose" class="dialog-close" type="button" aria-label="変更の確認をキャンセル">×</button></div>
-    <p id="scheduleChangeScope" class="edit-impact"></p><div id="scheduleChangeSettings"></div><div id="scheduleChangeNotes"></div><p id="scheduleChangeCounts"></p>
-    <div id="scheduleChangeList" class="schedule-change-list"></div><p id="scheduleChangeStatus" class="form-status" role="status"></p>
+    <p id="scheduleChangeScope" class="edit-impact"></p><div id="scheduleChangeSummary" class="edit-summary"></div><div id="scheduleChangeSettings"></div><div id="scheduleChangeNotes"></div><p id="scheduleChangeCounts"></p>
+    <details id="scheduleChangeDetails"><summary>変更の詳細</summary><div id="scheduleChangeList" class="schedule-change-list"></div></details><p id="scheduleChangeStatus" class="form-status" role="status"></p>
     <div class="edit-confirm-actions"><button id="scheduleChangeCancel" class="secondary-button" type="button">キャンセル</button><button id="scheduleChangeBack" class="secondary-button" type="button">入力に戻る</button><button id="scheduleChangeSave" type="button">この内容で保存</button></div>
   </dialog>
   <div id="levelUpToast" class="level-up-toast" hidden>
@@ -804,15 +804,15 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=16"></script>
-  <script src="study-flow.js?v=16"></script>
-  <script src="study-flow-ui.js?v=16"></script>
-  <script src="analysis-engine.js?v=16"></script>
-  <script src="analysis-ui.js?v=16"></script>
-  <script src="schedule-ui.js?v=16"></script>
-  <script src="schedule-edit.js?v=16"></script>
-  <script src="app.js?v=16"></script>
-  <script src="ui.js?v=16"></script>
+  <script src="schedule-engine.js?v=17"></script>
+  <script src="study-flow.js?v=17"></script>
+  <script src="study-flow-ui.js?v=17"></script>
+  <script src="analysis-engine.js?v=17"></script>
+  <script src="analysis-ui.js?v=17"></script>
+  <script src="schedule-ui.js?v=17"></script>
+  <script src="schedule-edit.js?v=17"></script>
+  <script src="app.js?v=17"></script>
+  <script src="ui.js?v=17"></script>
 <datalist id="subjectOptions"><option value="英語"><option value="数学"><option value="国語"><option value="物理"><option value="化学"><option value="生物"><option value="日本史"><option value="世界史"><option value="地理"><option value="情報"></datalist>
 </body>
 </html>

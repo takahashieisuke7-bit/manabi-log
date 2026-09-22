@@ -71,3 +71,74 @@
 .analysis-layout>.study-bars-card{order:-2;grid-column:1/-1}.analysis-layout>.chart-card{order:-1;grid-column:1/-1}.study-bars-card .period-switch{display:flex;max-width:360px}.study-bars-card .period-switch button{min-width:70px}.study-bars{display:flex;gap:8px;margin:18px 0 12px;min-width:0}.study-bar-axis{width:48px;flex-shrink:0;display:flex;flex-direction:column;justify-content:space-between;height:200px;margin-top:30px;font-size:13px;color:var(--muted);text-align:right}.study-bars-scroll{overflow-x:auto;flex:1;min-width:0;padding-bottom:8px}.study-bar-plot{display:grid;grid-template-columns:repeat(var(--bar-count),minmax(34px,1fr));gap:8px;min-width:calc(var(--bar-count) * 42px)}.study-bar-button{display:flex;flex-direction:column;gap:4px;min-width:0;padding:0 3px 6px;background:transparent;color:var(--text);border:1px solid transparent;border-radius:6px;box-shadow:none;font-size:14px;font-weight:500}.study-bar-button:hover,.study-bar-button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);transform:none}.study-bar-total{line-height:24px;white-space:nowrap;font-variant-numeric:tabular-nums}.study-bar-column{display:flex;align-items:flex-end;height:200px;width:100%;border-bottom:2px solid var(--border);background:repeating-linear-gradient(to top,transparent 0,transparent calc(50% - 1px),var(--border) 50%)}.study-bar-stack{display:flex;flex-direction:column-reverse;width:100%;max-width:72px;margin:auto auto 0;min-height:0;border-radius:4px 4px 0 0;overflow:hidden}.study-bar-segment{display:block;min-height:1px}.study-bar-label{font-size:13px;line-height:1.5;white-space:nowrap}.study-bars-legend{display:flex;flex-wrap:wrap;gap:10px 20px;margin:12px 0}.study-subject-legend{display:flex;align-items:center;gap:7px;font-size:15px}.study-subject-legend i{width:12px;height:12px;border-radius:3px}.study-bars-detail{border-top:1px solid var(--border);margin-top:18px;padding-top:16px;overflow-wrap:anywhere}.study-period-record{display:flex;align-items:center;gap:12px;justify-content:space-between;border-bottom:1px solid var(--border);padding:12px 0;line-height:1.7}.study-period-record button{flex-shrink:0;width:auto}.study-period-records{max-height:380px;overflow:auto}.mock-comparison{margin:24px 0}.mock-comparison label{display:grid;gap:8px}.mock-comparison-bars{margin-top:16px;display:grid;gap:14px}.mock-comparison-row{display:grid;grid-template-columns:minmax(64px,1fr) minmax(100px,3fr) 40px;gap:10px;align-items:center}.mock-comparison-row>span{overflow-wrap:anywhere}.mock-comparison-track{height:26px;background:var(--surface-alt);border-radius:4px;overflow:hidden}.mock-comparison-track>span{height:100%;display:block}.mock-comparison-row.total{border-top:1px solid var(--border);padding-top:14px}
 @media(max-width:560px){.schedule-date{min-height:152px}.date-overview{flex-direction:column;gap:0;font-size:12px;line-height:1.35}.date-material{width:100%;font-size:12px}.date-more{font-size:12px;white-space:nowrap;letter-spacing:-.6px}.date-done{font-size:12px}.schedule-month-toolbar{grid-template-columns:44px 1fr 44px}.schedule-month-toolbar>button:last-child{grid-column:1/-1;width:100%}.schedule-day-heading{flex-wrap:wrap}.schedule-day-heading h3{font-size:18px}.study-bars-card{padding:18px 12px}.study-bar-plot{gap:3px;min-width:calc(var(--bar-count) * 35px);grid-template-columns:repeat(var(--bar-count),minmax(32px,1fr))}.study-bar-axis{width:36px;font-size:12px}.study-bar-total{font-size:12px}.study-period-record{align-items:flex-start;flex-direction:column}.completion-dialog{padding:18px}.completion-dialog .edit-context{font-size:17px}.schedule-actions{flex-wrap:wrap}.schedule-overview-card .schedule-actions button{font-size:14px}.mock-comparison-row{grid-template-columns:66px minmax(70px,1fr) 38px;gap:8px}}
 .completion-dialog #scheduleCompletionForm{gap:10px}.completion-dialog #completionFields{gap:8px}.completion-dialog #completionFields label{margin:6px 0 0}.completion-dialog #completionFields input{margin:0;padding:10px 12px;height:48px}.completion-dialog .setting-note{margin:2px 0;line-height:1.6}.completion-dialog .setting-note[hidden]{display:none}.completion-dialog .edit-context{margin:4px 0}.completion-dialog .completion-actions{padding:0;gap:8px}.completion-dialog #completionRecordNote{padding:10px;font-size:15px}.completion-dialog .dialog-header h2{font-size:20px}.completion-dialog .completion-actions>button{padding:10px;min-height:44px}
+/* Compact, bounded charts and calendar. Each chart page fits the available width. */
+.study-bars-scroll{overflow:visible;padding:0;min-width:0}
+.study-bar-plot{min-width:0;width:100%;grid-template-columns:repeat(var(--bar-count),minmax(0,1fr));gap:4px}
+.study-bars{gap:4px}.study-bar-button{padding:0 0 6px}.study-bar-total{height:24px}
+.study-bar-axis{width:42px;font-size:13px}.study-bar-label{font-size:13px;white-space:normal;overflow-wrap:normal}
+.study-subject-legend,.line-chart-legend span{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.study-subject-legend i,.line-chart-legend i{flex-shrink:0}
+.study-bars-card .period-switch,.chart-controls,.chart-nav{max-width:100%;min-width:0;flex-wrap:wrap}
+.study-bars-card .period-switch button{min-width:0;flex:1}
+.line-chart-card,.mock-series-body,.mock-series-group,.mock-comparison,.chart-card,.study-bars-card{min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+.line-chart-scroll{overflow:visible;min-width:0;max-width:100%;padding:0}
+.mock-line-svg{display:block;width:100%;min-width:0;max-width:100%;height:auto;margin:0}
+.chart-page-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chart-page-controls button{flex:1;min-width:0;min-height:44px;padding:8px}
+.chart-visible-range,.mock-point-detail{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.mock-point-button{cursor:pointer}.mock-point-button:focus{outline:2px solid var(--accent)}
+.mock-comparison-row{grid-template-columns:minmax(0,1fr) 44px;gap:6px 10px}
+.mock-comparison-row>span{grid-column:1/-1;font-size:15px;line-height:1.5}
+.mock-comparison-track{min-width:0}.mock-comparison select{min-width:0;max-width:100%}
+.chart-legend,.legend-item,.legend-info,.legend-label{min-width:0;overflow-wrap:anywhere}
+.schedule-filter>summary{min-height:44px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.schedule-filter>summary::before{content:'＋';color:var(--accent)}.schedule-filter[open]>summary::before{content:'−'}
+.schedule-filter select{margin-bottom:10px}.schedule-month-toolbar{margin-top:8px}
+.selected-day-label{padding:8px;margin:10px 0;font-size:15px}
+.schedule-legend{gap:6px 12px;margin:8px 0;font-size:13px}
+.schedule-month-grid{gap:3px}.schedule-weekday{padding:4px 0}
+.schedule-date,.schedule-date[aria-pressed=true]{height:102px;min-height:0;padding:5px 3px;gap:1px;border-width:2px}
+.schedule-date{border-color:transparent}.schedule-date[aria-pressed=true]{border-color:var(--accent)}
+.date-overview{font-size:13px;line-height:1.35;display:block;white-space:nowrap}
+.date-overview.new{color:var(--success)}.date-overview.review{color:var(--accent)}
+.date-number{font-size:17px}.date-done{font-size:12px;white-space:nowrap;letter-spacing:-.3px}
+.date-off{position:absolute;right:3px;top:6px;font-size:12px}
+.schedule-date.is-holiday{padding-top:5px}.schedule-date.is-holiday .date-number{margin-top:17px}
+.schedule-date.is-holiday:has(.date-overview){height:119px}
+.schedule-month-grid{grid-auto-rows:auto;align-items:start}
+.schedule-actions{grid-column:1/-1;display:flex;align-items:start;gap:8px;min-width:0}
+.schedule-actions>button{width:auto;flex:0 1 auto;min-width:0}
+.schedule-actions .schedule-complete-primary{flex:1;background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-size:15px}
+.schedule-more{position:relative;margin-left:auto}.schedule-more>summary{list-style:none;cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid var(--border);border-radius:8px}
+.schedule-more>summary::-webkit-details-marker{display:none}
+.schedule-more>div{display:grid;gap:8px;position:absolute;z-index:5;right:0;min-width:180px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px #0003}
+.schedule-more button{width:100%;white-space:normal}
+.time-presets{display:flex;gap:8px;margin-top:8px}.time-presets button{flex:1;min-height:44px;padding:8px;background:var(--accent-soft);color:var(--text);border:1px solid var(--border)}
+.edit-summary{font-size:16px;line-height:1.65}.edit-summary p{margin:10px 0}.edit-summary p:first-child{font-size:20px;font-weight:700}
+#scheduleChangeDetails>summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:700}
+#scheduleChangeDetails .schedule-change-list{max-height:none}
+@media(max-width:560px){
+ .mock-series-body{padding:10px 0}.line-chart-card,.line-chart-card.featured{padding:12px 8px}.mock-section{padding:16px 12px}
+ .study-bars-card .chart-nav{width:100%}.study-bars-card .chart-nav button{min-width:0;padding:8px}
+ .schedule-month-toolbar{grid-template-columns:44px minmax(0,1fr) 44px}.schedule-month-toolbar>button:last-child{grid-column:1/-1;width:100%;min-height:44px}
+ .schedule-actions{flex-wrap:nowrap}.schedule-overview-card .schedule-actions button{font-size:14px;padding:10px 8px}
+ .schedule-overview-card{padding:14px 8px}.schedule-overview-card>.section-title{margin-bottom:4px}
+ .schedule-date,.schedule-date[aria-pressed=true]{height:48px;min-height:48px}
+ .schedule-date:has(.date-overview){height:82px}.schedule-date.is-holiday:has(.date-overview){height:99px}
+ #scheduleSummary{margin:6px 0}.schedule-month-toolbar{margin-top:4px}
+ .schedule-selection-toolbar{display:flex;gap:8px;align-items:center;margin:10px 0}
+ .schedule-selection-toolbar>button{width:auto;min-width:72px;min-height:44px;font-size:14px;padding:8px}
+ .schedule-selection-toolbar .selected-day-label{flex:1;min-width:0;font-size:14px;padding:7px;margin:0}
+}
+.schedule-selection-toolbar{display:flex;gap:12px;align-items:center}
+.schedule-selection-toolbar>button{width:auto;flex-shrink:0}
+.legend-subject{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.6}
+@media(max-width:560px){.legend-item{grid-template-columns:12px minmax(0,1fr);gap:4px 8px}.legend-value{grid-column:2;white-space:normal}}
+@media(max-width:560px){.study-bar-label .day-month,.study-bar-label .day-number{display:block}}
+.schedule-month-toolbar{grid-template-columns:44px minmax(0,1fr) 44px}
+.schedule-month-toolbar>button:last-child{grid-column:auto;width:auto}
+.schedule-date,.schedule-date[aria-pressed=true]{height:48px;min-height:48px}
+.schedule-date:has(.date-overview){height:90px}
+.schedule-date.is-holiday:has(.date-overview){height:107px}
+.schedule-date.is-holiday .date-number{margin-top:15px}
+#scheduleChangeSave,#completionSave{background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);font-weight:700}

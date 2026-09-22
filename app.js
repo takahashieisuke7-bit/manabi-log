@@ -633,7 +633,7 @@ function sanitizeMaterialPlans(value) {
 
 function sanitizeMaterialTasks(value) {
   if (!Array.isArray(value)) return [];
-  return value.flatMap((task) => {
+  return ScheduleEngine.mergeReviews(value.flatMap((task) => {
     const material = typeof task?.material === "string" ? task.material.trim().slice(0, 40) : "";
     const unit = typeof task?.unit === "string" && task.unit.trim()
       ? task.unit.trim().slice(0, 12)
@@ -657,13 +657,14 @@ function sanitizeMaterialTasks(value) {
       done: Boolean(task.done),
       manual: Boolean(task.manual),
       completedDate: task.done ? (isDateKey(task.completedDate) ? task.completedDate : task.date) : "",
+      reviewOffsets: [...new Set((Array.isArray(task.reviewOffsets)?task.reviewOffsets:[task.reviewOffset]).filter(n=>Number.isInteger(n)&&n>0&&n<=365))].sort((a,b)=>a-b),
       reviewOffset: Number.isInteger(task.reviewOffset) && task.reviewOffset > 0 ? task.reviewOffset : 0,
       dueDate: isDateKey(task.dueDate) ? task.dueDate : "",
       originalDate: isDateKey(task.originalDate) ? task.originalDate : "",
       requestedDate: isDateKey(task.requestedDate) ? task.requestedDate : "",
       createdAt: typeof task.createdAt === "string" ? task.createdAt : new Date().toISOString(),
     }];
-  });
+  }));
 }
 
 function saveHolidays() {
@@ -1158,6 +1159,7 @@ function createScheduleItem(task, { compact = false } = {}) {
   meta.textContent=labels.join("・");
   labels.push(task.done?"✓ 完了済み":"○ 未完了");
   labels.push(linkedRecord?`記録 ${linkedRecord.date}・${linkedRecord.subject}・${linkedRecord.minutes}分`:task.done?"時間未記録":"");
+  if(task.type==="review"&&ScheduleEngine.reviewRounds(task).length)labels.push(`復習 ${ScheduleEngine.reviewRounds(task).join("・")}日後${ScheduleEngine.reviewRounds(task).length>1?"を1回に統合":""}`);
   meta.textContent=labels.filter(Boolean).join("・");
   main.append(title, range, meta);
 
@@ -1167,7 +1169,7 @@ function createScheduleItem(task, { compact = false } = {}) {
 
   item.append(checkbox, main, kind);
 
-  if (!compact) {
+  {
     const actions = document.createElement("div");
     actions.className = "schedule-actions";
 
@@ -1202,8 +1204,13 @@ function createScheduleItem(task, { compact = false } = {}) {
     });
 
     remove.disabled=task.done;
-    if(task.done||linkedRecord){const time=document.createElement("button");time.type="button";time.textContent=linkedRecord?"時間を修正":"時間を記録";time.addEventListener("click",()=>openStudyCompletion(task));actions.append(time);}
-    actions.append(edit, pin, remove);
+    if(task.done){const time=document.createElement("button");time.type="button";time.textContent=linkedRecord?"時間を修正":"時間を記録";time.addEventListener("click",()=>openStudyCompletion(task));actions.append(time);}
+    if(!task.done){const finish=document.createElement("button");finish.type="button";finish.className="schedule-complete-primary";finish.textContent="完了・時間を記録";finish.disabled=checkbox.disabled;finish.addEventListener("click",()=>openStudyCompletion(task));actions.append(finish);}
+    const menu=document.createElement("details");menu.className="schedule-more";
+    const summary=document.createElement("summary");summary.textContent="…";summary.setAttribute("aria-label",task.material+"の管理操作");
+    const content=document.createElement("div");content.append(pin,remove);
+    if(task.done){const undo=document.createElement("button");undo.type="button";undo.textContent="完了を取り消す";undo.addEventListener("click",()=>openStudyCompletion(task,true));content.append(undo);}
+    menu.append(summary,content);actions.append(edit,menu);
     item.append(actions);
   }
 
@@ -1500,17 +1507,19 @@ function renderWeeklyReview() {
       .filter((record) => record.date === date)
       .reduce((sum, record) => sum + record.minutes, 0) >= dailyGoal)
     .length;
-  const todoWeek = todos.filter((todo) => todo.date >= current.startKey && todo.date <= current.endKey);
+  const scheduledWeek=materialTasks.filter(task=>{const date=task.done?(task.completedDate||task.date):task.date;return date>=current.startKey&&date<=current.endKey;});
+  const waitingWeek=scheduledWeek.filter(task=>!task.done&&task.sourceNewId&&!materialTasks.find(source=>source.id===task.sourceNewId)?.done);
+  const todoWeek = [...todos.filter((todo) => todo.date >= current.startKey && todo.date <= current.endKey),...scheduledWeek.filter(task=>!waitingWeek.includes(task))];
   const doneTodos = todoWeek.filter((todo) => todo.done).length;
 
   weeklyRange.textContent = `${formatShortDate(current.start)}〜${formatShortDate(current.end)}`;
-  weeklySummary.textContent = `今週 ${formatMinutes(currentTotal)}・やること ${doneTodos}/${todoWeek.length}`;
+  weeklySummary.textContent = `今週 ${formatMinutes(currentTotal)}・予定とToDo ${doneTodos}/${todoWeek.length}${waitingWeek.length?`・復習の完了待ち ${waitingWeek.length}件`:''}`;
   weeklyReviewGrid.replaceChildren();
   [
     ["今週", formatMinutes(currentTotal)],
     ["先週との差", delta >= 0 ? `+${formatMinutes(delta)}` : `-${formatMinutes(Math.abs(delta))}`],
     ["目標達成日", dailyGoal > 0 ? `${goalAchievedDays}日` : "未設定"],
-    ["やること", `${doneTodos} / ${todoWeek.length}`],
+    ["予定とToDo", `${doneTodos} / ${todoWeek.length}`],
     ["一番多い科目", subjectTotals[0] ? `${subjectTotals[0][0]} ${formatMinutes(subjectTotals[0][1])}` : "まだなし"],
   ].forEach(([label, value]) => {
     const item = document.createElement("div");
@@ -1523,7 +1532,7 @@ function renderWeeklyReview() {
   });
 
   if (currentTotal === 0) {
-    weeklyAdvice.textContent = "今週はまだ記録がありません。まず1回、短くても記録を残そう。";
+    weeklyAdvice.textContent = doneTodos ? `今週は${doneTodos}件の取り組みを完了しています。学習時間は未記録です。必要なら予定から時間を追加できます。` : "今週の学習時間はまだ記録されていません。ホームや予定タブで取り組む内容を確認できます。";
   } else if (delta >= 0) {
     weeklyAdvice.textContent = "先週以上に積めています。油断せず、足りない科目を1つ潰すとさらに強い。";
   } else {
@@ -1722,9 +1731,12 @@ function renderWeaknessAlerts() {
     .sort((a, b) => a[1] - b[1]);
   const latestDeviation = latestMockDeviationBySubject();
 
-  if (todos.filter((todo) => todo.date === localDateKey()).length === 0) {
-    alerts.push(["今日のやることが未設定", "ホーム一番上で、今日絶対やるタスクを1つだけでも入れよう。"]);
-  }
+  const today=localDateKey(),manualToday=todos.filter(t=>t.date===today);
+  const plannedToday=materialTasks.filter(t=>t.date===today || (t.done&&t.completedDate===today));
+  const readyToday=plannedToday.filter(t=>t.done||!t.sourceNewId||materialTasks.find(s=>s.id===t.sourceNewId)?.done);
+  if(!manualToday.length&&!plannedToday.length) alerts.push(["今日の予定を決めよう","予定タブで教材の予定を作るか、ホームの「自分で追加すること」に追加できます。"]);
+  else if(!manualToday.length&&!readyToday.length) alerts.push(["復習は新規学習の完了待ち","今日の復習予定があります。先に対応する新規学習を完了すると、実際の学習日から復習日が決まります。"]);
+  else {const done=manualToday.filter(t=>t.done).length+readyToday.filter(t=>t.done).length;alerts.push([done?"今日の取り組みを進めています":"今日の予定があります",done?`完了 ${done}件。ホームや予定タブで残りの予定を確認できます。`:"ホームの「今日の予定」や「自分で追加すること」から取り組めます。"]);}
   if (dailyGoal === 0) {
     alerts.push(["1日の目標が未設定", "記録タブで基準時間を決めよう。基準がないと勝ち負けが見えません。"]);
   }
@@ -2655,155 +2667,49 @@ function createSvgElement(tagName, attributes = {}, text = "") {
   return element;
 }
 
-function createMockLineChart(titleText, events, series, featured = false) {
-  const card = document.createElement("section");
-  card.className = `line-chart-card${featured ? " featured" : ""}`;
-  const title = document.createElement("h4");
-  title.textContent = titleText;
-  card.append(title);
-
-  const activeSeries = series.filter((item) => item.values.size > 0);
-  if (activeSeries.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "chart-empty";
-    empty.textContent = featured
-      ? "総合偏差値は未入力です。科目名を「総合」にして追加してください。"
-      : "表示できる偏差値がありません。";
-    card.append(empty);
-    return card;
-  }
-
-  const legend = document.createElement("div");
-  legend.className = "line-chart-legend";
-  activeSeries.forEach((item) => {
-    const legendItem = document.createElement("span");
-    const swatch = document.createElement("i");
-    swatch.style.background = item.color;
-    legendItem.append(swatch, document.createTextNode(item.name));
-    legend.append(legendItem);
-  });
-  card.append(legend);
-
-  // 6〜8回程度は一目で比較でき、それ以上だけ横スクロールさせる。
-  const availableWidth = Math.max(280, Math.min(760, mockChart.clientWidth - 84));
-  const width = Math.max(availableWidth, events.length * 54 + 72);
-  const height = featured ? 340 : 290;
-  const margin = { top: 22, right: 24, bottom: 66, left: 48 };
-  const plotWidth = width - margin.left - margin.right;
-  const plotHeight = height - margin.top - margin.bottom;
-  const xAt = (index) => events.length === 1
-    ? margin.left + plotWidth / 2
-    : margin.left + (plotWidth * index) / (events.length - 1);
-  const yAt = (value) => margin.top + ((100 - value) / 100) * plotHeight;
-
-  const scroll = document.createElement("div");
-  scroll.className = "line-chart-scroll";
-  const svg = createSvgElement("svg", {
-    class: "mock-line-svg",
-    viewBox: `0 0 ${width} ${height}`,
-    width,
-    height,
-    role: "img",
-    "aria-label": `${titleText}。偏差値0から100`,
-  });
-
-  for (let value = 0; value <= 100; value += 10) {
-    const y = yAt(value);
-    svg.append(createSvgElement("line", {
-      x1: margin.left,
-      y1: y,
-      x2: width - margin.right,
-      y2: y,
-      class: value === 0 ? "chart-axis-line" : "chart-grid-line",
-    }));
-    svg.append(createSvgElement("text", {
-      x: margin.left - 8,
-      y: y + 4,
-      "text-anchor": "end",
-      class: "chart-axis-label",
-    }, value));
-  }
-
-  events.forEach((event, index) => {
-    const x = xAt(index);
-    svg.append(createSvgElement("line", {
-      x1: x,
-      y1: margin.top,
-      x2: x,
-      y2: height - margin.bottom,
-      class: "chart-vertical-guide",
-    }));
-    const label = createSvgElement("text", {
-      x,
-      y: height - margin.bottom + 22,
-      "text-anchor": "middle",
-      class: "chart-x-label",
-    });
-    label.append(
-      createSvgElement("tspan", { x, dy: 0 }, event.round ? `第${event.round}回` : "回数未設定"),
-      createSvgElement(
-        "tspan",
-        { x, dy: 17 },
-        `${Number(event.date.slice(5, 7))}/${Number(event.date.slice(8, 10))}`,
-      ),
-    );
-    svg.append(label);
-  });
-
-  activeSeries.forEach((item) => {
-    let pathData = "";
-    let drawing = false;
-    events.forEach((event, index) => {
-      const value = item.values.get(event.key);
-      if (!Number.isFinite(value)) {
-        drawing = false;
-        return;
-      }
-      pathData += `${drawing ? "L" : "M"}${xAt(index)},${yAt(value)} `;
-      drawing = true;
-    });
-    svg.append(createSvgElement("path", {
-      d: pathData.trim(),
-      stroke: item.color,
-      "stroke-width": featured ? 4 : 2.8,
-      class: "mock-line-path",
-    }));
-
-    events.forEach((event, index) => {
-      const value = item.values.get(event.key);
-      if (!Number.isFinite(value)) return;
-      const point = createSvgElement("circle", {
-        cx: xAt(index),
-        cy: yAt(value),
-        r: featured ? 5.5 : 4.5,
-        fill: item.color,
-        class: "mock-line-point",
+const mockPageStarts=new Map();
+function createMockLineChart(titleText, allEvents, series, featured=false, mockName='') {
+  const card=chartNode('section','line-chart-card'+(featured?' featured':''));
+  const key=mockName+' / '+titleText;
+  const draw=()=>{
+    card.replaceChildren(chartNode('h4','',titleText));
+    const count=window.innerWidth<=560?3:6;
+    const start=Math.max(0,Math.min(mockPageStarts.get(key)??Math.max(0,allEvents.length-count),Math.max(0,allEvents.length-count)));
+    const events=allEvents.slice(start,start+count);
+    if(!events.length)return;
+    const controls=chartNode('div','chart-page-controls');
+    for(const [label,next,disabled] of [['前へ',Math.max(0,start-count),start===0],['最新',Math.max(0,allEvents.length-count),start+count>=allEvents.length],['次へ',Math.min(allEvents.length-count,start+count),start+count>=allEvents.length]]){
+      const button=chartNode('button','secondary-button',label);button.type='button';button.disabled=disabled;button.setAttribute('aria-label',mockName+' '+titleText+' '+label);button.onclick=()=>{mockPageStarts.set(key,next);draw();};controls.append(button);
+    }
+    card.append(controls,chartNode('p','chart-visible-range',events[0].date+' 〜 '+events.at(-1).date+'（'+(start+1)+'〜'+(start+events.length)+' / '+allEvents.length+'回）'));
+    const active=series.filter(item=>events.some(e=>Number.isFinite(item.values.get(e.key))));
+    if(!active.length){card.append(chartNode('p','chart-empty','この期間の偏差値は未登録です。'));return;}
+    const legend=chartNode('div','line-chart-legend');
+    for(const item of active){const label=chartNode('span'),mark=chartNode('i');mark.style.background=item.color;label.append(mark,document.createTextNode(item.name));legend.append(label);}card.append(legend);
+    // The SVG uses its actual container width: no minimum width or scrollable canvas.
+    const containerWidth=card._plotWidth||Math.max(180,Math.min(760,mockChart.clientWidth-50));
+    const width=Math.max(160,containerWidth),height=240,margin={left:34,right:26,top:24,bottom:48};
+    const plotWidth=width-margin.left-margin.right,plotHeight=height-margin.top-margin.bottom;
+    const xAt=i=>events.length===1?margin.left+plotWidth/2:margin.left+i*plotWidth/(events.length-1);
+    const yAt=value=>margin.top+(100-value)/100*plotHeight;
+    const svg=createSvgElement('svg',{class:'mock-line-svg',viewBox:'0 0 '+width+' '+height,width:'100%',role:'group','aria-label':mockName+' '+titleText+' 偏差値0〜100'});
+    for(let value=0;value<=100;value+=20){const y=yAt(value);svg.append(createSvgElement('line',{x1:margin.left,y1:y,x2:width-margin.right,y2:y,class:value?'chart-grid-line':'chart-axis-line'}),createSvgElement('text',{x:margin.left-6,y:y+4,'text-anchor':'end',class:'chart-axis-label'},value));}
+    events.forEach((event,i)=>svg.append(createSvgElement('text',{x:xAt(i),y:height-24,'text-anchor':'middle',class:'chart-x-label'},Number(event.date.slice(5,7))+'/'+Number(event.date.slice(8)))));
+    const detail=chartNode('p','mock-point-detail','点をタップすると模試名・受験日・偏差値を確認できます。');detail.setAttribute('aria-live','polite');
+    for(const item of active){let path='',drawing=false;events.forEach((event,i)=>{const value=item.values.get(event.key);if(!Number.isFinite(value)){drawing=false;return;}path+=(drawing?'L':'M')+xAt(i)+','+yAt(value)+' ';drawing=true;});svg.append(createSvgElement('path',{d:path,stroke:item.color,'stroke-width':3,class:'mock-line-path'}));
+      events.forEach((event,i)=>{const value=item.values.get(event.key);if(!Number.isFinite(value))return;
+        const label=mockName+'／'+(event.round?'第'+event.round+'回':'回数未設定')+'／'+event.date+'／'+item.name+' 偏差値'+value;
+        const point=createSvgElement('g',{role:'button',tabindex:0,'aria-label':label,class:'mock-point-button'});
+        point.append(createSvgElement('circle',{cx:xAt(i),cy:yAt(value),r:22,fill:'transparent'}),createSvgElement('circle',{cx:xAt(i),cy:yAt(value),r:5,fill:item.color}),createSvgElement('title',{},label));
+        const select=()=>{detail.textContent=label;};point.addEventListener('click',select);point.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}});svg.append(point,createSvgElement('text',{x:xAt(i),y:yAt(value)-10,'text-anchor':'middle',class:'chart-value-label',fill:item.color,'pointer-events':'none'},value));
       });
-      point.append(createSvgElement(
-        "title",
-        {},
-        `${item.name}・${event.round ? `第${event.round}回` : event.date}・偏差値${value}`,
-      ));
-      svg.append(point);
-      svg.append(createSvgElement("text", {
-        x: xAt(index),
-        y: yAt(value) - 9,
-        "text-anchor": "middle",
-        fill: item.color,
-        class: "chart-value-label",
-      }, Number(value.toFixed(1))));
-    });
-  });
-
-  scroll.append(svg);
-  card.append(scroll);
-  {
-    const hint = document.createElement("small");
-    hint.className = "chart-scroll-hint";
-    hint.textContent = "← 横にスライドして続きを見る →";
-    hint.hidden = true;
-    card.append(hint);
-  }
+    }
+    const plot=chartNode('div','line-chart-scroll');plot.append(svg);card.append(plot,detail);
+  };
+  draw();
+  // A collapsed series has no width until opened; resize then keeps labels at 13px.
+  const observer=new ResizeObserver(entries=>{const width=entries[0].contentRect.width;if(width>0&&Math.abs((card._plotWidth||0)-width)>1){card._plotWidth=width;draw();}});
+  observer.observe(card);card.chartObserver=observer;
   return card;
 }
 
@@ -2826,6 +2732,7 @@ function updateChartScrollHints() {
 }
 
 function renderMockResults() {
+  mockChart.querySelectorAll(".line-chart-card").forEach(card=>card.chartObserver?.disconnect());
   mockChart.replaceChildren();
   mockEmpty.hidden = mockResults.length > 0;
   const groups = new Map();
@@ -2899,7 +2806,7 @@ function renderMockResults() {
         "総合偏差値の推移",
         events,
         [{ name: "総合", color: "var(--chart-1)", values: valuesFor("総合") }],
-        true,
+        true, mockName,
       ));
       body.append(createMockComparison(mockName,events,results,colorBySubject));
 
@@ -2912,6 +2819,7 @@ function renderMockResults() {
           `${subject}の推移`,
           events,
           [{ name: subject, color: colorBySubject.get(subject), values: valuesFor(subject) }],
+          false, mockName,
         ));
       });
 
@@ -3697,6 +3605,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=16").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=17").catch(() => {});
   });
 }

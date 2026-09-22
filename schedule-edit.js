@@ -75,14 +75,42 @@ function showSchedulePreview(before,result,editorId,taskId,planId="") {
     const heading=document.createElement("h3");heading.textContent=old.material;
     const oldText=document.createElement("p"),newText=document.createElement("p");oldText.textContent="変更前："+describePlanSettings(old);newText.textContent="変更後："+describePlanSettings(fresh);settings.append(heading,oldText,newText);
   }
-  const notes=scheduleElement("scheduleChangeNotes");notes.replaceChildren();
-  for(const note of result.notes){const p=document.createElement("p");p.textContent=note;notes.append(p);}
-  const affected=new Set(result.changes.map(c=>(c.after||c.before).planId).filter(Boolean));
-  for(const id of affected){const plan=result.plans.find(p=>p.id===id);if(!plan)continue;
-    const tasks=result.tasks.filter(t=>t.planId===id),newEnd=tasks.filter(t=>t.type==="new").map(t=>t.completedDate||t.date).sort().at(-1),reviewEnd=tasks.filter(t=>t.type==="review").map(t=>t.completedDate||t.date).sort().at(-1);
-    const p=document.createElement("p");p.textContent=`${plan.material}：新規終了 ${newEnd||"なし"} ／ 最終復習 ${reviewEnd||"なし"}。終了目標 ${plan.endDate}${newEnd>plan.endDate?" を超えます。量または終了目標日の見直しもできます。":"。"}`;notes.append(p);
+  const summary=scheduleElement('scheduleChangeSummary');summary.replaceChildren();
+  const add=text=>{const p=document.createElement('p');p.textContent=text;summary.append(p);};
+  if(planId){const oldPlan=before.plans.find(p=>p.id===planId),newPlan=result.plans.find(p=>p.id===planId);
+    if(oldPlan.dailyQuantity!==newPlan.dailyQuantity||oldPlan.mode!==newPlan.mode)add(newPlan.mode==='quantity'?'1日の量 '+oldPlan.dailyQuantity+' → '+newPlan.dailyQuantity+ScheduleEngine.quantityUnit(newPlan.unit):'終了目標日から1日の量を再計算します。');
+    if(oldPlan.endDate!==newPlan.endDate)add('新規終了目標 '+oldPlan.endDate+' → '+newPlan.endDate);
+    if(oldPlan.weekdays.join(',')!==newPlan.weekdays.join(','))add('勉強する曜日：'+newPlan.weekdays.map(d=>'日月火水木金土'[d]).join('・'));
+    if(oldPlan.reviewEnabled!==newPlan.reviewEnabled||oldPlan.reviewOffsets.join(',')!==newPlan.reviewOffsets.join(','))add(newPlan.reviewEnabled?'復習：学習から '+newPlan.reviewOffsets.join('・')+'日後':'未完了の自動復習を停止します。');
+    if(oldPlan.subject!==newPlan.subject)add('教材の科目：'+(newPlan.subject||'未設定'));
   }
-  scheduleElement("scheduleChangeCounts").textContent=`変更 ${result.changes.filter(c=>c.before&&c.after).length}件・追加 ${result.changes.filter(c=>!c.before).length}件・再配分などで置き換え ${result.changes.filter(c=>!c.after).length}件。固定解除も以下に表示します。`;
+  const old=before.tasks.find(t=>t.id===taskId),fresh=result.tasks.find(t=>t.id===taskId);
+  if(old&&fresh){
+    if(old.start!==fresh.start||old.end!==fresh.end){add((old.date===localDateKey()?'今日':old.date)+'は '+rangeSize(old)+ScheduleEngine.quantityUnit(old.unit)+' → '+rangeSize(fresh)+ScheduleEngine.quantityUnit(fresh.unit));
+      if(fresh.end<old.end){const rest=result.tasks.filter(t=>t.type==='new'&&t.id!==taskId&&t.planId===old.planId&&t.material===old.material&&t.start<=old.end&&t.end>fresh.end).sort((a,b)=>a.date.localeCompare(b.date));if(rest.length)add('残り '+Math.min(rangeSize(old),old.end-fresh.end)+ScheduleEngine.quantityUnit(old.unit)+'は '+rest[0].date+' 以降へ再配分します。');}
+    }
+    if(old.date!==fresh.date)add('実施日 '+old.date+' → '+fresh.date);
+    if(old.fixed!==fresh.fixed)add(fresh.fixed?'この予定を固定します。':'この予定の固定を解除します。');
+  }
+  const affected=new Set(result.changes.map(c=>(c.after||c.before).planId).filter(Boolean));
+  for(const id of affected)for(const type of ['new','review']){
+    const end=tasks=>tasks.filter(t=>t.planId===id&&t.type===type).map(t=>t.completedDate||t.date).sort().at(-1)||'なし';
+    const was=end(before.tasks),now=end(result.tasks);if(was!==now)add((type==='new'?'新規学習の終了':'最後の復習')+' '+was+' → '+now);
+  }
+  const reviews=result.changes.filter(c=>(c.after||c.before).type==='review').length;
+  if(reviews)add('関連する復習：'+reviews+'件を変更・統合・再作成します。');
+  const pins=result.changes.filter(c=>c.before?.fixed&&(!c.after||!c.after.fixed)).length;
+  add(pins?'未完了の固定を '+pins+'件解除します。':'完了済みの実績・固定予定は保持します。');
+  const collisions=ScheduleEngine.conflicts(result.tasks,result.plans,result.holidays);
+  if(collisions.length)add('固定予定との衝突が '+collisions.length+'件残ります。入力に戻って調整方法を選べます。');
+  const daily=new Map();for(const t of result.tasks){const key=t.date+' '+ScheduleEngine.quantityUnit(t.unit);daily.set(key,(daily.get(key)||0)+rangeSize(t));}
+  const overloaded=[...daily].filter(([key,n])=>n>scheduleSettings.maxTotalUnitsPerDay&&result.changes.some(c=>c.after&&key.startsWith(c.after.date)));
+  if(overloaded.length)add('負担基準を超える日が '+new Set(overloaded.map(([key])=>key.slice(0,10))).size+'日あります。日別の合計量を確認してください。');
+  const notes=scheduleElement('scheduleChangeNotes');notes.replaceChildren();
+  for(const note of result.notes){const p=document.createElement('p');p.textContent=note;notes.append(p);}
+  const details=scheduleElement('scheduleChangeDetails');details.open=false;
+  details.append(settings,notes,scheduleElement('scheduleChangeCounts'),scheduleElement('scheduleChangeList'));
+  scheduleElement('scheduleChangeCounts').textContent='変更 '+result.changes.filter(c=>c.before&&c.after).length+'件・追加 '+result.changes.filter(c=>!c.before).length+'件・置き換え '+result.changes.filter(c=>!c.after).length+'件';
   const list=scheduleElement("scheduleChangeList");list.replaceChildren();
   for(const change of result.changes){const row=document.createElement("div");row.className="schedule-change-row";
     const old=document.createElement("p"),fresh=document.createElement("p");old.textContent="変更前："+describeEditTask(change.before);fresh.textContent="変更後："+describeEditTask(change.after);row.append(old,fresh);list.append(row);}

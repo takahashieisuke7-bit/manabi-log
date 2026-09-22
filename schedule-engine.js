@@ -65,33 +65,51 @@
       const plan = plans.find(p => p.id === source.planId);
       if (!plan) continue;
       const linked = result.filter(t => t.sourceNewId === source.id).sort((a,b) => a.date.localeCompare(b.date));
-      const remaining = offsets(plan).filter(o => !linked.some(t => t.reviewOffset === o));
+      const remaining = offsets(plan).filter(o => !linked.some(t => reviewRounds(t).includes(o)));
       for (const review of linked.filter(t => !t.reviewOffset)) {
         let index = remaining.findIndex(o => next(add(source.date, o), plan, holidays) === review.date);
         if (index < 0) index = 0;
         review.reviewOffset = remaining.splice(index, 1)[0] || Math.max(1, Math.round((Date.parse(review.date) - Date.parse(source.date)) / DAY));
       }
     }
+    return mergeReviews(result);
+  }
+  const reviewRounds = t => [...new Set((t.reviewOffsets?.length ? t.reviewOffsets : [t.reviewOffset]).filter(n=>Number.isInteger(n)&&n>0))].sort((a,b)=>a-b);
+  // Only untouched automatic reviews can merge. A retained record is an identity anchor.
+  function mergeReviews(tasks) {
+    const groups=new Map(), result=[];
+    for(const task of tasks) {
+      if(task.type!=="review" || !task.sourceNewId || task.manual || task.done || task.fixed || task.recordId || !reviewRounds(task).length){result.push({...task});continue;}
+      const key=JSON.stringify([task.planId,task.sourceNewId,task.material,task.unit,task.start,task.end,task.date]);
+      const old=groups.get(key);
+      if(old){old.reviewOffsets=[...new Set([...reviewRounds(old),...reviewRounds(task)])].sort((a,b)=>a-b);old.reviewOffset=old.reviewOffsets[0];}
+      else {const entry={...task,reviewOffsets:reviewRounds(task)};groups.set(key,entry);result.push(entry);}
+    }
     return result;
   }
   function reviewsFor(source, plan, holidays, makeId, existing = []) {
-    const result = [];
-    for (const offset of offsets(plan)) {
-      const old = existing.find(t => t.reviewOffset === offset);
-      if (old?.done || old?.fixed || old?.recordId) { result.push({...old}); continue; }
-      const due = add(source.completedDate || source.date, offset);
-      const requested = old?.requestedDate || due;
-      result.push({...old, id:old?.id || makeId(), planId:plan.id, sourceNewId:source.id,
-        material:old?.manual ? old.material : source.material, unit:old?.manual ? old.unit : source.unit,
-        start:old?.manual ? old.start : source.start, end:old?.manual ? old.end : source.end,
-        date:next(requested, plan, holidays), dueDate:due, originalDate:old?.date || due, reviewOffset:offset,
-        type:"review", fixed:false, done:false, completedDate:"", manual:old?.manual || false,
-        createdAt:old?.createdAt || new Date().toISOString()});
+    const result = [], usedIds=new Set();
+    // One completed, fixed, manually edited or recorded merged task covers all its rounds.
+    const protectedTasks=existing.filter(t=>t.done||t.fixed||t.recordId||t.manual);
+    for(const old of protectedTasks){
+      const task={...old};
+      if(task.manual&&!task.done&&!task.fixed&&!task.recordId){const due=add(source.completedDate||source.date,task.reviewOffset||1);task.date=next(task.requestedDate||due,plan,holidays);task.dueDate=due;}
+      result.push(task);usedIds.add(old.id);
     }
-    // Never drop a completed or pinned review when offsets are changed.
-    result.push(...existing.filter(t => !result.some(r => r.id === t.id) && (t.done || t.fixed || t.recordId)));
-    return result;
+    for(const offset of offsets(plan)) {
+      if(protectedTasks.some(t=>reviewRounds(t).includes(offset)))continue;
+      const old=existing.find(t=>reviewRounds(t).includes(offset));
+      const due=add(source.completedDate||source.date,offset);
+      const id=old&&!usedIds.has(old.id)?old.id:makeId();usedIds.add(id);
+      result.push({...old,id,planId:plan.id,sourceNewId:source.id,material:source.material,unit:source.unit,
+        start:source.start,end:source.end,date:next(due,plan,holidays),dueDate:due,
+        originalDate:old?.date||due,reviewOffset:offset,reviewOffsets:[offset],requestedDate:"",
+        type:"review",fixed:false,done:false,completedDate:"",manual:false,
+        createdAt:old?.createdAt||new Date().toISOString()});
+    }
+    return mergeReviews(result);
   }
+
   function create(plan, holidays, makeId) {
     const fresh = allocate(plan, holidays, [{start:plan.start,end:plan.end}], plan.startDate, makeId);
     const updated = {...plan, endDate:plan.mode === "quantity" ? fresh.at(-1).date : plan.endDate};
@@ -102,7 +120,7 @@
       if (!t.fixed || t.done) return false;
       const p = plans.find(p => p.id === t.planId) || {};
       const source = tasks.find(s => s.id === t.sourceNewId);
-      return !studyDay(t.date, p, holidays) || (source && t.type === "review" && t.date < add(source.completedDate || source.date, t.reviewOffset || 1));
+      return tasks.some(r=>r.id!==t.id&&r.type==="review"&&!r.done&&r.sourceNewId&&r.sourceNewId===t.sourceNewId&&r.start===t.start&&r.end===t.end&&r.date===t.date) || !studyDay(t.date, p, holidays) || (source && t.type === "review" && t.date < add(source.completedDate || source.date, Math.max(...reviewRounds(t),1)));
     });
   }
   function reschedule(tasks, plans, holidays, today, makeId, onlyPlanId = "") {
@@ -151,6 +169,7 @@
       if (onlyPlanId || t.done || t.fixed || (t.planId && plans.some(p=>p.id===t.planId))) return t;
       return {...t,originalDate:t.originalDate || t.date,date:next(t.date < today ? today : t.date,{},holidays)};
     });
+    result=mergeReviews(result);
     const collisions = conflicts(result,plans,holidays);
     if (collisions.length) warnings.push(`固定予定${collisions.length}件が休日・復習基準日と衝突しています。日付は保持しました。詳細から編集できます。`);
     const moved = result.filter(t => {const old=tasks.find(o=>o.id===t.id);return !old || old.date!==t.date || old.start!==t.start || old.end!==t.end;}).length;
@@ -177,13 +196,17 @@
     return output;
   }
   const overlaps = (a,b) => a.start<=b.end && b.start<=a.end;
-  const changedTask = (a,b) => !a || !b || ["date","start","end","fixed","type","material","unit","done","completedDate"].some(k=>a[k]!==b[k]);
+  const changedTask = (a,b) => !a || !b || ["date","start","end","fixed","type","material","unit","done","completedDate"].some(k=>a[k]!==b[k]) || reviewRounds(a).join(',')!==reviewRounds(b).join(',');
   function difference(before,after) {
     const old=new Map(before.map(t=>[t.id,t])), fresh=new Map(after.map(t=>[t.id,t]));
     return [...new Set([...old.keys(),...fresh.keys()])].flatMap(id=>changedTask(old.get(id),fresh.get(id))?[{before:old.get(id)||null,after:fresh.get(id)||null}]:[]);
   }
   function syncSource(tasks,source,plan,holidays,makeId) {
-    const linked=tasks.filter(t=>t.sourceNewId===source.id).map(t=>t.done||t.fixed||t.recordId?t:{...t,manual:false,requestedDate:""});
+    const linked=tasks.filter(t=>t.sourceNewId===source.id).map(t=>{
+      if(t.done||t.fixed||t.recordId)return t;
+      const start=Math.max(t.start,source.start),end=Math.min(t.end,source.end);
+      return {...t,requestedDate:"",...(t.manual?{start:start<=end?start:source.start,end:start<=end?end:source.end}:{})};
+    });
     return tasks.filter(t=>t.sourceNewId!==source.id).concat(reviewsFor(source,plan,holidays,makeId,linked));
   }
   function validateRange(task) {
@@ -208,7 +231,7 @@
     let dayChanged=target.date!==original.date;
     const notes=[];
     // Pin-only edits do not move dates, ranges or dependent work.
-    if(!rangeChanged&&!dayChanged) return resultForEdit(tasks,result.map(t=>t.id===id?target:t),updatedPlans,holidays);
+    if(!rangeChanged&&!dayChanged) return resultForEdit(tasks,mergeReviews(result.map(t=>t.id===id?target:t)),updatedPlans,holidays);
     target.manual=true; target.originalDate=original.date;
     if(!studyDay(target.date,plan||{},holidays)) {
       if(options.holiday==="keep")notes.push(`${target.date}は休日・学習曜日外ですが、この予定は指定日を維持します。`);
@@ -336,5 +359,5 @@
     }
     return resultForEdit(tasks,result,updatedPlans,holidays,notes);
   }
-  return {add,next,studyDay,create,reschedule,complete,hydrate,reviewsFor,conflicts,totals,quantityUnit,rangeLabel,size,editTask,editPlan,difference};
+  return {reviewRounds,mergeReviews,add,next,studyDay,create,reschedule,complete,hydrate,reviewsFor,conflicts,totals,quantityUnit,rangeLabel,size,editTask,editPlan,difference};
 });

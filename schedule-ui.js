@@ -71,19 +71,14 @@ function renderScheduleCalendar() {
     button.setAttribute("aria-label",`${key}${off?" 休み":""} ${daily.length}件 完了${daily.filter(t=>t.done).length}件 ${formatScheduleTotals(daily)} ${daily.slice(0,2).map(t=>t.material).join("・")}`);
     const number=document.createElement("span");number.className="date-number";number.textContent=day;button.append(number);
     if(off){const mark=document.createElement("span");mark.className="date-off";mark.textContent="休";button.append(mark);}
-    const sorted=[...daily].sort((a,b)=>Number(a.done)-Number(b.done)||a.type.localeCompare(b.type));
-    for(const task of sorted.slice(0,2)){
-      const overview=document.createElement("span");overview.className="date-overview "+task.type+(task.done?" is-done":"");
-      const type=document.createElement("span"),name=document.createElement("span");type.textContent=(task.done?"✓":"○")+(task.type==="new"?"新":"復");name.textContent=task.material;name.className="date-material";overview.append(type,name);button.append(overview);
-    }
-    if(daily.length>2){const more=document.createElement("span");more.className="date-more";more.textContent="ほか"+(daily.length-2)+"件";button.append(more);}
-    if(daily.length){const done=document.createElement("span");done.className="date-done";done.textContent="✓ "+daily.filter(t=>t.done).length+"/"+daily.length;button.append(done);}
-    if(!daily.length&&!off){const empty=document.createElement("span");empty.className="date-empty";empty.textContent="—";button.append(empty);}
+    const compactCount=n=>n>9?'9+':String(n);
+    for(const type of ['new','review']){const count=daily.filter(t=>t.type===type).length;if(count){const mark=document.createElement('span');mark.className='date-overview '+type;mark.textContent=(type==='new'?'新':'復')+compactCount(count);button.append(mark);}}
+    if(daily.length){const done=document.createElement('span');done.className='date-done';done.textContent='✓'+compactCount(daily.filter(t=>t.done).length);button.append(done);}
     button.addEventListener("click",()=>{scheduleSelectedDate=key;renderSchedule();if(window.innerWidth<=900)scheduleElement("scheduleDayTitle").scrollIntoView({block:"start",behavior:"auto"});});grid.append(button);
   }
   const selectedTasks=byDate.get(scheduleSelectedDate)||[];
   scheduleElement("scheduleDayTitle").textContent=`${scheduleSelectedDate.replaceAll("-","/")}（${"日月火水木金土"[new Date(scheduleSelectedDate+"T12:00:00").getDay()]}）${scheduleSelectedDate===localDateKey()?" 今日":""}の予定`;
-  scheduleElement("scheduleSelectedLabel").textContent="選択中："+scheduleElement("scheduleDayTitle").textContent;
+  scheduleElement("scheduleSelectedLabel").textContent="選択中："+scheduleSelectedDate.replaceAll("-","/")+(scheduleSelectedDate===localDateKey()?" 今日":"");
   scheduleElement("scheduleDayHoliday").textContent=holidays.includes(scheduleSelectedDate)?"休日を解除":"休日にする";
   const totalBox=scheduleElement("scheduleDayTotals");totalBox.replaceChildren();
   const totals=ScheduleEngine.totals(selectedTasks);

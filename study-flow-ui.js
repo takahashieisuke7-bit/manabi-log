@@ -48,5 +48,6 @@ function submitStudyCompletion(action){
 document.addEventListener('DOMContentLoaded',()=>{
   scheduleElement('scheduleCompletionForm').addEventListener('submit',e=>{e.preventDefault();submitStudyCompletion('time');});
   for(const [id,action] of [['completionWithoutTime','none'],['completionKeepRecord','keep'],['completionDeleteRecord','delete']])scheduleElement(id).addEventListener('click',()=>submitStudyCompletion(action));
+  document.querySelectorAll('[data-completion-minutes]').forEach(button=>button.addEventListener('click',()=>{scheduleElement('completionMinutes').value=button.dataset.completionMinutes;scheduleElement('completionMinutes').focus();}));
   scheduleElement('completionCancel').addEventListener('click',()=>scheduleElement('scheduleCompletionDialog').close());
 });
