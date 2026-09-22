@@ -22,6 +22,7 @@ function updateTaskEditHint() {
 }
 function initializePlanEdit(plan) {
   editingPlanId=plan.id;scheduleElement("materialSettingsTitle").textContent=`${plan.material}の計画を編集`;
+  scheduleElement("planSubject").value=plan.subject||"";
   scheduleElement("planMode").value=plan.mode;
   scheduleElement("planEndDate").value=plan.endDate;
   scheduleElement("planDailyQuantity").value=plan.mode==="quantity"?plan.dailyQuantity:Math.max(1,...tasksForPlan(plan.id).filter(t=>t.type==="new"&&!t.done).map(rangeSize));
@@ -50,7 +51,7 @@ function previewPlanEdit() {
   try {
     const before=scheduleState(),enabled=scheduleElement("planReviewEnabled").checked;
     const old=planById(editingPlanId);
-    const changes={mode:scheduleElement("planMode").value,dailyQuantity:Number(scheduleElement("planDailyQuantity").value),endDate:scheduleElement("planEndDate").value,
+    const changes={subject:scheduleElement("planSubject").value.trim(),mode:scheduleElement("planMode").value,dailyQuantity:Number(scheduleElement("planDailyQuantity").value),endDate:scheduleElement("planEndDate").value,
       weekdays:[...document.querySelectorAll("input[name='planWeekday']:checked")].map(el=>Number(el.value)),reviewEnabled:enabled,
       reviewOffsets:enabled?parseOffsets(scheduleElement("planReviewOffsets").value):old.reviewOffsets};
     const result=ScheduleEngine.editPlan(before.tasks,before.plans,before.holidays,editingPlanId,changes,{fixed:scheduleElement("planFixedChoice").value},createId,localDateKey());
@@ -62,7 +63,7 @@ function describeEditTask(task) {
   return `${task.date}｜${task.material}｜${taskTypeLabel(task.type)} ${formatTaskRange(task)}｜${task.fixed?"固定":"固定なし"}${task.done?"・完了済み":""}`;
 }
 function describePlanSettings(plan) {
-  return `${plan.mode==="quantity"?`1日${plan.dailyQuantity}${ScheduleEngine.quantityUnit(plan.unit)}を優先`:"終了目標日を優先"}／終了目標 ${plan.endDate}／曜日 ${plan.weekdays.map(d=>"日月火水木金土"[d]).join("・")}／${plan.reviewEnabled?`復習 ${plan.reviewOffsets.join("・")}日後`:"復習なし"}`;
+  return `科目 ${plan.subject||"未設定"}／${plan.mode==="quantity"?`1日${plan.dailyQuantity}${ScheduleEngine.quantityUnit(plan.unit)}を優先`:"終了目標日を優先"}／終了目標 ${plan.endDate}／曜日 ${plan.weekdays.map(d=>"日月火水木金土"[d]).join("・")}／${plan.reviewEnabled?`復習 ${plan.reviewOffsets.join("・")}日後`:"復習なし"}`;
 }
 function showSchedulePreview(before,result,editorId,taskId,planId="") {
   pendingScheduleEdit={before,result,editorId,taskId,planId};

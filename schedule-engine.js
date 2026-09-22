@@ -78,7 +78,7 @@
     const result = [];
     for (const offset of offsets(plan)) {
       const old = existing.find(t => t.reviewOffset === offset);
-      if (old?.done || old?.fixed) { result.push({...old}); continue; }
+      if (old?.done || old?.fixed || old?.recordId) { result.push({...old}); continue; }
       const due = add(source.completedDate || source.date, offset);
       const requested = old?.requestedDate || due;
       result.push({...old, id:old?.id || makeId(), planId:plan.id, sourceNewId:source.id,
@@ -89,7 +89,7 @@
         createdAt:old?.createdAt || new Date().toISOString()});
     }
     // Never drop a completed or pinned review when offsets are changed.
-    result.push(...existing.filter(t => !result.some(r => r.id === t.id) && (t.done || t.fixed)));
+    result.push(...existing.filter(t => !result.some(r => r.id === t.id) && (t.done || t.fixed || t.recordId)));
     return result;
   }
   function create(plan, holidays, makeId) {
@@ -113,9 +113,9 @@
       if (onlyPlanId && plan.id !== onlyPlanId) continue;
       const group = result.filter(t => t.planId === plan.id);
       // A pinned or completed review retains its source and range.
-      const protectedSources = new Set(group.filter(t => t.type === "review" && (t.done || t.fixed)).map(t => t.sourceNewId));
-      const movable = group.filter(t => t.type === "new" && !t.done && !t.fixed && !t.manual && !protectedSources.has(t.id)).sort((a,b)=>a.start-b.start);
-      result = result.map(t => t.planId === plan.id && t.type === "new" && !t.done && !t.fixed && (t.manual || protectedSources.has(t.id))
+      const protectedSources = new Set(group.filter(t => t.type === "review" && (t.done || t.fixed || t.recordId)).map(t => t.sourceNewId));
+      const movable = group.filter(t => t.type === "new" && !t.done && !t.fixed && !t.recordId && !t.manual && !protectedSources.has(t.id)).sort((a,b)=>a.start-b.start);
+      result = result.map(t => t.planId === plan.id && t.type === "new" && !t.done && !t.fixed && !t.recordId && (t.manual || t.recordId || protectedSources.has(t.id))
         ? {...t,originalDate:t.originalDate||t.date,date:next(t.date<today?today:t.date,plan,holidays)} : t);
       if (movable.length) {
         try {
@@ -134,13 +134,13 @@
         } catch (error) { warnings.push(error.message); }
       }
       // Move manual new work only off holidays; never rebalance its edited range.
-      result = result.map(t => t.planId === plan.id && t.type === "new" && !t.done && !t.fixed && (t.manual || protectedSources.has(t.id))
+      result = result.map(t => t.planId === plan.id && t.type === "new" && !t.done && !t.fixed && !t.recordId && (t.manual || protectedSources.has(t.id))
         ? {...t, originalDate:t.originalDate || t.date, date:next(t.date < today ? today : t.date,plan,holidays)} : t);
       const newWork = result.filter(t=>t.planId===plan.id && t.type==="new");
       for (const source of newWork) {
         const existing = result.filter(t=>t.sourceNewId===source.id);
         const reviews = reviewsFor(source,plan,holidays,makeId,existing).map(t => {
-          if (!t.done && !t.fixed && source.done && t.date < today) return {...t, originalDate:t.date,date:next(today,plan,holidays)};
+          if (!t.done && !t.fixed && !t.recordId && source.done && t.date < today) return {...t, originalDate:t.date,date:next(today,plan,holidays)};
           return t;
         });
         result = result.filter(t=>t.sourceNewId!==source.id).concat(reviews);
@@ -183,7 +183,7 @@
     return [...new Set([...old.keys(),...fresh.keys()])].flatMap(id=>changedTask(old.get(id),fresh.get(id))?[{before:old.get(id)||null,after:fresh.get(id)||null}]:[]);
   }
   function syncSource(tasks,source,plan,holidays,makeId) {
-    const linked=tasks.filter(t=>t.sourceNewId===source.id).map(t=>t.done||t.fixed?t:{...t,manual:false,requestedDate:""});
+    const linked=tasks.filter(t=>t.sourceNewId===source.id).map(t=>t.done||t.fixed||t.recordId?t:{...t,manual:false,requestedDate:""});
     return tasks.filter(t=>t.sourceNewId!==source.id).concat(reviewsFor(source,plan,holidays,makeId,linked));
   }
   function validateRange(task) {
@@ -204,6 +204,7 @@
     if(!plan){target.material=String(changes.material??original.material).trim().slice(0,40);target.unit=String(changes.unit??original.unit).trim().slice(0,12);if(!target.material||!target.unit)throw new Error("教材名と単位を入力してください。");}
     validateRange(target);
     const rangeChanged=target.start!==original.start||target.end!==original.end;
+    if(rangeChanged&&target.recordId)throw new Error("残した学習記録がある範囲は変更できません。記録画面で該当記録を削除してから調整してください。");
     let dayChanged=target.date!==original.date;
     const notes=[];
     // Pin-only edits do not move dates, ranges or dependent work.
@@ -246,7 +247,7 @@
     }
     if(target.start<plan.start||target.end>plan.end)throw new Error(`教材全体の範囲（${plan.start}〜${plan.end}）内で指定してください。`);
     const linked=result.filter(t=>t.sourceNewId===id);
-    if(rangeChanged&&linked.some(t=>t.done))throw new Error("完了済みの復習があるため、この新規学習の範囲は変更できません。日付のみの変更は可能です。");
+    if(rangeChanged&&linked.some(t=>t.done||t.recordId))throw new Error("完了済みの復習があるため、この新規学習の範囲は変更できません。日付のみの変更は可能です。");
     if(rangeChanged&&linked.some(t=>t.fixed)) {
       if(options.fixed!=="release")throw new Error("この範囲には固定された復習があります。「衝突する未完了の固定を解除して調整」を選ぶか、範囲を戻してください。");
       result=result.map(t=>t.sourceNewId===id&&!t.done?{...t,fixed:false}:t);
@@ -255,7 +256,7 @@
     if(rangeChanged) {
       const others=result.filter(t=>t.planId===plan.id&&t.type==="new"&&t.id!==id);
       for(const t of others.filter(t=>overlaps(t,target))) {
-        if(t.done||result.some(r=>r.sourceNewId===t.id&&r.done))throw new Error("完了済みの学習・復習範囲と重なるため変更できません。入力範囲を見直してください。");
+        if(t.done||t.recordId||result.some(r=>r.sourceNewId===t.id&&(r.done||r.recordId)))throw new Error("完了済みの学習・復習範囲と重なるため変更できません。入力範囲を見直してください。");
         if(t.start<original.start)throw new Error("前の予定と重なっています。先に前の予定を編集してください。");
         if(t.fixed||result.some(r=>r.sourceNewId===t.id&&r.fixed)) {
           if(options.fixed!=="release")throw new Error("後続の固定予定と範囲が重なります。固定を維持して範囲を戻すか、衝突する未完了の固定を解除してください。");
@@ -263,8 +264,8 @@
           notes.push(`${t.date} ${rangeLabel(t)}に関する未完了の固定を解除します。`);
         }
       }
-      const protectedSources=new Set(result.filter(t=>t.done||t.fixed).map(t=>t.sourceNewId));
-      const movable=result.filter(t=>t.planId===plan.id&&t.type==="new"&&t.id!==id&&t.start>=original.start&&!t.done&&!t.fixed&&!protectedSources.has(t.id));
+      const protectedSources=new Set(result.filter(t=>t.done||t.fixed||t.recordId).map(t=>t.sourceNewId));
+      const movable=result.filter(t=>t.planId===plan.id&&t.type==="new"&&t.id!==id&&t.start>=original.start&&!t.done&&!t.fixed&&!t.recordId&&!protectedSources.has(t.id));
       const ids=new Set(movable.map(t=>t.id));
       const retained=result.filter(t=>t.planId===plan.id&&t.type==="new"&&t.id!==id&&!ids.has(t.id));
       const reserved=[...retained,target];
@@ -313,8 +314,8 @@
       result=result.map(t=>conflicting.has(t.id)&&!t.done?{...t,fixed:false}:t);
       if(conflicting.size)notes.push(`休日・曜日と衝突する未完了の固定${conflicting.size}件を解除して調整します。`);
     }
-    const protectedSources=new Set(result.filter(t=>t.done||t.fixed).map(t=>t.sourceNewId));
-    const movable=result.filter(t=>t.planId===id&&t.type==="new"&&!t.done&&!t.fixed&&!protectedSources.has(t.id));
+    const protectedSources=new Set(result.filter(t=>t.done||t.fixed||t.recordId).map(t=>t.sourceNewId));
+    const movable=result.filter(t=>t.planId===id&&t.type==="new"&&!t.done&&!t.fixed&&!t.recordId&&!protectedSources.has(t.id));
     const ids=new Set(movable.map(t=>t.id));
     const reserved=result.filter(t=>t.planId===id&&t.type==="new"&&!ids.has(t.id));
     const ranges=[];let begin=null;

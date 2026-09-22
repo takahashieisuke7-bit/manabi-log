@@ -270,15 +270,12 @@ function saveRecords() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
 }
 
+let recordCommitError="";
 function tryCommitRecords(nextRecords) {
-  const sanitized = sanitizeRecords(nextRecords);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
-    records = sanitized;
-    return true;
-  } catch {
-    return false;
-  }
+    const state=StudyFlow.changeRecords(flowState(),sanitizeRecords(nextRecords),createId,localDateKey());
+    saveFlowState(state);recordCommitError="";return true;
+  } catch(error) { recordCommitError=error.message;return false; }
 }
 
 function setRecordStatus(message, type = "") {
@@ -453,6 +450,7 @@ function sanitizeRecords(value) {
       minutes,
       wordCount,
       date: record.date,
+      ...(typeof record.scheduleTaskId === "string" && record.scheduleTaskId ? {scheduleTaskId:record.scheduleTaskId, material:String(record.material||""),rangeStart:Number(record.rangeStart)||1,rangeEnd:Number(record.rangeEnd)||1,rangeUnit:String(record.rangeUnit||"項目"),studyType:record.studyType==="review"?"review":"new"} : {}),
     }];
   });
 }
@@ -622,6 +620,7 @@ function sanitizeMaterialPlans(value) {
       end: range.end,
       startDate: plan.startDate,
       endDate: plan.endDate,
+      subject: typeof plan.subject === "string" ? plan.subject.trim().slice(0,30) : "",
       weekdays: sanitizeWeekdays(plan.weekdays),
       reviewOffsets: sanitizeReviewOffsets(plan.reviewOffsets),
       reviewEnabled: plan.reviewEnabled !== false,
@@ -645,6 +644,8 @@ function sanitizeMaterialTasks(value) {
     return [{
       id: String(task.id ?? createId()),
       planId: typeof task.planId === "string" ? task.planId : "",
+      recordId: typeof task.recordId === "string" ? task.recordId : "",
+      subject: typeof task.subject === "string" ? task.subject.trim().slice(0,30) : "",
       sourceNewId: typeof task.sourceNewId === "string" ? task.sourceNewId : "",
       material,
       unit,
@@ -1130,8 +1131,8 @@ function createScheduleItem(task, { compact = false } = {}) {
   checkbox.disabled=Boolean(!task.done && source && !source.done);
   checkbox.addEventListener("change", () => {
     checkbox.checked=task.done;
-    if(task.done) { commitScheduleCompletion(task, ""); return; }
-    openScheduleCompletion(task);
+    if(task.done) { openStudyCompletion(task, true); return; }
+    openStudyCompletion(task);
   });
 
   const main = document.createElement("div");
@@ -1141,6 +1142,7 @@ function createScheduleItem(task, { compact = false } = {}) {
   const range = document.createElement("span");
   range.textContent = formatTaskRange(task);
   const meta = document.createElement("small");
+  const linkedRecord=linkedStudyRecord(task);
   const labels = [
     task.date,
     task.fixed ? "固定" : "",
@@ -1154,6 +1156,9 @@ function createScheduleItem(task, { compact = false } = {}) {
   else if(task.originalDate && task.originalDate!==task.date) labels.push(`移動前 ${task.originalDate} → ${task.date}`);
   if(task.fixed && ScheduleEngine.conflicts([task,...(source?[source]:[])],materialPlans,holidays).length) labels.push("固定の衝突あり・編集で調整");
   meta.textContent=labels.join("・");
+  labels.push(task.done?"✓ 完了済み":"○ 未完了");
+  labels.push(linkedRecord?`記録 ${linkedRecord.date}・${linkedRecord.subject}・${linkedRecord.minutes}分`:task.done?"時間未記録":"");
+  meta.textContent=labels.filter(Boolean).join("・");
   main.append(title, range, meta);
 
   const kind = document.createElement("span");
@@ -1189,7 +1194,7 @@ function createScheduleItem(task, { compact = false } = {}) {
     remove.className = "danger";
     remove.textContent = "削除";
     remove.addEventListener("click", () => {
-      if (task.done || materialTasks.some(t=>t.sourceNewId===task.id && (t.done || t.fixed))) { setScheduleStatus("完了済み、または固定・完了済み復習に紐づく予定は削除できません。", "error"); return; }
+      if (task.done || task.recordId || materialTasks.some(t=>t.sourceNewId===task.id && (t.done || t.fixed || t.recordId))) { setScheduleStatus("実績・時間記録・固定された復習に紐づく予定は削除できません。", "error"); return; }
       if (!confirm("この教材予定と紐づく未完了の復習を削除しますか？")) return;
       materialTasks = materialTasks.filter((entry) => entry.id !== task.id && entry.sourceNewId !== task.id);
       saveMaterialTasks();
@@ -1197,6 +1202,7 @@ function createScheduleItem(task, { compact = false } = {}) {
     });
 
     remove.disabled=task.done;
+    if(task.done||linkedRecord){const time=document.createElement("button");time.type="button";time.textContent=linkedRecord?"時間を修正":"時間を記録";time.addEventListener("click",()=>openStudyCompletion(task));actions.append(time);}
     actions.append(edit, pin, remove);
     item.append(actions);
   }
@@ -1315,9 +1321,11 @@ function renderSchedule() {
   scheduleSummary.textContent = materialTasks.length === 0
     ? "予定を作るとここに表示されます。"
     : `教材${new Set(materialTasks.map((task) => task.material)).size}件・予定${doneCount}/${materialTasks.length}件完了`;
-  visibleTasks.forEach((task) => {
-    scheduleList.append(createScheduleItem(task));
-  });
+  for(const done of [false,true]){
+    const group=visibleTasks.filter(t=>t.done===done);if(!group.length)continue;
+    const heading=document.createElement("h4");heading.className="schedule-group-title";heading.textContent=(done?"✓ 完了済み":"○ 未完了")+" · "+group.length+"件";scheduleList.append(heading);
+    group.forEach(task=>scheduleList.append(createScheduleItem(task)));
+  }
 
   if (lastReschedule?.summary) {
     rescheduleSummary.hidden = false;
@@ -2893,15 +2901,7 @@ function renderMockResults() {
         [{ name: "総合", color: "var(--chart-1)", values: valuesFor("総合") }],
         true,
       ));
-      body.append(createMockLineChart(
-        "全科目比較",
-        events,
-        regularSubjects.map((subject) => ({
-          name: subject,
-          color: colorBySubject.get(subject),
-          values: valuesFor(subject),
-        })),
-      ));
+      body.append(createMockComparison(mockName,events,results,colorBySubject));
 
       const individualHeading = document.createElement("h3");
       individualHeading.className = "individual-chart-heading";
@@ -3151,6 +3151,7 @@ function switchTab(selectedTab) {
     panel.hidden = panel.dataset.tabPanel !== selectedTab;
   });
   if (selectedTab === "analysis") {
+    renderStudyBars();
     refreshMockChartLayout();
     requestAnimationFrame(updateChartScrollHints);
   }
@@ -3168,6 +3169,7 @@ function render() {
     item.querySelector(".record-date").textContent = record.memo
       ? `${record.date}・${record.memo}`
       : record.date;
+    if(record.scheduleTaskId){const task=materialTasks.find(t=>t.id===record.scheduleTaskId);item.querySelector(".record-date").textContent+=task?task.done?"・予定完了と連動":"・予定は未完了（実績を保持）":"・予定から作成した記録";}
     const words = Number(record.wordCount) || 0;
     item.querySelector(".record-words").textContent =
       words > 0 ? `英単語 ${words}個` : "";
@@ -3259,6 +3261,7 @@ function render() {
   renderSubjectChart();
   renderCalendar();
   renderSchedule();
+  renderStudyBars();
 }
 
 form.addEventListener("submit", (event) => {
@@ -3559,10 +3562,10 @@ recordEditForm.addEventListener("submit", (event) => {
   }
 
   const nextRecords = records.map((record) => (
-    record.id === recordId ? parsed.record : record
+    record.id === recordId ? {...original,...parsed.record} : record
   ));
   if (!tryCommitRecords(nextRecords)) {
-    setRecordEditStatus("保存できませんでした。入力内容は残しています。ブラウザの空き容量や設定を確認してください。", "error");
+    setRecordEditStatus(recordCommitError || "保存できませんでした。入力内容は残しています。", "error");
     return;
   }
 
@@ -3694,6 +3697,6 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js?v=15").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js?v=16").catch(() => {});
   });
 }

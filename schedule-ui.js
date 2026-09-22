@@ -26,7 +26,7 @@ function readMaterialDraft() {
     if(!materialNameInput.value.trim()||!range||!isDateKey(materialStartDateInput.value)||!weekdays.length)throw new Error("教材名・範囲・開始日・学習する曜日を入力してください。");
     if(mode==="deadline"&&(!isDateKey(materialEndDateInput.value)||materialEndDateInput.value<materialStartDateInput.value))throw new Error("終えたい日は開始日以降にしてください。");
     if(mode==="quantity"&&(!Number.isInteger(quantity)||quantity<1||quantity>99999))throw new Error("1日の量は1〜99999の整数で指定してください。");
-    return {ok:true,plan:{id:createId(),material:materialNameInput.value.trim(),unit:materialUnitInput.value,...range,startDate:materialStartDateInput.value,
+    return {ok:true,plan:{id:createId(),subject:scheduleElement("materialSubject").value.trim(),material:materialNameInput.value.trim(),unit:materialUnitInput.value,...range,startDate:materialStartDateInput.value,
       endDate:mode==="deadline"?materialEndDateInput.value:materialStartDateInput.value,weekdays,mode,dailyQuantity:quantity,
       reviewEnabled:enabled,reviewOffsets:enabled?parseOffsets(scheduleElement("materialReviewOffsets").value):[1,3,7,14],createdAt:new Date().toISOString()}};
   }catch(error){return {ok:false,message:error.message};}
@@ -68,20 +68,22 @@ function renderScheduleCalendar() {
     const holiday=holidays.includes(key),off=holiday||(plans.length>0&&plans.every(p=>!ScheduleEngine.studyDay(key,p,holidays)));
     const button=document.createElement("button");button.type="button";button.className=`schedule-date${off?" is-holiday":""}${key===localDateKey()?" is-today":""}`;
     button.setAttribute("aria-pressed",String(key===scheduleSelectedDate));
-    button.setAttribute("aria-label",`${key}${off?" 休み":""} ${daily.length}件 ${formatScheduleTotals(daily)}`);
+    button.setAttribute("aria-label",`${key}${off?" 休み":""} ${daily.length}件 完了${daily.filter(t=>t.done).length}件 ${formatScheduleTotals(daily)} ${daily.slice(0,2).map(t=>t.material).join("・")}`);
     const number=document.createElement("span");number.className="date-number";number.textContent=day;button.append(number);
-    const text=document.createElement("span");text.className="date-count";text.textContent=daily.length?`${daily.length}件`:off?"休":"—";button.append(text);
-    if(daily.length){const kinds=document.createElement("span");kinds.className="date-kinds";
-      for(const type of ["new","review"]){const amount=daily.filter(t=>t.type===type);if(!amount.length)continue;const label=document.createElement("span");label.className=type;
-        const units=ScheduleEngine.totals(amount)[type],shortUnit=Object.keys(units)[0]==="ページ"?"頁":Object.keys(units)[0];
-        const shortLabel=`${type==="new"?"新":"復"}${Object.values(units)[0]}${shortUnit}`;
-        label.textContent=daily.length<=3&&Object.keys(units).length===1&&shortLabel.length<=5?shortLabel:taskTypeLabel(type);kinds.append(label);}button.append(kinds);
-      if(daily.every(t=>t.done)){const done=document.createElement("span");done.className="date-done";done.textContent="完了";button.append(done);}
+    if(off){const mark=document.createElement("span");mark.className="date-off";mark.textContent="休";button.append(mark);}
+    const sorted=[...daily].sort((a,b)=>Number(a.done)-Number(b.done)||a.type.localeCompare(b.type));
+    for(const task of sorted.slice(0,2)){
+      const overview=document.createElement("span");overview.className="date-overview "+task.type+(task.done?" is-done":"");
+      const type=document.createElement("span"),name=document.createElement("span");type.textContent=(task.done?"✓":"○")+(task.type==="new"?"新":"復");name.textContent=task.material;name.className="date-material";overview.append(type,name);button.append(overview);
     }
+    if(daily.length>2){const more=document.createElement("span");more.className="date-more";more.textContent="ほか"+(daily.length-2)+"件";button.append(more);}
+    if(daily.length){const done=document.createElement("span");done.className="date-done";done.textContent="✓ "+daily.filter(t=>t.done).length+"/"+daily.length;button.append(done);}
+    if(!daily.length&&!off){const empty=document.createElement("span");empty.className="date-empty";empty.textContent="—";button.append(empty);}
     button.addEventListener("click",()=>{scheduleSelectedDate=key;renderSchedule();if(window.innerWidth<=900)scheduleElement("scheduleDayTitle").scrollIntoView({block:"start",behavior:"auto"});});grid.append(button);
   }
   const selectedTasks=byDate.get(scheduleSelectedDate)||[];
-  scheduleElement("scheduleDayTitle").textContent=`${Number(scheduleSelectedDate.slice(5,7))}月${Number(scheduleSelectedDate.slice(8))}日の予定`;
+  scheduleElement("scheduleDayTitle").textContent=`${scheduleSelectedDate.replaceAll("-","/")}（${"日月火水木金土"[new Date(scheduleSelectedDate+"T12:00:00").getDay()]}）${scheduleSelectedDate===localDateKey()?" 今日":""}の予定`;
+  scheduleElement("scheduleSelectedLabel").textContent="選択中："+scheduleElement("scheduleDayTitle").textContent;
   scheduleElement("scheduleDayHoliday").textContent=holidays.includes(scheduleSelectedDate)?"休日を解除":"休日にする";
   const totalBox=scheduleElement("scheduleDayTotals");totalBox.replaceChildren();
   const totals=ScheduleEngine.totals(selectedTasks);
@@ -93,30 +95,14 @@ function renderScheduleCalendar() {
   if(overdue.length){const p=document.createElement("p");p.textContent=`期限を過ぎた未完了 ${overdue.length}件（復習 ${overdue.filter(t=>t.type==="review").length}件）。予定は残っています。日付を選んで編集するか、未完了を再調整できます。`;attention.append(p);const show=document.createElement("button");show.type="button";show.className="secondary-button";show.textContent="最も古い未完了の日へ";show.addEventListener("click",()=>{scheduleSelectedDate=overdue.map(t=>t.date).sort()[0];scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();});attention.append(show);}
   if(collisions.length){const p=document.createElement("p");p.textContent=`固定予定の衝突 ${collisions.length}件。日付は保持しています。`;attention.append(p);for(const task of collisions){const button=document.createElement("button");button.type="button";button.className="secondary-button";button.textContent=`${task.date} ${task.material} ${taskTypeLabel(task.type)}を確認`;button.addEventListener("click",()=>openScheduleEditDialog(task));attention.append(button);}}
 }
-function openScheduleCompletion(task) {
-  completionTaskId=task.id;scheduleElement("scheduleCompletionLabel").textContent=`${task.material}｜${taskTypeLabel(task.type)} ${formatTaskRange(task)}`;
-  const input=scheduleElement("scheduleCompletedDate");input.value=localDateKey();input.max=localDateKey();
-  const source=materialTasks.find(t=>t.id===task.sourceNewId);input.min=source?.completedDate||"";
-  scheduleElement("scheduleCompletionStatus").textContent="";scheduleElement("scheduleCompletionDialog").showModal();
-}
-function commitScheduleCompletion(task,date) {
-  try {
-    if(date&&(!isDateKey(date)||date>localDateKey()))throw new Error("完了日は今日以前の日付を指定してください。");
-    materialTasks=sanitizeMaterialTasks(ScheduleEngine.complete(materialTasks,materialPlans,holidays,task.id,date,createId));saveMaterialTasks();
-    const conflicts=ScheduleEngine.conflicts(materialTasks,materialPlans,holidays);
-    setScheduleStatus(`${date?"完了を保存しました。未完了の復習を実際の完了日から調整しました。":"完了を取り消しました。"}${conflicts.length?" 固定予定との衝突があります。日付を保持したので詳細を確認してください。":""}`,"success");
-    scheduleElement("scheduleCompletionDialog").close();render();return true;
-  }catch(error){setScheduleStatus(error.message,"error");scheduleElement("scheduleCompletionStatus").textContent=error.message;render();return false;}
-}
 function openMaterialSettings(plan) { initializePlanEdit(plan); }
 document.addEventListener("DOMContentLoaded",()=>{
   materialPlanForm.addEventListener("input",updateMaterialDraft);materialPlanForm.addEventListener("change",updateMaterialDraft);
   scheduleElement("materialReviewOffsets").value=scheduleSettings.reviewOffsets.join(",");updateMaterialDraft();
   for(const [id,delta] of [["schedulePrevMonth",-1],["scheduleNextMonth",1]])scheduleElement(id).addEventListener("click",()=>{const d=new Date(`${scheduleMonth}-01T12:00:00`);d.setMonth(d.getMonth()+delta);scheduleMonth=d.toLocaleDateString("sv-SE").slice(0,7);scheduleSelectedDate=scheduleMonth+"-01";renderSchedule();});
-  scheduleElement("scheduleGoToday").addEventListener("click",()=>{scheduleSelectedDate=localDateKey();scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();});
+  scheduleElement("scheduleGoToday").addEventListener("click",()=>{scheduleMaterialFilter.value="all";scheduleSelectedDate=localDateKey();scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();scheduleElement("scheduleDayTitle").scrollIntoView({block:"start"});});
   scheduleElement("scheduleDayHoliday").addEventListener("click",()=>{const before=scheduleState();holidays=holidays.includes(scheduleSelectedDate)?holidays.filter(d=>d!==scheduleSelectedDate):[...holidays,scheduleSelectedDate];setScheduleStatus(redistributeAllPlans(localDateKey(),before),"success");render();});
   scheduleElement("scheduleCompletionClose").addEventListener("click",()=>scheduleElement("scheduleCompletionDialog").close());
-  scheduleElement("scheduleCompletionForm").addEventListener("submit",event=>{event.preventDefault();const task=materialTasks.find(t=>t.id===completionTaskId);if(task)commitScheduleCompletion(task,scheduleElement("scheduleCompletedDate").value);});
   scheduleElement("materialSettingsClose").addEventListener("click",()=>scheduleElement("materialSettingsDialog").close());
   scheduleElement("materialSettingsForm").addEventListener("submit",event=>{event.preventDefault();previewPlanEdit();});
 });

@@ -21,3 +21,8 @@
 !schedule.css
 
 !schedule-edit.js
+
+!study-flow.js
+!study-flow-ui.js
+!analysis-engine.js
+!analysis-ui.js
