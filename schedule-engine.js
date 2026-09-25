@@ -327,6 +327,8 @@
   function editPlan(tasks,plans,holidays,id,changes,options,makeId,today) {
     const original=plans.find(p=>p.id===id);if(!original)throw new Error("教材が見つかりません。");
     const plan={...original,...changes};
+    validateRange({...plan,date:plan.startDate});
+    const rangeChanged=plan.start!==original.start||plan.end!==original.end;
     if(!plan.weekdays.length)throw new Error("勉強する曜日を1つ以上選んでください。");
     if(!Number.isInteger(plan.dailyQuantity)||plan.dailyQuantity<1||plan.dailyQuantity>99999)throw new Error("1日の量は1〜99999で指定してください。");
     if(!/^\d{4}-\d{2}-\d{2}$/.test(plan.endDate)||plan.endDate<plan.startDate)throw new Error("終了目標日は開始日以降にしてください。");
@@ -337,10 +339,15 @@
       result=result.map(t=>conflicting.has(t.id)&&!t.done?{...t,fixed:false}:t);
       if(conflicting.size)notes.push(`休日・曜日と衝突する未完了の固定${conflicting.size}件を解除して調整します。`);
     }
-    const protectedSources=new Set(result.filter(t=>t.done||t.fixed||t.recordId).map(t=>t.sourceNewId));
-    const movable=result.filter(t=>t.planId===id&&t.type==="new"&&!t.done&&!t.fixed&&!t.recordId&&!protectedSources.has(t.id));
+    const protectedSources=new Set(result.filter(t=>t.done||t.fixed||t.recordId||(rangeChanged&&t.manual)).map(t=>t.sourceNewId));
+    const movable=result.filter(t=>t.planId===id&&t.type==="new"&&!t.done&&!t.fixed&&!t.recordId&&!(rangeChanged&&t.manual)&&!protectedSources.has(t.id));
     const ids=new Set(movable.map(t=>t.id));
     const reserved=result.filter(t=>t.planId===id&&t.type==="new"&&!ids.has(t.id));
+    if(rangeChanged) {
+      const outside=reserved.filter(t=>t.start<plan.start||t.end>plan.end);
+      if(outside.length)throw new Error(`完了済み・記録済み・固定・個別編集した学習（または復習に紐づく学習）の範囲は外せません。${outside.slice(0,3).map(rangeLabel).join('、')}を含む範囲にしてください。`);
+      notes.push(`教材全体を${rangeLabel(original)}から${rangeLabel(plan)}へ変更し、未完了の予定と復習を再配分します。`);
+    }
     const ranges=[];let begin=null;
     for(let n=plan.start;n<=plan.end;n++) {
       const free=!reserved.some(t=>t.start<=n&&n<=t.end);
@@ -352,6 +359,11 @@
     for(const source of result.filter(t=>t.planId===id&&t.type==="new")) {
       if(ids.has(source.id))result.push(...tasks.filter(r=>r.sourceNewId===source.id));
       result=syncSource(result,source,plan,holidays,makeId);
+    }
+    if(rangeChanged) {
+      // A range edit must not reset dates/ranges explicitly chosen for individual tasks.
+      const manual=new Map(tasks.filter(t=>t.planId===id&&t.manual).map(t=>[t.id,t]));
+      result=result.map(t=>manual.has(t.id)?{...manual.get(t.id)}:t);
     }
     if(plan.mode==="quantity"&&fresh.length) {
       const calculated=result.filter(t=>t.planId===id&&t.type==="new").map(t=>t.date).sort().at(-1);

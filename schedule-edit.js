@@ -22,6 +22,8 @@ function updateTaskEditHint() {
 }
 function initializePlanEdit(plan) {
   editingPlanId=plan.id;scheduleElement("materialSettingsTitle").textContent=`${plan.material}の計画を編集`;
+  scheduleElement("planRangeStart").value=plan.start;
+  scheduleElement("planRangeEnd").value=plan.end;
   scheduleElement("planSubject").value=plan.subject||"";
   scheduleElement("planMode").value=plan.mode;
   scheduleElement("planEndDate").value=plan.endDate;
@@ -34,6 +36,9 @@ function initializePlanEdit(plan) {
   scheduleElement("materialSettingsDialog").showModal();
 }
 function updatePlanModeHint() {
+  const plan=planById(editingPlanId);
+  const start=Number(scheduleElement("planRangeStart").value),end=Number(scheduleElement("planRangeEnd").value);
+  scheduleElement("planRangeHint").textContent=plan?`現在 ${formatTaskRange(plan)} ／ 変更後 ${Number.isInteger(start)&&Number.isInteger(end)&&start>=1&&end>=start&&end<=99999?`${end-start+1}${ScheduleEngine.quantityUnit(plan.unit)}`:"範囲を確認してください"}`:"";
   const quantity=scheduleElement("planMode").value==="quantity";
   scheduleElement("planModeHelp").textContent=quantity?"1日の量で割り振り、終了予定日と目標日を比較します。目標を超える場合は確認画面でお知らせします。":"終了目標日までの学習日数から1日の量を自動計算します。入力した量で進める場合は「1日の量を優先する」を選んでください。";
   scheduleElement("planReviewOffsets").disabled=!scheduleElement("planReviewEnabled").checked;
@@ -51,7 +56,7 @@ function previewPlanEdit() {
   try {
     const before=scheduleState(),enabled=scheduleElement("planReviewEnabled").checked;
     const old=planById(editingPlanId);
-    const changes={subject:scheduleElement("planSubject").value.trim(),mode:scheduleElement("planMode").value,dailyQuantity:Number(scheduleElement("planDailyQuantity").value),endDate:scheduleElement("planEndDate").value,
+    const changes={start:Number(scheduleElement("planRangeStart").value),end:Number(scheduleElement("planRangeEnd").value),subject:scheduleElement("planSubject").value.trim(),mode:scheduleElement("planMode").value,dailyQuantity:Number(scheduleElement("planDailyQuantity").value),endDate:scheduleElement("planEndDate").value,
       weekdays:[...document.querySelectorAll("input[name='planWeekday']:checked")].map(el=>Number(el.value)),reviewEnabled:enabled,
       reviewOffsets:enabled?parseOffsets(scheduleElement("planReviewOffsets").value):old.reviewOffsets};
     const result=ScheduleEngine.editPlan(before.tasks,before.plans,before.holidays,editingPlanId,changes,{fixed:scheduleElement("planFixedChoice").value},createId,localDateKey());
@@ -63,7 +68,7 @@ function describeEditTask(task) {
   return `${task.date}｜${task.material}｜${taskTypeLabel(task.type)} ${formatTaskRange(task)}｜${task.fixed?"固定":"固定なし"}${task.done?"・完了済み":""}`;
 }
 function describePlanSettings(plan) {
-  return `科目 ${plan.subject||"未設定"}／${plan.mode==="quantity"?`1日${plan.dailyQuantity}${ScheduleEngine.quantityUnit(plan.unit)}を優先`:"終了目標日を優先"}／終了目標 ${plan.endDate}／曜日 ${plan.weekdays.map(d=>"日月火水木金土"[d]).join("・")}／${plan.reviewEnabled?`復習 ${plan.reviewOffsets.join("・")}日後`:"復習なし"}`;
+  return `範囲 ${formatTaskRange(plan)}／科目 ${plan.subject||"未設定"}／${plan.mode==="quantity"?`1日${plan.dailyQuantity}${ScheduleEngine.quantityUnit(plan.unit)}を優先`:"終了目標日を優先"}／終了目標 ${plan.endDate}／曜日 ${plan.weekdays.map(d=>"日月火水木金土"[d]).join("・")}／${plan.reviewEnabled?`復習 ${plan.reviewOffsets.join("・")}日後`:"復習なし"}`;
 }
 function showSchedulePreview(before,result,editorId,taskId,planId="") {
   pendingScheduleEdit={before,result,editorId,taskId,planId};
@@ -78,6 +83,7 @@ function showSchedulePreview(before,result,editorId,taskId,planId="") {
   const summary=scheduleElement('scheduleChangeSummary');summary.replaceChildren();
   const add=text=>{const p=document.createElement('p');p.textContent=text;summary.append(p);};
   if(planId){const oldPlan=before.plans.find(p=>p.id===planId),newPlan=result.plans.find(p=>p.id===planId);
+    if(oldPlan.start!==newPlan.start||oldPlan.end!==newPlan.end)add('教材全体の範囲 '+formatTaskRange(oldPlan)+' → '+formatTaskRange(newPlan));
     if(oldPlan.dailyQuantity!==newPlan.dailyQuantity||oldPlan.mode!==newPlan.mode)add(newPlan.mode==='quantity'?'1日の量 '+oldPlan.dailyQuantity+' → '+newPlan.dailyQuantity+ScheduleEngine.quantityUnit(newPlan.unit):'終了目標日から1日の量を再計算します。');
     if(oldPlan.endDate!==newPlan.endDate)add('新規終了目標 '+oldPlan.endDate+' → '+newPlan.endDate);
     if(oldPlan.weekdays.join(',')!==newPlan.weekdays.join(','))add('勉強する曜日：'+newPlan.weekdays.map(d=>'日月火水木金土'[d]).join('・'));

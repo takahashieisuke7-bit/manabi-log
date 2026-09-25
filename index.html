@@ -6,14 +6,14 @@
   <meta name="theme-color" content="#1b1c23">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=18">
+  <link rel="manifest" href="manifest.webmanifest?v=19">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=18"></script>
-  <link rel="stylesheet" href="style.css?v=18">
-<link rel="stylesheet" href="schedule.css?v=18">
-  <link rel="stylesheet" href="design.css?v=18">
+  <script src="theme.js?v=19"></script>
+  <link rel="stylesheet" href="style.css?v=19">
+<link rel="stylesheet" href="schedule.css?v=19">
+  <link rel="stylesheet" href="design.css?v=19">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -766,6 +766,12 @@
     </form></dialog>
   <dialog id="materialSettingsDialog" class="profile-dialog" aria-label="教材の設定"><div class="dialog-header"><h2 id="materialSettingsTitle">教材の設定</h2><button id="materialSettingsClose" class="dialog-close" type="button" aria-label="教材の設定を閉じる">×</button></div>
     <form id="materialSettingsForm">
+      <fieldset class="duration-fields"><legend>教材全体の範囲</legend>
+        <div><label for="planRangeStart">開始範囲</label><input id="planRangeStart" type="number" min="1" max="99999" step="1" inputmode="numeric" required></div>
+        <div><label for="planRangeEnd">終了範囲</label><input id="planRangeEnd" type="number" min="1" max="99999" step="1" inputmode="numeric" required></div>
+      </fieldset>
+      <p id="planRangeHint" class="setting-note" aria-live="polite"></p>
+      <p class="setting-note">未完了の予定と復習を新しい範囲に合わせて再配分します。完了済み・記録済み・固定・個別編集した範囲は残してください。</p>
       <label for="planSubject">教材の科目</label><input id="planSubject" list="subjectOptions" maxlength="30" placeholder="例：英語">
 <label for="planMode">配分の基準</label><select id="planMode"><option value="quantity">1日の量を優先する</option><option value="deadline">終了目標日を優先して量を計算する</option></select>
       <label for="planDailyQuantity">1日に進める量</label><input id="planDailyQuantity" type="number" min="1" max="99999" required inputmode="numeric">
@@ -807,16 +813,16 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=18"></script>
-  <script src="study-flow.js?v=18"></script>
-  <script src="study-flow-ui.js?v=18"></script>
-  <script src="analysis-engine.js?v=18"></script>
-  <script src="analysis-ui.js?v=18"></script>
-  <script src="schedule-ui.js?v=18"></script>
-  <script src="schedule-edit.js?v=18"></script>
-  <script src="app.js?v=18"></script>
-  <script src="ui.js?v=18"></script>
-  <script src="design-ui.js?v=18"></script>
+  <script src="schedule-engine.js?v=19"></script>
+  <script src="study-flow.js?v=19"></script>
+  <script src="study-flow-ui.js?v=19"></script>
+  <script src="analysis-engine.js?v=19"></script>
+  <script src="analysis-ui.js?v=19"></script>
+  <script src="schedule-ui.js?v=19"></script>
+  <script src="schedule-edit.js?v=19"></script>
+  <script src="app.js?v=19"></script>
+  <script src="ui.js?v=19"></script>
+  <script src="design-ui.js?v=19"></script>
 <datalist id="subjectOptions"><option value="英語"><option value="数学"><option value="国語"><option value="物理"><option value="化学"><option value="生物"><option value="日本史"><option value="世界史"><option value="地理"><option value="情報"></datalist>
 </body>
 </html>

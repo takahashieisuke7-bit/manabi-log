@@ -1209,6 +1209,8 @@ function createScheduleItem(task, { compact = false } = {}) {
     const menu=document.createElement("details");menu.className="schedule-more";
     const summary=document.createElement("summary");summary.textContent="…";summary.setAttribute("aria-label",task.material+"の管理操作");
     const content=document.createElement("div");content.append(pin,remove);
+    const taskPlan=planById(task.planId);
+    if(taskPlan){const editPlan=document.createElement("button");editPlan.type="button";editPlan.textContent="教材全体の範囲・計画を編集";editPlan.addEventListener("click",()=>{menu.open=false;openMaterialSettings(taskPlan);});content.append(editPlan);}
     if(task.done){const undo=document.createElement("button");undo.type="button";undo.textContent="完了を取り消す";undo.addEventListener("click",()=>openStudyCompletion(task,true));content.append(undo);}
     menu.append(summary,content);actions.append(edit,menu);
     item.append(actions);
@@ -1246,10 +1248,10 @@ function renderMaterialProgress() {
     const progress = document.createElement("span");
     const all=tasksForPlan(plan.id),newEnd=all.filter(t=>t.type==="new").map(t=>t.completedDate||t.date).sort().at(-1)||plan.endDate;
     const reviewEnd=all.filter(t=>t.type==="review").map(t=>t.completedDate||t.date).sort().at(-1);
-    progress.textContent=`${doneNew} / ${total}${ScheduleEngine.quantityUnit(plan.unit)} 完了`;
+    progress.textContent=`${formatTaskRange(plan)} ／ ${doneNew} / ${total}${ScheduleEngine.quantityUnit(plan.unit)} 完了`;
     const dates=document.createElement("p"); dates.className="material-end-dates";
     dates.textContent=`新規終了 ${newEnd}　／　最終復習 ${reviewEnd||"なし"}${all.some(t=>t.type==="new"&&!t.done)?"（予定）":""}`;
-    const settings=document.createElement("button");settings.type="button";settings.className="secondary-button compact-button";settings.textContent="教材の設定";
+    const settings=document.createElement("button");settings.type="button";settings.className="secondary-button compact-button";settings.textContent="範囲・計画を編集";
     settings.addEventListener("click",()=>openMaterialSettings(plan));
     card.append(name, progress, dates, settings);
     let nextRange=plan.start;
