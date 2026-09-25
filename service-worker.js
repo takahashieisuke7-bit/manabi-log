@@ -1,18 +1,19 @@
-const CACHE_NAME = "manabi-log-v17";
+const CACHE_NAME = "manabi-log-v18";
 const APP_ASSETS = [
-  "./study-flow.js?v=17", "./study-flow-ui.js?v=17", "./analysis-engine.js?v=17", "./analysis-ui.js?v=17",
-  "./schedule-edit.js?v=17",
-  "./schedule-engine.js?v=17",
-  "./schedule-ui.js?v=17",
-  "./schedule.css?v=17",
+  "./design.css?v=18", "./design-ui.js?v=18",
+  "./study-flow.js?v=18", "./study-flow-ui.js?v=18", "./analysis-engine.js?v=18", "./analysis-ui.js?v=18",
+  "./schedule-edit.js?v=18",
+  "./schedule-engine.js?v=18",
+  "./schedule-ui.js?v=18",
+  "./schedule.css?v=18",
   "./",
   "./index.html",
-  "./style.css?v=17",
-  "./app.js?v=17",
-  "./manifest.webmanifest?v=17",
+  "./style.css?v=18",
+  "./app.js?v=18",
+  "./manifest.webmanifest?v=18",
   "./icon.svg",
-  "./theme.js?v=17",
-  "./ui.js?v=17",
+  "./theme.js?v=18",
+  "./ui.js?v=18",
 ];
 
 self.addEventListener("install", (event) => {

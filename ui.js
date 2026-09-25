@@ -9,7 +9,7 @@
   function applyTheme(theme, persist = false) {
     theme = theme === 'light' ? 'light' : 'dark';
     root.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#101113' : '#f5f5f7';
+    document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#1b1c23' : '#f6f5fa';
     themeToggle.setAttribute('aria-label', `${theme === 'dark' ? 'ライト' : 'ダーク'}テーマに切り替える`);
     themeToggle.title = themeToggle.getAttribute('aria-label');
     const choice = [...themeChoices].find(button => button.dataset.themeChoice !== theme);

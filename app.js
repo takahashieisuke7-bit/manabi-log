@@ -1382,6 +1382,7 @@ function renderSubjectGoals() {
       saveSubjectGoals();
       renderSubjectGoals();
       renderWeaknessAlerts();
+      document.dispatchEvent(new Event("manabi:render"));
     });
 
     row.append(heading, track, remove);
@@ -2541,7 +2542,14 @@ function renderBadges(totalMinutes, longestStreak, totalWordCount, studyDayCount
       ? `${badge.goal}${badge.unit} 達成！`
       : `${formatBadgeValue(Math.min(badge.value, badge.goal))} / ${badge.goal}${badge.unit}`;
 
-    item.append(icon, name, condition);
+    item.dataset.state = unlocked ? "unlocked" : "locked";
+    item.setAttribute("aria-label", `${badge.name}：${unlocked ? "獲得済み" : "未獲得"}、${condition.textContent}`);
+    const progress = document.createElement("progress");
+    progress.className = "badge-progress";
+    progress.max = badge.goal;
+    progress.value = Math.min(badge.value, badge.goal);
+    progress.setAttribute("aria-label", `${badge.name}の達成度`);
+    item.append(icon, name, condition, progress);
     badgeList.append(item);
   });
   if (visibleBadgeCount === 0) {
@@ -3141,8 +3149,8 @@ function render() {
     goalProgress.textContent = `目標まであと${formatMinutes(dailyGoal - today)}`;
     achievementRate.textContent = `${rate}%`;
     achievementMessage.textContent = today === 0
-      ? "まだ0分。今すぐ始めよう。"
-      : `残り${formatMinutes(dailyGoal - today)}。今日中に潰そう。`;
+      ? "まずはひとつ、できることから。"
+      : `あと${formatMinutes(dailyGoal - today)}。自分のペースで。`;
     progressBar.style.width = `${rate}%`;
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", String(rate));
@@ -3170,6 +3178,7 @@ function render() {
   renderCalendar();
   renderSchedule();
   renderStudyBars();
+  document.dispatchEvent(new Event("manabi:render"));
 }
 
 form.addEventListener("submit", (event) => {
@@ -3520,7 +3529,7 @@ deleteAllButton.addEventListener("click", (event) => {
 goRecordButton.addEventListener("click", () => {
   switchTab("record");
   studyDateInput.value = studyDateInput.value || localDateKey();
-  subjectInput.focus();
+  document.querySelector('[data-batch-minutes]')?.focus();
 });
 
 goScheduleButton.addEventListener("click", () => {
@@ -3586,7 +3595,7 @@ chartModeButtons.forEach((button) => {
 badgeFilterButtons.forEach((button) => {
   button.addEventListener("click", () => {
     badgeFilter = button.dataset.badgeFilter;
-    badgeFilterButtons.forEach((item) => item.classList.toggle("active", item === button));
+    badgeFilterButtons.forEach((item) => { item.classList.toggle("active", item === button); item.setAttribute("aria-pressed", String(item === button)); });
     render();
   });
 });

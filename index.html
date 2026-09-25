@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#101113">
+  <meta name="theme-color" content="#1b1c23">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=17">
+  <link rel="manifest" href="manifest.webmanifest?v=18">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=17"></script>
-  <link rel="stylesheet" href="style.css?v=17">
-<link rel="stylesheet" href="schedule.css?v=17">
+  <script src="theme.js?v=18"></script>
+  <link rel="stylesheet" href="style.css?v=18">
+<link rel="stylesheet" href="schedule.css?v=18">
+  <link rel="stylesheet" href="design.css?v=18">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -21,9 +22,30 @@
 <button id="tab-record" type="button" data-tab="record" role="tab" aria-selected="false" aria-controls="panel-record" tabindex="-1" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 3l5 5M10 14l-1 4 4-1 8-8a2 2 0 0 0-5-5Z"/></svg><span>記録</span></button>
 <button id="tab-analysis" type="button" data-tab="analysis" role="tab" aria-selected="false" aria-controls="panel-analysis" tabindex="-1" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18h17M9 16v-5m5 5V6m5 10V9"/></svg><span>分析</span></button>
 <button id="tab-badges" type="button" data-tab="badges" role="tab" aria-selected="false" aria-controls="panel-badges" tabindex="-1" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 3 4 7 4-7M5 3h4m6 0h4"/><circle cx="12" cy="16" r="6"/><path d="m12 13 1 2 2 .3-1.5 1.5.4 2.2-1.9-1-1.9 1 .4-2.2L9 15.3l2-.3Z"/></svg><span>称号</span></button></nav>
-  <main class="container"><section id="panel-home" class="screen screen-home" data-tab-panel="home" role="tabpanel" aria-labelledby="tab-home" tabindex="0"><div class="page-heading"><div><p class="eyebrow">TODAY</p><h2>今日の学び</h2><p>今日の予定を確かめて、自分のペースで。</p></div><time id="todayDate" class="date-label"></time></div><div class="home-layout"><section class="today-hero" aria-label="今日の進捗"><div class="hero-main"><div class="today-stat">      <div>
-        <span>今日</span>
-        <strong id="todayTotal">0分</strong>
+  <main class="container"><section id="panel-home" class="screen screen-home" data-tab-panel="home" role="tabpanel" aria-labelledby="tab-home" tabindex="0"><div class="page-heading"><div><p class="eyebrow">TODAY</p><h2>今日も、自分のペースで。</h2><p>小さな積み重ねが、未来の力になる。</p></div><time id="todayDate" class="date-label"></time></div><div class="home-layout"><section class="level-card card growth-card">
+      <div class="growth-heading"><span>学びを育てよう</span><span id="levelSummaryBadge" class="goal-display">Lv.1</span></div><p id="levelSummary" class="visually-hidden"></p>
+        <div class="level-heading">
+          <div>
+            <span>LEVEL</span>
+            <strong id="levelNumber">1</strong>
+          </div>
+          <div>
+            <span id="levelTitle">見習い学習者</span>
+            <small id="nextLevelText">次のレベルまで計算中...</small>
+          </div>
+        </div>
+        <div class="xp-caption"><span>XP / 学習経験</span><span id="xpPercent">0%</span></div><div class="level-track" role="progressbar" aria-label="次のレベルまでの進捗"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="levelBar" class="level-bar"></div>
+        </div>
+        <div class="ultimate-goal">
+          <span id="ultimateGoalLabel">慶應大学合格</span>
+          <strong id="fiveThousandProgress">0 / 5000時間</strong>
+        </div>
+
+    </section><section class="today-hero" aria-label="今日の進捗"><div class="hero-main"><div class="today-stat">      <div>
+        <span>今日の勉強</span>
+        <div class="today-duration"><strong id="todayTotal">0分</strong><span id="todayGoalTarget"></span></div>
         <small id="goalProgress">目標を設定してみよう</small>
       </div></div>    <div class="achievement" aria-label="今日の目標達成率">
       <div class="achievement-heading">
@@ -41,7 +63,7 @@
            aria-valuenow="0">
         <div id="progressBar" class="progress-bar"></div>
       </div>
-    </div></div>    <div class="quick-record-card">
+    </div><div id="homeSubjectGoals" class="home-subject-goals"></div><button id="editTodayGoal" class="text-button goal-edit-link" type="button">目標を設定・変更</button></div>    <div class="quick-record-card">
       <div>
         <span>学びを積み重ねよう</span>
         <strong>今日の一歩を、記録しよう。</strong>
@@ -58,7 +80,11 @@
         <span>連続記録</span>
         <strong id="currentStreak" class="streak-value">0日</strong>
         <small id="bestStreak">最長 0日</small>
-      </div></section><div class="home-agenda">    <section class="card today-material-card">
+      </div></section><section class="countdown home-secondary" aria-label="共通テストまでの残り時間">
+      <span>2027年 共通テスト初日まで</span>
+      <strong id="countdownDays">計算中...</strong><details class="countdown-detail"><summary>試験日時・残り時間</summary><span id="countdown">計算中...</span></details>
+      <small>2027年1月16日（土）9:30</small>
+    </section><div class="home-agenda">    <section class="card today-material-card">
       <div class="section-title">
         <div>
           <h2>今日の予定</h2>
@@ -83,39 +109,7 @@
       </form>
       <div id="todoList" class="todo-list"></div>
       <p id="todoEmpty" class="empty">今日のやることはまだありません。</p>
-    </section></div><aside class="home-aside">    <section class="countdown home-secondary" aria-label="共通テストまでの残り時間">
-      <span>2027年 共通テスト初日まで</span>
-      <strong id="countdown">計算中...</strong>
-      <small>2027年1月16日（土）9:30</small>
-    </section>    <section class="level-card card compact-details-card">
-      <details>
-        <summary>
-          <span>
-            <strong>レベル・積み上げ</strong>
-            <small id="levelSummary">学習の節目を確認</small>
-          </span>
-          <span id="levelSummaryBadge" class="goal-display">Lv.1</span>
-        </summary>
-        <div class="level-heading">
-          <div>
-            <span>LEVEL</span>
-            <strong id="levelNumber">1</strong>
-          </div>
-          <div>
-            <span id="levelTitle">見習い学習者</span>
-            <small id="nextLevelText">次のレベルまで計算中...</small>
-          </div>
-        </div>
-        <div class="level-track" role="progressbar" aria-label="次のレベルまでの進捗"
-             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <div id="levelBar" class="level-bar"></div>
-        </div>
-        <div class="ultimate-goal">
-          <span id="ultimateGoalLabel">慶應大学合格</span>
-          <strong id="fiveThousandProgress">0 / 5000時間</strong>
-        </div>
-      </details>
-    </section>    <section class="card mission-card compact-details-card">
+    </section></div><aside class="home-aside">            <section class="card mission-card compact-details-card">
       <details>
         <summary>
           <span>
@@ -126,23 +120,7 @@
         </summary>
         <div id="badgeMission" class="mission-box">今日狙える称号を計算します。</div>
       </details>
-    </section>    <section class="card pace-card compact-details-card">
-      <details>
-        <summary>
-          <span>
-            <strong>学習時間ロードマップ</strong>
-          <small>目標までの積み上げを確認</small>
-          </span>
-          <span id="requiredPace" class="goal-display">計算中</span>
-        </summary>
-        <div class="roadmap-track" aria-label="5000時間までの進捗">
-          <div id="roadmapBar" class="roadmap-bar"></div>
-        </div>
-        <div id="roadmapSteps" class="roadmap-steps"></div>
-        <div id="paceAdvice" class="pace-advice">学習時間の節目までのペースを表示します。</div>
-        <div id="rivalList" class="rival-list"></div>
-      </details>
-    </section></aside></div></section><section id="panel-schedule" class="screen screen-schedule" data-tab-panel="schedule" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">SCHEDULE</p><h2>学習の予定</h2><p>教材の範囲と復習を、無理のない日程に。</p></div></div><div class="schedule-layout"><div class="schedule-primary">    <section class="card schedule-overview-card">
+    </section>    </aside></div></section><section id="panel-schedule" class="screen screen-schedule" data-tab-panel="schedule" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">SCHEDULE</p><h2>学習の予定</h2><p>教材の範囲と復習を、無理のない日程に。</p></div></div><div class="schedule-layout"><div class="schedule-primary">    <section class="card schedule-overview-card">
       <div class="section-title">
         <div>
           <h2>学習カレンダー</h2>
@@ -321,7 +299,16 @@
         </form>
         <p class="setting-note">初期値は、復習が1日後・3日後・7日後・14日後、新規100項目/日、復習込み150項目/日です。</p>
       </details>
-    </section></div></div></section><section id="panel-record" class="screen screen-record" data-tab-panel="record" role="tabpanel" aria-labelledby="tab-record" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">STUDY LOG</p><h2>学習を記録</h2><p>取り組んだ時間を、次の一歩につなげよう。</p></div></div><div class="record-layout">    <section class="card record-entry">
+    </section></div></div></section><section id="panel-record" class="screen screen-record" data-tab-panel="record" role="tabpanel" aria-labelledby="tab-record" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">STUDY LOG</p><h2>学習を記録</h2><p>取り組んだ時間を、次の一歩につなげよう。</p></div></div><div class="record-layout"><div class="record-primary"><section class="card batch-entry" aria-labelledby="batchTitle">
+<div class="section-title"><div><h2 id="batchTitle">まとめて記録</h2><p class="setting-note">今日の頑張りを、科目ごとに。</p></div><span class="goal-display">分で入力</span></div>
+<form id="batchForm"><label for="batchDate">学習した日</label><input id="batchDate" type="date" required>
+<div class="batch-column-labels" aria-hidden="true"><span>科目</span><span>学習時間</span></div><div id="batchRows" class="batch-rows"></div>
+<button id="batchAddSubject" type="button" class="text-button">＋ 科目を追加</button>
+<div class="batch-word-field"><label for="batchWords">英単語 <small>英語の記録に含めます</small></label><div class="unit-input"><input id="batchWords" type="number" min="0" max="10000" step="1" inputmode="numeric" placeholder="0"><span>語</span></div></div>
+<details class="batch-options"><summary>学習内容 <span id="batchActivitySummary">その他</span></summary><label for="batchActivity">学習内容（入力した科目に共通）</label><select id="batchActivity" required></select>
+<p class="setting-note">内容・メモを科目別に残す場合は「詳しく記録」へ。</p></details>
+<div class="batch-save"><div><span>今回の合計</span><strong id="batchTotal">0分</strong></div><button type="submit">まとめて保存</button></div>
+<p id="batchStatus" class="form-status" role="status" aria-live="polite"></p></form></section><section class="card record-entry"><details id="detailedRecord"><summary>詳しく記録 <span>内容・メモ・テンプレート</span></summary>
       <div class="section-title"><h2>勉強を記録</h2><span class="goal-display">今日の積み重ね</span></div>
       <form id="studyForm">
         <label for="studyDate">日付</label>
@@ -379,7 +366,7 @@
         </details>
 
       </form>
-    </section><aside class="record-side">    <section class="card">
+    </details></section></div><aside class="record-side">    <section class="card">
       <div class="section-title">
         <h2>1日の目標</h2>
         <span id="goalDisplay" class="goal-display">未設定</span>
@@ -515,7 +502,23 @@
       <p class="calendar-note">
         紫＝学習、緑＝目標達成、水色＝休日、オレンジ＝救済
       </p>
-    </section>    <section class="card monthly-recap-card">
+    </section>    <section class="card pace-card compact-details-card">
+      <details>
+        <summary>
+          <span>
+            <strong>学習時間ロードマップ</strong>
+          <small>目標までの積み上げを確認</small>
+          </span>
+          <span id="requiredPace" class="goal-display">計算中</span>
+        </summary>
+        <div class="roadmap-track" aria-label="5000時間までの進捗">
+          <div id="roadmapBar" class="roadmap-bar"></div>
+        </div>
+        <div id="roadmapSteps" class="roadmap-steps"></div>
+        <div id="paceAdvice" class="pace-advice">学習時間の節目までのペースを表示します。</div>
+        <div id="rivalList" class="rival-list"></div>
+      </details>
+    </section><section class="card monthly-recap-card">
       <div class="section-title">
         <h2>月間の振り返り</h2>
         <span id="monthlyRecapRange" class="goal-display">今月</span>
@@ -566,17 +569,17 @@
         <h2>称号・達成バッジ</h2>
         <span id="badgeCount" class="goal-display">0 / 32</span>
       </div>
-      <div class="current-title">
+      <div class="current-title"><svg class="title-emblem" viewBox="0 0 80 80" fill="none" aria-hidden="true"><path d="M8 67 32 15l13 26 9-16 20 42Z" fill="var(--accent-soft)" stroke="currentColor" stroke-width="2"/><path d="m23 35 9-20 10 21-10-8Z" fill="currentColor"/><path d="m48 37 6-12 8 17-8-7Z" fill="currentColor"/></svg><div class="title-copy">
         <span>現在の称号</span>
-        <strong id="currentTitle">見習い学習者</strong>
+        <strong id="currentTitle">見習い学習者</strong><p id="nextTitleText"></p><div class="level-track" role="progressbar" aria-label="次の称号までの進捗" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="titleProgress"><div id="titleProgressBar" class="level-bar"></div></div></div>
       </div>
-      <div class="unlocked-titles">
+      <details class="unlocked-titles"><summary>獲得した称号コレクション</summary>
         <div>
           <span>獲得した称号一覧</span>
           <strong id="unlockedTitleCount">まだなし</strong>
         </div>
         <div id="unlockedTitleList" class="unlocked-title-list"></div>
-      </div>
+      </details>
       <p class="badge-help">続けるほど、少しずつ難しいバッジが解放されます。</p>
       <div class="badge-filters" aria-label="称号の絞り込み">
         <button type="button" class="active" data-badge-filter="all">すべて</button>
@@ -804,15 +807,16 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=17"></script>
-  <script src="study-flow.js?v=17"></script>
-  <script src="study-flow-ui.js?v=17"></script>
-  <script src="analysis-engine.js?v=17"></script>
-  <script src="analysis-ui.js?v=17"></script>
-  <script src="schedule-ui.js?v=17"></script>
-  <script src="schedule-edit.js?v=17"></script>
-  <script src="app.js?v=17"></script>
-  <script src="ui.js?v=17"></script>
+  <script src="schedule-engine.js?v=18"></script>
+  <script src="study-flow.js?v=18"></script>
+  <script src="study-flow-ui.js?v=18"></script>
+  <script src="analysis-engine.js?v=18"></script>
+  <script src="analysis-ui.js?v=18"></script>
+  <script src="schedule-ui.js?v=18"></script>
+  <script src="schedule-edit.js?v=18"></script>
+  <script src="app.js?v=18"></script>
+  <script src="ui.js?v=18"></script>
+  <script src="design-ui.js?v=18"></script>
 <datalist id="subjectOptions"><option value="英語"><option value="数学"><option value="国語"><option value="物理"><option value="化学"><option value="生物"><option value="日本史"><option value="世界史"><option value="地理"><option value="情報"></datalist>
 </body>
 </html>
