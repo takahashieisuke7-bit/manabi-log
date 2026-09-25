@@ -2684,30 +2684,11 @@ li {
 /* Semantic colors are shared by HTML, charts, inputs and dialogs. */
 :root {
   color-scheme: dark;
-  --bg: #101113; --surface: #191a1e; --surface-alt: #222328;
-  --text: #f1f1f4; --muted: #b0b1bc; --border: #34353d; --input-border: #686a77;
-  --input: #131418; --accent: #b8a6f7; --accent-soft: #2d263e;
-  --primary: #b8a6f7; --on-accent: #1c122c;
-  --success: #86d5aa; --success-soft: #1c3529;
-  --warning: #edc58b; --warning-soft: #342b1d;
-  --danger: #ffa5a9; --danger-soft: #3a2428; --info: #8acfea; --info-soft: #1d303b;
-  --chart-1: #b8a6f7; --chart-2: #78b9f4; --chart-3: #79cfaa; --chart-4: #eac27c;
-  --chart-5: #f299a3; --chart-6: #cacbd6; --chart-7: #d798d5; --chart-8: #67cfce;
-  --chart-9: #b9ce7c; --chart-10: #f7ae84;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Yu Gothic UI", sans-serif;
   color: var(--text); background: var(--bg); font-synthesis: none;
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f5f7; --surface: #ffffff; --surface-alt: #efeff3;
-  --text: #202128; --muted: #5b5d6a; --border: #d9d9e1; --input-border: #858591;
-  --input: #fff; --accent: #6242a6; --accent-soft: #eee8f8;
-  --primary: #6746ac; --on-accent: #fff;
-  --success: #226844; --success-soft: #e7f3ec; --warning: #805016; --warning-soft: #fbf0de;
-  --danger: #b43141; --danger-soft: #fbe9ec; --info: #226581; --info-soft: #e6f2f8;
-  --chart-1: #7654bc; --chart-2: #2775b7; --chart-3: #2b8059; --chart-4: #9d6a1b;
-  --chart-5: #bd4258; --chart-6: #626577; --chart-7: #a63f98; --chart-8: #177e7d;
-  --chart-9: #62782a; --chart-10: #b95228;
 }
 html { scrollbar-gutter: stable; scroll-padding-block: 28px 110px; }
 body { background: var(--bg); color: var(--text); line-height: 1.6; -webkit-tap-highlight-color: transparent; }

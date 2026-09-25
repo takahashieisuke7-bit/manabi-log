@@ -99,7 +99,7 @@ function parseBatchRecords({ date, rows, words, activity }) {
     const total = records.reduce((sum, record) => sum + record.minutes, 0);
     const info = calculateLevel(total);
     byId('xpPercent').textContent = info.level === 100 ? 'MAX' : `${Math.floor(info.progress)}%`;
-    byId('todayGoalTarget').textContent = dailyGoal ? `/ ${formatMinutes(dailyGoal)}` : '';
+    byId('todayGoalTarget').textContent = dailyGoal ? formatMinutes(dailyGoal) : '未設定';
     byId('editTodayGoal').textContent = dailyGoal ? '目標を変更' : '今日の目標を決める';
     const days = Math.max(0, Math.floor((EXAM_DATE.getTime() - Date.now()) / 86400000));
     byId('countdownDays').textContent = EXAM_DATE.getTime() <= Date.now() ? '当日' : `あと ${days}日`;
@@ -121,7 +121,26 @@ function parseBatchRecords({ date, rows, words, activity }) {
       byId('titleProgressBar').style.width = '100%'; titleTrack.setAttribute('aria-valuenow', '100');
     }
   }
+  function syncRecordSummary() {
+    const date=byId('studyDate').value;
+    byId('recordDateLabel').textContent=!date||date===localDateKey()?'今日':date;
+    byId('recordOptionalSummary').textContent=[byId('studyMemo').value?'メモあり':'',Number(byId('wordCount').value)>0?byId('wordCount').value+'語':''].filter(Boolean).join('・');
+  }
+  byId('studyForm').addEventListener('input',syncRecordSummary);
+  byId('studyForm').addEventListener('change',syncRecordSummary);
+  document.addEventListener('manabi:record-fill',syncRecordSummary);
+  // Keep validation actionable when an optional section was closed after editing.
+  document.addEventListener('invalid', event => {
+    for (let details=event.target.closest('details'); details; details=details.parentElement?.closest('details')) details.open=true;
+  }, true);
+  document.querySelectorAll('[data-analysis-view]').forEach(button=>button.addEventListener('click',()=>{
+    const mock=button.dataset.analysisView==='mock';
+    byId('studyAnalysis').hidden=mock;byId('mockAnalysis').hidden=!mock;
+    document.querySelectorAll('[data-analysis-view]').forEach(choice=>choice.setAttribute('aria-pressed',String(choice===button)));
+    if(mock)refreshMockChartLayout();else renderStudyBars();
+  }));
   function refreshDesign() {
+    syncRecordSummary();
     renderHomeGoals(); renderGrowth(); updateActivityChoices();
   }
   byId('batchDate').value = localDateKey();
@@ -154,7 +173,7 @@ function parseBatchRecords({ date, rows, words, activity }) {
     if (values.date === localDateKey() && previousToday + added > previousBest) showBestUpdate(`1日の最高記録 ${formatMinutes(previousToday + added)}`);
   });
   byId('editTodayGoal').addEventListener('click', () => {
-    switchTab('record'); byId('goalHours').focus();
+    byId('settingsDialog').showModal(); byId('goalHours').focus();
   });
   byId('addActivityOption').addEventListener('click', updateActivityChoices);
   document.querySelectorAll('[data-badge-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.classList.contains('active'))));

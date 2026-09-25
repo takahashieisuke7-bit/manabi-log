@@ -1,7 +1,15 @@
 'use strict';
+// Stable visual identity, independent of time range, ranking and registered subjects.
+function subjectChartColor(subject) {
+  const name=String(subject).trim().normalize('NFKC');
+  const known=['英語','数学','国語','物理','化学','生物','日本史','世界史','地理','情報'];
+  let index=known.indexOf(name);
+  if(index<0){let hash=2166136261;for(const char of name)hash=Math.imul(hash^char.codePointAt(0),16777619);index=(hash>>>0)%10;}
+  return `var(--chart-${index+1})`;
+}
 let studyBarsMode='day',studyBarsShift=0,studyBarsSelection='';
 const chartNode=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;};
-function studySubjectColors(){return new Map([...new Set(records.map(r=>r.subject))].sort((a,b)=>a.localeCompare(b,'ja')).map((s,i)=>[s,`var(--chart-${i%10+1})`]));}
+function studySubjectColors(){return new Map([...new Set(records.map(r=>r.subject))].sort((a,b)=>a.localeCompare(b,'ja')).map(s=>[s,subjectChartColor(s)]));}
 function renderStudyBars(){
   const host=document.getElementById('studyBars');if(!host)return;
   const count=studyBarsMode==='day'?7:studyBarsMode==='week'?4:6;

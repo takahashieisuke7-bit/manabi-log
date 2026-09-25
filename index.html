@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#1b1c23">
+  <meta name="theme-color" content="#101113">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=19">
+  <link rel="manifest" href="manifest.webmanifest?v=21">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=19"></script>
-  <link rel="stylesheet" href="style.css?v=19">
-<link rel="stylesheet" href="schedule.css?v=19">
-  <link rel="stylesheet" href="design.css?v=19">
+  <script src="theme.js?v=21"></script>
+  <link rel="stylesheet" href="style.css?v=21">
+<link rel="stylesheet" href="schedule.css?v=21">
+  <link rel="stylesheet" href="design.css?v=21">
+  <link rel="stylesheet" href="theme.css?v=21">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -22,7 +23,24 @@
 <button id="tab-record" type="button" data-tab="record" role="tab" aria-selected="false" aria-controls="panel-record" tabindex="-1" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 3l5 5M10 14l-1 4 4-1 8-8a2 2 0 0 0-5-5Z"/></svg><span>記録</span></button>
 <button id="tab-analysis" type="button" data-tab="analysis" role="tab" aria-selected="false" aria-controls="panel-analysis" tabindex="-1" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18h17M9 16v-5m5 5V6m5 10V9"/></svg><span>分析</span></button>
 <button id="tab-badges" type="button" data-tab="badges" role="tab" aria-selected="false" aria-controls="panel-badges" tabindex="-1" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 3 4 7 4-7M5 3h4m6 0h4"/><circle cx="12" cy="16" r="6"/><path d="m12 13 1 2 2 .3-1.5 1.5.4 2.2-1.9-1-1.9 1 .4-2.2L9 15.3l2-.3Z"/></svg><span>称号</span></button></nav>
-  <main class="container"><section id="panel-home" class="screen screen-home" data-tab-panel="home" role="tabpanel" aria-labelledby="tab-home" tabindex="0"><div class="page-heading"><div><p class="eyebrow">TODAY</p><h2>今日も、自分のペースで。</h2><p>小さな積み重ねが、未来の力になる。</p></div><time id="todayDate" class="date-label"></time></div><div class="home-layout"><section class="level-card card growth-card">
+  <main class="container"><section id="panel-home" class="screen screen-home" data-tab-panel="home" role="tabpanel" aria-labelledby="tab-home" tabindex="0">
+<div class="page-heading"><h2>今日の学習</h2><time id="todayDate" class="date-label"></time></div>
+<div class="home-layout">
+<section class="card today-hero" aria-label="今日の進捗">
+  <div class="today-overview"><div><span>学習時間</span><strong id="todayTotal">0分</strong></div><div><span>目標 <span id="achievementRate">未設定</span></span><strong id="todayGoalTarget"></strong></div><div><span>予定・ToDo完了</span><strong id="todayDoneCount">0 / 0</strong></div></div>
+  <div class="progress-track" role="progressbar" aria-label="今日の目標達成率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressBar" class="progress-bar"></div></div>
+  <span id="goalProgress" class="visually-hidden"></span><span id="achievementMessage" class="visually-hidden"></span>
+</section>
+<section class="card home-agenda" aria-label="今日やること">
+  <div class="section-title"><h2>今日やること</h2><button id="goScheduleButton" class="text-button" type="button">予定を見る</button></div>
+  <div class="unified-agenda"><div id="todayScheduleList" class="schedule-list compact"></div><div id="todoList" class="todo-list"></div></div>
+  <p id="todayScheduleEmpty" class="empty">今日の予定はありません。</p><p id="todoEmpty" hidden></p>
+  <span id="todayScheduleBadge" hidden></span><span id="todoBadge" hidden></span><span id="todoProgress" hidden></span>
+  <details class="todo-add"><summary>＋ ToDoを追加</summary><form id="todoForm" class="todo-form"><input id="todoInput" aria-label="今日やることを追加" maxlength="50" placeholder="例：明日の教材を準備" required><button type="submit">追加</button></form></details>
+  <button id="goRecordButton" class="secondary-button" type="button">予定以外の学習を記録</button>
+</section>
+<details class="card home-goal-details"><summary>今日の科目別目標</summary><div id="homeSubjectGoals" class="home-subject-goals"></div><button id="editTodayGoal" class="text-button" type="button">目標を設定・変更</button></details>
+<details class="home-growth-details"><summary>これまでの成長・試験まで</summary><div class="home-growth-content"><section class="level-card card growth-card">
       <div class="growth-heading"><span>学びを育てよう</span><span id="levelSummaryBadge" class="goal-display">Lv.1</span></div><p id="levelSummary" class="visually-hidden"></p>
         <div class="level-heading">
           <div>
@@ -43,33 +61,7 @@
           <strong id="fiveThousandProgress">0 / 5000時間</strong>
         </div>
 
-    </section><section class="today-hero" aria-label="今日の進捗"><div class="hero-main"><div class="today-stat">      <div>
-        <span>今日の勉強</span>
-        <div class="today-duration"><strong id="todayTotal">0分</strong><span id="todayGoalTarget"></span></div>
-        <small id="goalProgress">目標を設定してみよう</small>
-      </div></div>    <div class="achievement" aria-label="今日の目標達成率">
-      <div class="achievement-heading">
-        <div>
-          <span>今日の目標達成率</span>
-          <strong id="achievementRate">未設定</strong>
-        </div>
-        <span id="achievementMessage">目標時間を設定すると表示されます</span>
-      </div>
-      <div class="progress-track"
-           role="progressbar"
-           aria-label="今日の目標達成率"
-           aria-valuemin="0"
-           aria-valuemax="100"
-           aria-valuenow="0">
-        <div id="progressBar" class="progress-bar"></div>
-      </div>
-    </div><div id="homeSubjectGoals" class="home-subject-goals"></div><button id="editTodayGoal" class="text-button goal-edit-link" type="button">目標を設定・変更</button></div>    <div class="quick-record-card">
-      <div>
-        <span>学びを積み重ねよう</span>
-        <strong>今日の一歩を、記録しよう。</strong>
-      </div>
-      <button id="goRecordButton" type="button">勉強を記録する</button>
-    </div></section><section class="summary" aria-label="学習の積み重ね">      <div>
+    </section><section class="summary" aria-label="学習の積み重ね">      <div>
         <span>累計の学習</span>
         <strong id="allTotal">0分</strong>
       </div>      <div>
@@ -84,32 +76,7 @@
       <span>2027年 共通テスト初日まで</span>
       <strong id="countdownDays">計算中...</strong><details class="countdown-detail"><summary>試験日時・残り時間</summary><span id="countdown">計算中...</span></details>
       <small>2027年1月16日（土）9:30</small>
-    </section><div class="home-agenda">    <section class="card today-material-card">
-      <div class="section-title">
-        <div>
-          <h2>今日の予定</h2>
-          <p class="setting-note">新規と復習の予定。終わったらチェック。</p>
-        </div>
-        <span id="todayScheduleBadge" class="goal-display">0 / 0</span>
-      </div>
-      <div id="todayScheduleList" class="schedule-list compact"></div>
-      <p id="todayScheduleEmpty" class="empty">今日の教材予定はありません。</p>
-      <button id="goScheduleButton" class="secondary-button" type="button">予定を管理する</button>
-    </section>    <section class="card todo-card">
-      <div class="section-title">
-        <div>
-          <h2>自分で追加すること</h2>
-          <p id="todoProgress" class="setting-note">今日の勝ち筋を作ろう。</p>
-        </div>
-        <span id="todoBadge" class="goal-display">0 / 0</span>
-      </div>
-      <form id="todoForm" class="todo-form">
-        <input id="todoInput" aria-label="今日やることを追加" maxlength="50" placeholder="例：英単語100個、数学10問" required>
-        <button type="submit">追加</button>
-      </form>
-      <div id="todoList" class="todo-list"></div>
-      <p id="todoEmpty" class="empty">今日のやることはまだありません。</p>
-    </section></div><aside class="home-aside">            <section class="card mission-card compact-details-card">
+    </section><aside class="home-aside">            <section class="card mission-card compact-details-card">
       <details>
         <summary>
           <span>
@@ -120,29 +87,30 @@
         </summary>
         <div id="badgeMission" class="mission-box">今日狙える称号を計算します。</div>
       </details>
-    </section>    </aside></div></section><section id="panel-schedule" class="screen screen-schedule" data-tab-panel="schedule" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">SCHEDULE</p><h2>学習の予定</h2><p>教材の範囲と復習を、無理のない日程に。</p></div></div><div class="schedule-layout"><div class="schedule-primary">    <section class="card schedule-overview-card">
+    </section>    </aside></div></details>
+</div></section><section id="panel-schedule" class="screen screen-schedule" data-tab-panel="schedule" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">SCHEDULE</p><h2>学習の予定</h2><p>教材の範囲と復習を、無理のない日程に。</p></div></div><div class="schedule-layout"><div class="schedule-primary">    <section class="card schedule-overview-card">
       <div class="section-title">
         <div>
-          <h2>学習カレンダー</h2>
-          <p id="scheduleSummary" class="setting-note">予定を作るとここに表示されます。</p>
+          <h2 class="visually-hidden">学習カレンダー</h2>
+          <p id="scheduleSummary" class="setting-note" hidden>予定を作るとここに表示されます。</p>
         </div>
       </div>
-      <details class="schedule-filter"><summary>教材を絞り込む</summary><label for="scheduleMaterialFilter">表示する教材</label>
+      <div class="period-switch calendar-view-switch" aria-label="予定の表示"><button type="button" data-schedule-view="week" aria-pressed="true">週</button><button type="button" data-schedule-view="month" aria-pressed="false">月</button></div><div class="schedule-month-toolbar"><button id="schedulePrevMonth" type="button" class="secondary-button" aria-label="予定の前の月">‹</button><h3 id="scheduleMonthTitle"></h3><button id="scheduleNextMonth" type="button" class="secondary-button" aria-label="予定の次の月">›</button></div><div class="schedule-selection-toolbar"><button id="scheduleGoToday" type="button" class="secondary-button">今日に戻る</button><p id="scheduleSelectedLabel" hidden class="selected-day-label" aria-live="polite"></p></div>
+
+      <div id="scheduleMonthGrid" class="schedule-month-grid" aria-label="学習予定の月カレンダー"></div>
+
+      <div class="schedule-day-heading"><h3 id="scheduleDayTitle"></h3></div>
+
+      <div id="scheduleList" class="schedule-list"></div>
+      <p id="scheduleEmpty" class="empty">この日の予定はありません。</p>
+      <details class="schedule-maintenance"><summary>この日の量・休日・再調整</summary><div id="scheduleDayTotals" class="schedule-day-totals" aria-live="polite"></div><button id="scheduleDayHoliday" type="button" class="secondary-button compact-button">休日にする</button><div class="schedule-adjust-toolbar"><button id="rescheduleButton" class="secondary-button compact-button" type="button">未完了を再調整</button><button id="undoRescheduleButton" class="secondary-button" type="button" hidden>直前の再調整を取り消す</button></div></details><details class="schedule-filter"><summary>教材を絞り込む</summary><label for="scheduleMaterialFilter">表示する教材</label>
       <select id="scheduleMaterialFilter">
         <option value="all">すべての教材</option>
       </select>
-      </details><div class="schedule-month-toolbar"><button id="schedulePrevMonth" type="button" class="secondary-button" aria-label="予定の前の月">‹</button><h3 id="scheduleMonthTitle"></h3><button id="scheduleNextMonth" type="button" class="secondary-button" aria-label="予定の次の月">›</button></div><div class="schedule-selection-toolbar"><button id="scheduleGoToday" type="button" class="secondary-button">今日に戻る</button><p id="scheduleSelectedLabel" class="selected-day-label" aria-live="polite"></p></div>
-      <div class="schedule-legend"><span>新：新規</span><span>復：復習</span><span>✓：完了数</span><span>休：休日</span><span>9+：10件以上</span></div>
-      <div id="scheduleMonthGrid" class="schedule-month-grid" aria-label="学習予定の月カレンダー"></div>
-      <p class="setting-note">日付を選ぶと詳細を表示。復習日は新規学習の完了まで仮の日程です。</p>
-      <div class="schedule-day-heading"><h3 id="scheduleDayTitle"></h3><button id="scheduleDayHoliday" type="button" class="secondary-button compact-button">休日にする</button></div>
-      <div id="scheduleDayTotals" class="schedule-day-totals" aria-live="polite"></div>
-      <div id="scheduleList" class="schedule-list"></div>
-      <p id="scheduleEmpty" class="empty">この日の予定はありません。</p>      <div class="schedule-adjust-toolbar"><button id="rescheduleButton" class="secondary-button compact-button" type="button">未完了を再調整</button><button id="undoRescheduleButton" class="secondary-button" type="button" hidden>直前の再調整を取り消す</button></div>
-      <p id="scheduleStatus" class="form-status" role="status" aria-live="polite"></p>
+      </details><details class="calendar-help"><summary>カレンダーの凡例</summary><div class="schedule-legend"><span>件：教材予定の数</span><span>✓：すべて完了</span><span>休：学習しない日</span></div><p class="setting-note">復習日は新規学習の完了まで仮の日程です。</p></details><p id="scheduleStatus" class="form-status" role="status" aria-live="polite"></p>
       <div id="rescheduleSummary" class="reschedule-summary" hidden></div>
       <div id="scheduleAttention" class="schedule-attention" hidden></div>
-<details class="material-progress-details" open><summary>教材ごとの進捗・設定</summary><div id="materialProgressList" class="material-progress-list"></div></details>
+<details class="material-progress-details"><summary>教材ごとの進捗・設定</summary><div id="materialProgressList" class="material-progress-list"></div></details>
     </section></div><div class="schedule-tools">    <section class="card schedule-create-card">
       <details class="plan-create-details"><summary>教材スケジュールを作る<span>＋</span></summary>
       <div class="section-title">
@@ -299,20 +267,8 @@
         </form>
         <p class="setting-note">初期値は、復習が1日後・3日後・7日後・14日後、新規100項目/日、復習込み150項目/日です。</p>
       </details>
-    </section></div></div></section><section id="panel-record" class="screen screen-record" data-tab-panel="record" role="tabpanel" aria-labelledby="tab-record" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">STUDY LOG</p><h2>学習を記録</h2><p>取り組んだ時間を、次の一歩につなげよう。</p></div></div><div class="record-layout"><div class="record-primary"><section class="card batch-entry" aria-labelledby="batchTitle">
-<div class="section-title"><div><h2 id="batchTitle">まとめて記録</h2><p class="setting-note">今日の頑張りを、科目ごとに。</p></div><span class="goal-display">分で入力</span></div>
-<form id="batchForm"><label for="batchDate">学習した日</label><input id="batchDate" type="date" required>
-<div class="batch-column-labels" aria-hidden="true"><span>科目</span><span>学習時間</span></div><div id="batchRows" class="batch-rows"></div>
-<button id="batchAddSubject" type="button" class="text-button">＋ 科目を追加</button>
-<div class="batch-word-field"><label for="batchWords">英単語 <small>英語の記録に含めます</small></label><div class="unit-input"><input id="batchWords" type="number" min="0" max="10000" step="1" inputmode="numeric" placeholder="0"><span>語</span></div></div>
-<details class="batch-options"><summary>学習内容 <span id="batchActivitySummary">その他</span></summary><label for="batchActivity">学習内容（入力した科目に共通）</label><select id="batchActivity" required></select>
-<p class="setting-note">内容・メモを科目別に残す場合は「詳しく記録」へ。</p></details>
-<div class="batch-save"><div><span>今回の合計</span><strong id="batchTotal">0分</strong></div><button type="submit">まとめて保存</button></div>
-<p id="batchStatus" class="form-status" role="status" aria-live="polite"></p></form></section><section class="card record-entry"><details id="detailedRecord"><summary>詳しく記録 <span>内容・メモ・テンプレート</span></summary>
-      <div class="section-title"><h2>勉強を記録</h2><span class="goal-display">今日の積み重ね</span></div>
-      <form id="studyForm">
-        <label for="studyDate">日付</label>
-        <input id="studyDate" type="date" required>
+    </section></div></div></section><section id="panel-record" class="screen screen-record" data-tab-panel="record" role="tabpanel" aria-labelledby="tab-record" tabindex="0" hidden><div class="page-heading"><h2>学習を記録</h2></div><div class="record-layout"><div class="record-primary"><section class="card record-entry"><div id="detailedRecord"><div class="recent-records"><h3>最近の記録から再入力</h3><div id="recentRecordButtons" class="quick-buttons"></div></div><form id="studyForm">
+        <details class="date-choice" id="recordDateDetails"><summary><span id="recordDateLabel">今日</span> <span>日付を変更</span></summary><label for="studyDate">学習した日</label><input id="studyDate" type="date" required></details>
 
         <label for="subject">科目</label>
         <input id="subject" maxlength="30" placeholder="例：英語" required>
@@ -338,25 +294,19 @@
         </fieldset>
 
         <div class="duration-presets" aria-label="勉強時間の入力ショートカット"><button type="button" data-duration="15">15分</button><button type="button" data-duration="30">30分</button><button type="button" data-duration="60">1時間</button><button type="button" data-duration="90">1時間30分</button></div>
-        <label for="wordCount">覚えた英単語数（任意）</label>
+<details class="optional-field-group" id="recordOptional"><summary>メモ・英単語数（任意）<span id="recordOptionalSummary"></span></summary>        <label for="wordCount">覚えた英単語数（任意）</label>
         <input id="wordCount" type="number" min="0" max="10000"
                inputmode="numeric" placeholder="例：20">
 
         <label for="studyMemo">メモ（任意）</label>
         <input id="studyMemo" maxlength="80" placeholder="例：東進 英文法 第12講、復習まで">
 
-        <button type="submit">記録する</button>
-        <p id="recordStatus" class="form-status" role="status" aria-live="polite"></p>
-        <div class="quick-fill">
-          <details>
-            <summary>最近の記録から再入力</summary>
-            <div id="recentRecordButtons" class="quick-buttons"></div>
-          </details>
-          <details>
+</details>        <button type="submit">記録する</button><details>
             <summary>よく使うテンプレート</summary>
             <div id="templateButtons" class="quick-buttons"></div>
           </details>
-        </div>
+        <p id="recordStatus" class="form-status" role="status" aria-live="polite"></p>
+
         <details class="optional-field-group">
           <summary>内容の選択肢を追加する</summary>
           <div class="activity-option-row">
@@ -365,59 +315,17 @@
           </div>
         </details>
 
-      </form>
-    </details></section></div><aside class="record-side">    <section class="card">
-      <div class="section-title">
-        <h2>1日の目標</h2>
-        <span id="goalDisplay" class="goal-display">未設定</span>
-      </div>
-      <form id="goalForm" class="goal-form">
-        <div>
-          <label for="goalHours">時間</label>
-          <input id="goalHours" type="number" min="0" max="23"
-                 inputmode="numeric" value="1" required>
-        </div>
-        <div>
-          <label for="goalMinutes">分</label>
-          <input id="goalMinutes" type="number" min="0" max="59"
-                 inputmode="numeric" value="0" required>
-        </div>
-        <button type="submit">設定</button>
-      </form>
-    </section>    <section class="card subject-goal-card compact-details-card">
-      <details id="subjectGoalDetails">
-        <summary>
-          <span>
-            <strong>科目ごとの目標時間</strong>
-            <small>科目ごとの目安を決める</small>
-          </span>
-          <span id="subjectGoalCount" class="goal-display">0科目</span>
-        </summary>
-        <p class="setting-note">
-          今日どの科目にどれだけ時間を使うか決められます。弱点アラートにも使います。
-        </p>
-        <form id="subjectGoalForm" class="subject-goal-form">
-          <div>
-            <label for="subjectGoalName">科目</label>
-            <input id="subjectGoalName" maxlength="30" placeholder="例：数学" required>
-          </div>
-          <div>
-            <label for="subjectGoalHours">時間</label>
-            <input id="subjectGoalHours" type="number" min="0" max="23"
-                   inputmode="numeric" value="1" required>
-          </div>
-          <div>
-            <label for="subjectGoalMinutes">分</label>
-            <input id="subjectGoalMinutes" type="number" min="0" max="59"
-                   inputmode="numeric" value="0" required>
-          </div>
-          <button type="submit">追加・更新</button>
-        </form>
-        <div id="subjectGoalList" class="subject-goal-list"></div>
-        <p id="subjectGoalEmpty" class="empty">まだ科目別目標がありません。</p>
-      </details>
-    </section>    <section class="card record-history-card">
-      <details id="recordHistoryDetails" open>
+      </form></div></section><details class="batch-disclosure"><summary>複数科目をまとめて記録</summary><section class="card batch-entry" aria-labelledby="batchTitle">
+<div class="section-title"><div><h2 id="batchTitle">まとめて記録</h2><p class="setting-note">今日の頑張りを、科目ごとに。</p></div><span class="goal-display">分で入力</span></div>
+<form id="batchForm"><label for="batchDate">学習した日</label><input id="batchDate" type="date" required>
+<div class="batch-column-labels" aria-hidden="true"><span>科目</span><span>学習時間</span></div><div id="batchRows" class="batch-rows"></div>
+<button id="batchAddSubject" type="button" class="text-button">＋ 科目を追加</button>
+<details class="optional-field-group"><summary>英単語数（任意）</summary><div class="batch-word-field"><label for="batchWords">英単語 <small>英語の記録に含めます</small></label><div class="unit-input"><input id="batchWords" type="number" min="0" max="10000" step="1" inputmode="numeric" placeholder="0"><span>語</span></div></div></details>
+<details class="batch-options"><summary>学習内容 <span id="batchActivitySummary">その他</span></summary><label for="batchActivity">学習内容（入力した科目に共通）</label><select id="batchActivity" required></select>
+<p class="setting-note">内容・メモを科目別に残す場合は「詳しく記録」へ。</p></details>
+<div class="batch-save"><div><span>今回の合計</span><strong id="batchTotal">0分</strong></div><button type="submit">まとめて保存</button></div>
+<p id="batchStatus" class="form-status" role="status" aria-live="polite"></p></form></section></details></div><aside class="record-side"><section class="card record-history-card">
+      <details id="recordHistoryDetails">
         <summary>
           <span>
             <strong>勉強記録</strong>
@@ -428,7 +336,7 @@
         <p id="emptyMessage" class="empty">まだ記録がありません。</p>
         <ul id="recordList"></ul>
       </details>
-    </section></aside></div></section><section id="panel-analysis" class="screen screen-analysis" data-tab-panel="analysis" role="tabpanel" aria-labelledby="tab-analysis" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">INSIGHTS</p><h2>学びを振り返る</h2><p>時間の使い方と、積み重ねの変化を確認。</p></div></div><div class="analysis-layout"><section class="card study-bars-card" aria-labelledby="studyBarsTitle"><div class="section-title"><div><h2 id="studyBarsTitle">勉強時間の推移</h2><p id="studyBarsRange" class="setting-note"></p></div></div>
+    </section></aside></div></section><section id="panel-analysis" class="screen screen-analysis" data-tab-panel="analysis" role="tabpanel" aria-labelledby="tab-analysis" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">INSIGHTS</p><h2>学びを振り返る</h2><p>時間の使い方と、積み重ねの変化を確認。</p></div></div><div class="period-switch analysis-view-switch" aria-label="分析の種類"><button type="button" data-analysis-view="study" aria-pressed="true" aria-controls="studyAnalysis">学習時間</button><button type="button" data-analysis-view="mock" aria-pressed="false" aria-controls="mockAnalysis">模試</button></div><div id="studyAnalysis" class="analysis-layout"><section class="card study-bars-card" aria-labelledby="studyBarsTitle"><div class="section-title"><div><h2 id="studyBarsTitle">勉強時間の推移</h2><p id="studyBarsRange" class="setting-note"></p></div></div>
 <div class="period-switch" aria-label="棒グラフの集計"><button type="button" data-study-period="day" aria-pressed="true">日別</button><button type="button" data-study-period="week" aria-pressed="false">週別</button><button type="button" data-study-period="month" aria-pressed="false">月別</button></div>
 <div class="chart-nav"><button id="studyBarsPrevious" type="button">前の期間</button><button id="studyBarsToday" type="button">直近に戻る</button><button id="studyBarsNext" type="button">次の期間</button></div>
 <p id="studyBarsSummary"></p><div id="studyBars" class="study-bars" aria-label="科目別の積み上げ棒グラフ"></div><div id="studyBarsLegend" class="study-bars-legend"></div><p class="setting-note">棒を押すと、その期間の合計・科目別時間・記録を確認できます。記録がない期間は0分です。</p><div id="studyBarsDetail" class="study-bars-detail" hidden></div></section>    <section class="card weekly-review compact-details-card">
@@ -524,20 +432,20 @@
         <span id="monthlyRecapRange" class="goal-display">今月</span>
       </div>
       <div id="monthlyRecap" class="monthly-recap"></div>
-    </section>    <section class="card mock-section">
+    </section>    </div><div id="mockAnalysis" hidden><section class="card mock-section">
       <div class="section-title">
         <h2>共テ模試の結果</h2>
-        <span class="goal-display">科目別・総合</span>
+
       </div>
-      <p class="setting-note">
-        同じ模試名・第何回・受験日で科目を追加します。総合偏差値は、
-        科目名を「総合」にして手入力してください。
-      </p>
+
       <div id="mockChart" class="mock-chart"></div>
       <p id="mockEmpty" class="empty">まだ模試結果がありません。</p>
       <details class="mock-input-details">
         <summary>模試結果を入力する</summary>
-        <form id="mockForm" class="mock-form">
+        <p class="setting-note">
+        同じ模試名・第何回・受験日で科目を追加します。総合偏差値は、
+        科目名を「総合」にして手入力してください。
+      </p><form id="mockForm" class="mock-form">
           <div>
             <label for="mockName">模試名</label>
             <input id="mockName" maxlength="30" placeholder="例：河合共通テスト模試" required>
@@ -592,7 +500,57 @@
       <div id="badgeList" class="badge-list"></div>
     </section></section></main>
 
-  <dialog id="settingsDialog" class="profile-dialog settings-dialog" aria-labelledby="settingsTitle"><div class="dialog-header"><h2 id="settingsTitle">設定</h2><button id="settingsCloseButton" class="dialog-close" type="button" aria-label="設定を閉じる">×</button></div><section class="appearance-settings"><h3>画面のテーマ</h3><p class="setting-note">この端末で選んだテーマを保存します。</p><div class="theme-options" role="group" aria-label="テーマの選択"><button type="button" data-theme-choice="dark" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg>ダーク</button><button type="button" data-theme-choice="light" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>ライト</button></div><p id="themeStatus" class="form-status" role="status"></p></section>    <section class="card backup-card compact-details-card">
+  <dialog id="settingsDialog" class="profile-dialog settings-dialog" aria-labelledby="settingsTitle"><div class="dialog-header"><h2 id="settingsTitle">設定</h2><button id="settingsCloseButton" class="dialog-close" type="button" aria-label="設定を閉じる">×</button></div><section id="goalSettings" class="goal-settings"><h3>学習目標</h3><section class="card">
+      <div class="section-title">
+        <h2>1日の目標</h2>
+        <span id="goalDisplay" class="goal-display">未設定</span>
+      </div>
+      <form id="goalForm" class="goal-form">
+        <div>
+          <label for="goalHours">時間</label>
+          <input id="goalHours" type="number" min="0" max="23"
+                 inputmode="numeric" value="1" required>
+        </div>
+        <div>
+          <label for="goalMinutes">分</label>
+          <input id="goalMinutes" type="number" min="0" max="59"
+                 inputmode="numeric" value="0" required>
+        </div>
+        <button type="submit">設定</button>
+      </form>
+    </section><section class="card subject-goal-card compact-details-card">
+      <details id="subjectGoalDetails">
+        <summary>
+          <span>
+            <strong>科目ごとの目標時間</strong>
+            <small>科目ごとの目安を決める</small>
+          </span>
+          <span id="subjectGoalCount" class="goal-display">0科目</span>
+        </summary>
+        <p class="setting-note">
+          今日どの科目にどれだけ時間を使うか決められます。弱点アラートにも使います。
+        </p>
+        <form id="subjectGoalForm" class="subject-goal-form">
+          <div>
+            <label for="subjectGoalName">科目</label>
+            <input id="subjectGoalName" maxlength="30" placeholder="例：数学" required>
+          </div>
+          <div>
+            <label for="subjectGoalHours">時間</label>
+            <input id="subjectGoalHours" type="number" min="0" max="23"
+                   inputmode="numeric" value="1" required>
+          </div>
+          <div>
+            <label for="subjectGoalMinutes">分</label>
+            <input id="subjectGoalMinutes" type="number" min="0" max="59"
+                   inputmode="numeric" value="0" required>
+          </div>
+          <button type="submit">追加・更新</button>
+        </form>
+        <div id="subjectGoalList" class="subject-goal-list"></div>
+        <p id="subjectGoalEmpty" class="empty">まだ科目別目標がありません。</p>
+      </details>
+    </section></section><section class="appearance-settings"><h3>画面のテーマ</h3><p class="setting-note">この端末で選んだテーマを保存します。</p><div class="theme-options" role="group" aria-label="テーマの選択"><button type="button" data-theme-choice="dark" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg>ダーク</button><button type="button" data-theme-choice="light" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>ライト</button></div><p id="themeStatus" class="form-status" role="status"></p></section>    <section class="card backup-card compact-details-card">
       <details id="backupDetails">
         <summary>
           <span>
@@ -757,10 +715,10 @@
   <dialog id="scheduleCompletionDialog" class="profile-dialog completion-dialog" aria-labelledby="scheduleCompletionTitle">
     <div class="dialog-header"><h2 id="scheduleCompletionTitle">学習を完了・記録</h2><button id="scheduleCompletionClose" class="dialog-close" type="button" aria-label="完了を閉じる">×</button></div>
     <form id="scheduleCompletionForm" novalidate><p id="scheduleCompletionLabel" class="edit-context"></p><p id="completionRecordNote"></p>
-      <div id="completionFields"><label for="scheduleCompletedDate">実際に学習した日</label><input id="scheduleCompletedDate" type="date" required>
+      <div id="completionFields"><p id="completionSubjectDisplay" class="completion-subject"></p><details class="date-choice" id="completionDateDetails"><summary><span id="completionDateLabel">今日</span> <span>日付を変更</span></summary><label for="scheduleCompletedDate">実際に学習した日</label><input id="scheduleCompletedDate" type="date" required></details>
       <div class="time-presets" aria-label="学習時間の候補"><button type="button" data-completion-minutes="15">15分</button><button type="button" data-completion-minutes="30">30分</button><button type="button" data-completion-minutes="60">60分</button></div><label for="completionMinutes">実際に使った時間（分）</label><input id="completionMinutes" type="number" inputmode="numeric" min="1" max="1439" placeholder="例：25">
-      <label for="completionSubject">科目</label><input id="completionSubject" list="subjectOptions" maxlength="30" placeholder="科目を選択・入力"><p id="completionSubjectHint" class="setting-note"></p>
-      <p class="setting-note">学習した日に時間を計上し、新規学習の復習日も調整します。</p></div>
+      <div id="completionSubjectChoice"><label for="completionSubject">科目（初回のみ）</label><input id="completionSubject" list="subjectOptions" maxlength="30" placeholder="科目を選択・入力"><p id="completionSubjectHint" class="setting-note"></p></div>
+      </div>
       <div id="completionUndoFields" hidden><p id="completionUndoNote"></p><button id="completionKeepRecord" type="button" class="secondary-button">記録を残して取り消す</button><button id="completionDeleteRecord" type="button" class="secondary-button">記録も削除して取り消す</button></div>
       <p id="scheduleCompletionStatus" role="status"></p><div class="completion-actions"><button id="completionSave" type="submit">時間を記録して完了</button><button id="completionWithoutTime" type="button" class="secondary-button">時間を記録せず完了</button><button id="completionCancel" type="button" class="secondary-button">キャンセル</button></div>
     </form></dialog>
@@ -813,16 +771,16 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=19"></script>
-  <script src="study-flow.js?v=19"></script>
-  <script src="study-flow-ui.js?v=19"></script>
-  <script src="analysis-engine.js?v=19"></script>
-  <script src="analysis-ui.js?v=19"></script>
-  <script src="schedule-ui.js?v=19"></script>
-  <script src="schedule-edit.js?v=19"></script>
-  <script src="app.js?v=19"></script>
-  <script src="ui.js?v=19"></script>
-  <script src="design-ui.js?v=19"></script>
+  <script src="schedule-engine.js?v=21"></script>
+  <script src="study-flow.js?v=21"></script>
+  <script src="study-flow-ui.js?v=21"></script>
+  <script src="analysis-engine.js?v=21"></script>
+  <script src="analysis-ui.js?v=21"></script>
+  <script src="schedule-ui.js?v=21"></script>
+  <script src="schedule-edit.js?v=21"></script>
+  <script src="app.js?v=21"></script>
+  <script src="ui.js?v=21"></script>
+  <script src="design-ui.js?v=21"></script>
 <datalist id="subjectOptions"><option value="英語"><option value="数学"><option value="国語"><option value="物理"><option value="化学"><option value="生物"><option value="日本史"><option value="世界史"><option value="地理"><option value="情報"></datalist>
 </body>
 </html>

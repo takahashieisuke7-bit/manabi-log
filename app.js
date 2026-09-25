@@ -1089,6 +1089,7 @@ function renderTodos() {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = todo.done;
+    checkbox.setAttribute("aria-label", todo.text + "を完了");
     checkbox.addEventListener("change", () => {
       todos = todos.map((item) => (
         item.id === todo.id ? { ...item, done: checkbox.checked } : item
@@ -1114,9 +1115,19 @@ function renderTodos() {
       renderWeaknessAlerts();
     });
 
-    item.append(checkbox, text, remove);
+    const kind=document.createElement("small");kind.className="todo-kind";kind.textContent="ToDo";
+    item.append(checkbox, text, kind, remove);
     todoList.append(item);
   });
+  renderTodayOverview();
+}
+
+function renderTodayOverview() {
+  const today=localDateKey(), entries=[...materialTasks.filter(t=>t.date===today),...todos.filter(t=>t.date===today)];
+  const counter=document.getElementById('todayDoneCount');
+  if(counter)counter.textContent=`${entries.filter(t=>t.done).length} / ${entries.length}`;
+  todayScheduleEmpty.hidden=entries.length>0;
+  todoEmpty.hidden=true;
 }
 
 function createScheduleItem(task, { compact = false } = {}) {
@@ -1160,12 +1171,18 @@ function createScheduleItem(task, { compact = false } = {}) {
   labels.push(task.done?"✓ 完了済み":"○ 未完了");
   labels.push(linkedRecord?`記録 ${linkedRecord.date}・${linkedRecord.subject}・${linkedRecord.minutes}分`:task.done?"時間未記録":"");
   if(task.type==="review"&&ScheduleEngine.reviewRounds(task).length)labels.push(`復習 ${ScheduleEngine.reviewRounds(task).join("・")}日後${ScheduleEngine.reviewRounds(task).length>1?"を1回に統合":""}`);
-  meta.textContent=labels.filter(Boolean).join("・");
+  const detailText=labels.filter(Boolean).join("・");
+  meta.textContent=[task.fixed?'固定':'',task.manual?'個別調整':'',
+    source&&!source.done?'新規学習の完了待ち':'',
+    !task.done&&task.date<localDateKey()?'期限超過':'',
+    linkedRecord?`${linkedRecord.subject}・${linkedRecord.minutes}分`:task.done?'完了・時間未記録':'',
+    task.fixed&&ScheduleEngine.conflicts([task,...(source?[source]:[])],materialPlans,holidays).length?'固定の衝突あり':''].filter(Boolean).join('・');
+  meta.hidden=!meta.textContent;
   main.append(title, range, meta);
 
   const kind = document.createElement("span");
   kind.className = `schedule-kind${task.type === "review" ? " review" : ""}`;
-  kind.textContent = taskTypeLabel(task.type);
+  kind.textContent = "教材・" + taskTypeLabel(task.type);
 
   item.append(checkbox, main, kind);
 
@@ -1208,11 +1225,11 @@ function createScheduleItem(task, { compact = false } = {}) {
     if(!task.done){const finish=document.createElement("button");finish.type="button";finish.className="schedule-complete-primary";finish.textContent="完了・時間を記録";finish.disabled=checkbox.disabled;finish.addEventListener("click",()=>openStudyCompletion(task));actions.append(finish);}
     const menu=document.createElement("details");menu.className="schedule-more";
     const summary=document.createElement("summary");summary.textContent="…";summary.setAttribute("aria-label",task.material+"の管理操作");
-    const content=document.createElement("div");content.append(pin,remove);
+    const content=document.createElement("div");const context=document.createElement("p");context.className="setting-note";context.textContent=detailText;content.append(context,edit,pin,remove);
     const taskPlan=planById(task.planId);
     if(taskPlan){const editPlan=document.createElement("button");editPlan.type="button";editPlan.textContent="教材全体の範囲・計画を編集";editPlan.addEventListener("click",()=>{menu.open=false;openMaterialSettings(taskPlan);});content.append(editPlan);}
     if(task.done){const undo=document.createElement("button");undo.type="button";undo.textContent="完了を取り消す";undo.addEventListener("click",()=>openStudyCompletion(task,true));content.append(undo);}
-    menu.append(summary,content);actions.append(edit,menu);
+    menu.append(summary,content);actions.append(menu);
     item.append(actions);
   }
 
@@ -1232,6 +1249,7 @@ function renderTodaySchedule() {
   todaysTasks.forEach((task) => {
     todayScheduleList.append(createScheduleItem(task, { compact: true }));
   });
+  renderTodayOverview();
 }
 
 function renderMaterialProgress() {
@@ -1426,6 +1444,7 @@ function fillStudyForm({ subject, activity, minutes = 30, wordCount = 0, memo = 
   studyMinutesInput.value = minutes % 60;
   wordCountInput.value = wordCount || "";
   studyMemoInput.value = memo || "";
+  document.dispatchEvent(new Event("manabi:record-fill"));
   subjectInput.focus();
 }
 
@@ -1900,7 +1919,8 @@ function renderWeaknessAlerts() {
 
   const createAlertItem = ([title, message]) => {
     const item = document.createElement("div");
-    item.className = "weakness-item";
+    const informationTitles=new Set(['今日の予定を決めよう','復習は新規学習の完了待ち','今日の取り組みを進めています','今日の予定があります','1日の目標が未設定','科目別目標が未設定','今のところ大きな警告なし']);
+    item.className = 'weakness-item '+(informationTitles.has(title)?'info':'warning');
     const strong = document.createElement("strong");
     strong.textContent = title;
     const small = document.createElement("small");
@@ -1948,10 +1968,7 @@ function renderSubjectChart() {
     })
     .sort((a, b) => b.minutes - a.minutes);
   const total = items.reduce((sum, item) => sum + item.minutes, 0);
-  const colors = [
-    "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)",
-    "var(--chart-6)", "var(--chart-7)", "var(--chart-8)", "var(--chart-9)", "var(--chart-10)",
-  ];
+
 
   chartRange.textContent = chartPeriod === "day"
     ? `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日`
@@ -1976,7 +1993,7 @@ function renderSubjectChart() {
     const startDegree = (accumulated / total) * 360;
     accumulated += item.minutes;
     const endDegree = (accumulated / total) * 360;
-    return `${colors[index % colors.length]} ${startDegree}deg ${endDegree}deg`;
+    return `${subjectChartColor(item.subject)} ${startDegree}deg ${endDegree}deg`;
   });
   pieChart.style.background = `conic-gradient(${gradientParts.join(", ")})`;
   pieChart.setAttribute(
@@ -2008,7 +2025,7 @@ function renderSubjectChart() {
 
     const color = document.createElement("span");
     color.className = "legend-color";
-    color.style.background = colors[index % colors.length];
+    color.style.background = subjectChartColor(chartItem.subject);
 
     const label = document.createElement("span");
     label.className = "legend-subject";
@@ -2677,7 +2694,8 @@ function createSvgElement(tagName, attributes = {}, text = "") {
   return element;
 }
 
-const mockPageStarts=new Map();
+const mockPageStarts=new Map(), mockSubjectSelections=new Map();
+let selectedMockName="";
 function createMockLineChart(titleText, allEvents, series, featured=false, mockName='') {
   const card=chartNode('section','line-chart-card'+(featured?' featured':''));
   const key=mockName+' / '+titleText;
@@ -2691,7 +2709,8 @@ function createMockLineChart(titleText, allEvents, series, featured=false, mockN
     for(const [label,next,disabled] of [['前へ',Math.max(0,start-count),start===0],['最新',Math.max(0,allEvents.length-count),start+count>=allEvents.length],['次へ',Math.min(allEvents.length-count,start+count),start+count>=allEvents.length]]){
       const button=chartNode('button','secondary-button',label);button.type='button';button.disabled=disabled;button.setAttribute('aria-label',mockName+' '+titleText+' '+label);button.onclick=()=>{mockPageStarts.set(key,next);draw();};controls.append(button);
     }
-    card.append(controls,chartNode('p','chart-visible-range',events[0].date+' 〜 '+events.at(-1).date+'（'+(start+1)+'〜'+(start+events.length)+' / '+allEvents.length+'回）'));
+    if(allEvents.length>count)card.append(controls);
+    card.append(chartNode('p','chart-visible-range',events[0].date+' 〜 '+events.at(-1).date+'（'+(start+1)+'〜'+(start+events.length)+' / '+allEvents.length+'回）'));
     const active=series.filter(item=>events.some(e=>Number.isFinite(item.values.get(e.key))));
     if(!active.length){card.append(chartNode('p','chart-empty','この期間の偏差値は未登録です。'));return;}
     const legend=chartNode('div','line-chart-legend');
@@ -2751,7 +2770,12 @@ function renderMockResults() {
     groups.get(result.name).push(result);
   });
 
-  [...groups.entries()]
+  const examChoice=chartNode('select');examChoice.setAttribute('aria-label','表示する模試');
+  if(!groups.has(selectedMockName))selectedMockName=[...groups.keys()].sort((a,b)=>groups.get(b).map(r=>r.date).sort().at(-1).localeCompare(groups.get(a).map(r=>r.date).sort().at(-1)))[0]||'';
+  for(const name of groups.keys()){const option=chartNode('option','',name);option.value=name;examChoice.append(option);}examChoice.value=selectedMockName;
+  if(groups.size>1){const label=chartNode('label','','表示する模試');label.append(examChoice);mockChart.append(label);}
+  examChoice.addEventListener('change',()=>{selectedMockName=examChoice.value;renderMockResults();});
+  [...groups.entries()].filter(([name])=>name===selectedMockName)
     .sort((a, b) => {
       const latest = (results) => results.reduce(
         (value, result) => result.date > value ? result.date : value,
@@ -2795,13 +2819,7 @@ function renderMockResults() {
       const regularSubjects = subjects
         .filter((subject) => subject !== "総合")
         .sort((a, b) => a.localeCompare(b, "ja"));
-      const colors = [
-        "var(--chart-2)", "var(--chart-5)", "var(--chart-3)", "var(--chart-4)", "var(--chart-8)",
-        "var(--chart-7)", "var(--chart-1)", "var(--chart-9)", "var(--chart-10)", "var(--chart-6)",
-      ];
-      const colorBySubject = new Map(
-        regularSubjects.map((subject, index) => [subject, colors[index % colors.length]]),
-      );
+      const colorBySubject = new Map(subjects.map(subject=>[subject,subjectChartColor(subject)]));
       const valuesFor = (subject) => {
         const values = new Map();
         results
@@ -2812,26 +2830,18 @@ function renderMockResults() {
         return values;
       };
 
-      body.append(createMockLineChart(
-        "総合偏差値の推移",
-        events,
-        [{ name: "総合", color: "var(--chart-1)", values: valuesFor("総合") }],
-        true, mockName,
-      ));
-      body.append(createMockComparison(mockName,events,results,colorBySubject));
-
-      const individualHeading = document.createElement("h3");
-      individualHeading.className = "individual-chart-heading";
-      individualHeading.textContent = "科目別の推移";
-      body.append(individualHeading);
-      regularSubjects.forEach((subject) => {
-        body.append(createMockLineChart(
-          `${subject}の推移`,
-          events,
-          [{ name: subject, color: colorBySubject.get(subject), values: valuesFor(subject) }],
-          false, mockName,
-        ));
-      });
+      const subjectChoice=chartNode('select');subjectChoice.setAttribute('aria-label',mockName+'の推移科目');
+      const choices=[...(subjects.includes('総合')?['総合']:[]),...regularSubjects];
+      choices.forEach(subject=>{const option=chartNode('option','',subject);option.value=subject;subjectChoice.append(option);});
+      subjectChoice.value=choices.includes(mockSubjectSelections.get(mockName))?mockSubjectSelections.get(mockName):choices[0]||'';
+      const label=chartNode('label','','推移を見る科目');label.append(subjectChoice);
+      const plot=chartNode('div','mock-selected-chart');
+      const drawSubject=()=>{plot.querySelectorAll('.line-chart-card').forEach(card=>card.chartObserver?.disconnect());plot.replaceChildren();const subject=subjectChoice.value;mockSubjectSelections.set(mockName,subject);
+        if(subject)plot.append(createMockLineChart(subject+'の推移',events,[{name:subject,color:colorBySubject.get(subject)||'var(--chart-1)',values:valuesFor(subject)}],false,mockName));
+      };
+      if(choices.length){body.append(label,plot);subjectChoice.addEventListener('change',drawSubject);drawSubject();}
+      else body.append(chartNode('p','setting-note','偏差値は未登録です。旧得点は入力データから確認できます。'));
+      const compare=chartNode('details','mock-comparison-details');compare.append(chartNode('summary','','同じ回の科目を比較'),createMockComparison(mockName,events,results,colorBySubject));body.append(compare);
 
       const dataDetails = document.createElement("details");
       dataDetails.className = "mock-data-details";
@@ -3225,6 +3235,7 @@ form.addEventListener("submit", (event) => {
   form.reset();
   studyDateInput.value = localDateKey();
   activityTypeInput.value = keepActivity;
+  document.dispatchEvent(new Event("manabi:record-fill"));
   subjectInput.focus();
 });
 
@@ -3531,7 +3542,7 @@ deleteAllButton.addEventListener("click", (event) => {
 goRecordButton.addEventListener("click", () => {
   switchTab("record");
   studyDateInput.value = studyDateInput.value || localDateKey();
-  document.querySelector('[data-batch-minutes]')?.focus();
+  subjectInput.focus();
 });
 
 goScheduleButton.addEventListener("click", () => {

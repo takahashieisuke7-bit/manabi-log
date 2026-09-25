@@ -1,0 +1,196 @@
+/* Color roles shared by every screen. Geometry stays in design.css. */
+:root {
+  color-scheme: dark;
+  --background: #101113;
+  --surface: #202126;
+  --surface-secondary: #2c2e34;
+  --surface-hover: #383b44;
+  --surface-pressed: #434752;
+  --input: #15161a;
+  --text-primary: #e1e3e8;
+  --text-heading: #f8f9fc;
+  --text-secondary: #b5b8c3;
+  --border: #4c505c;
+  --control-border: #8c909f;
+  --primary: #c4adff;
+  --primary-hover: #d4c3ff;
+  --primary-pressed: #b89aef;
+  --on-accent: #231535;
+  --accent: #cab4ff;
+  --accent-soft: #352b48;
+  --focus-ring: #ddcdff;
+  --success: #a0d8b5;
+  --success-soft: #1e352a;
+  --warning: #efc888;
+  --warning-soft: #392e1b;
+  --danger: #ffa9b3;
+  --danger-soft: #3e252c;
+  --info: #a2c9ef;
+  --info-soft: #233243;
+  --chart-1: #c4adff;
+  --chart-2: #91bdf5;
+  --chart-3: #83d0ab;
+  --chart-4: #e9c37d;
+  --chart-5: #efa3b0;
+  --chart-6: #c5c8d5;
+  --chart-7: #dba2d5;
+  --chart-8: #79cecf;
+  --chart-9: #bccc84;
+  --chart-10: #ecaf88;
+  --bg: var(--background);
+  --surface-alt: var(--surface-secondary);
+  --text: var(--text-primary);
+  --muted: var(--text-secondary);
+  --input-border: var(--control-border);
+  /* Compatibility aliases make old gradient consumers flat, with one source of color. */
+  --primary-top: var(--primary);
+  --primary-bottom: var(--primary);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f1f2f4;
+  --surface: #ffffff;
+  --surface-secondary: #e7e9ee;
+  --surface-hover: #dce0e8;
+  --surface-pressed: #cfd4de;
+  --input: #f7f8fa;
+  --text-primary: #343740;
+  --text-heading: #17191f;
+  --text-secondary: #585e6a;
+  --border: #c5c8d0;
+  --control-border: #747987;
+  --primary: #6745a6;
+  --primary-hover: #56368e;
+  --primary-pressed: #472d78;
+  --on-accent: #ffffff;
+  --accent: #62409b;
+  --accent-soft: #eee8f8;
+  --focus-ring: #63429e;
+  --success: #226844;
+  --success-soft: #e4f2e9;
+  --warning: #805016;
+  --warning-soft: #fff0d8;
+  --danger: #a92b3c;
+  --danger-soft: #fde8ed;
+  --info: #235c83;
+  --info-soft: #e8f0f8;
+  --chart-1: #7250b5;
+  --chart-2: #246fa9;
+  --chart-3: #267448;
+  --chart-4: #8b5c18;
+  --chart-5: #b33853;
+  --chart-6: #5c6173;
+  --chart-7: #923a8b;
+  --chart-8: #176f71;
+  --chart-9: #5b6d22;
+  --chart-10: #a74920;
+}
+
+/* Controls choose a role; one renderer owns the foreground/background pair.
+   !important here intentionally isolates color from legacy page selectors. */
+button {
+  --control-bg: var(--surface-secondary);
+  --control-fg: var(--text-primary);
+  --control-edge: var(--control-border);
+  --control-hover: var(--surface-hover);
+  --control-pressed: var(--surface-pressed);
+  background: var(--control-bg) !important;
+  color: var(--control-fg) !important;
+  border: 1px solid var(--control-edge) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+button:is([type="submit"], .schedule-complete-primary, .add-plan-button, .backup-primary, #scheduleChangeSave) {
+  --control-bg: var(--primary);
+  --control-fg: var(--on-accent);
+  --control-edge: var(--primary);
+  --control-hover: var(--primary-hover);
+  --control-pressed: var(--primary-pressed);
+}
+button:is(.text-button, .icon-button, .dialog-close, .batch-remove, .profile-button, .legend-item, .study-bar-button),
+.app-tabs button {
+  --control-bg: transparent;
+  --control-edge: transparent;
+}
+button.text-button { --control-fg: var(--accent); }
+.app-tabs button { --control-fg: var(--text-secondary); --control-pressed: var(--surface-hover); }
+button:is(.danger, .delete-button, .mock-delete, .delete-mock-series, .subject-goal-delete, .todo-delete, #deleteAll, #completionDeleteRecord),
+.holiday-chip button {
+  --control-bg: var(--danger-soft);
+  --control-fg: var(--danger);
+  --control-edge: var(--danger);
+  --control-hover: var(--danger-soft);
+  --control-pressed: var(--surface-pressed);
+}
+button:is([aria-pressed="true"], [aria-selected="true"], .active) {
+  --control-bg: var(--accent-soft);
+  --control-fg: var(--accent);
+  --control-edge: var(--accent);
+  --control-hover: var(--accent-soft);
+  --control-pressed: var(--accent-soft);
+  font-weight: 800;
+  box-shadow: inset 0 -2px 0 var(--accent) !important;
+}
+button:not(:disabled):hover { background: var(--control-hover) !important; }
+button:not(:disabled):active { background: var(--control-pressed) !important; }
+button:disabled {
+  --control-bg: var(--surface-secondary) !important;
+  --control-fg: var(--text-secondary) !important;
+  --control-edge: var(--control-border) !important;
+  background: var(--control-bg) !important;
+  color: var(--control-fg) !important;
+  border-color: var(--control-edge) !important;
+  border-style: dashed !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+}
+:is(button, input, select, textarea, summary, a, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus-ring) !important;
+  outline-offset: 3px;
+}
+input:not([type="checkbox"]):not([type="file"]), select, textarea {
+  background: var(--input); color: var(--text-primary); border-color: var(--control-border);
+}
+input::placeholder, textarea::placeholder { color: var(--text-secondary); opacity: 1; }
+input:disabled, select:disabled { background: var(--surface-secondary); color: var(--text-secondary); opacity: 1; border-style: dashed; }
+input[type="checkbox"]:disabled { opacity: 1; }
+input[type="checkbox"] { accent-color: var(--primary); }
+.schedule-check:checked, .todo-item input:checked { accent-color: var(--success); }
+h1, h2, h3, h4, .today-overview strong, .summary strong { color: var(--text-heading); }
+.setting-note, .date-label, .chart-range, .chart-visible-range { color: var(--text-secondary); }
+.growth-card.card, .current-title { background: var(--surface); border-color: var(--border); }
+.profile-button > span { color: var(--accent); background: var(--accent-soft); }
+.app-tabs button.active svg { filter: none; stroke-width: 2.2; }
+.schedule-kind, .schedule-kind.new { background: var(--surface-secondary); color: var(--text-secondary); }
+.schedule-kind.review { background: var(--info-soft); color: var(--info); }
+.schedule-item.done .schedule-kind { background: var(--success-soft); color: var(--success); }
+.todo-item.done { border-left: 3px solid var(--success); }
+.progress-bar, .level-bar, .roadmap-bar, .subject-goal-bar { background: var(--primary); }
+.progress-bar.completed, .subject-goal-bar.completed { background: var(--success); }
+.badge.unlocked { border-color: var(--success); background: var(--success-soft); }
+.badge small, .badge.unlocked small { color: var(--text-secondary); }
+.schedule-date.is-today .date-number { background: transparent; color: var(--accent); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.schedule-date.is-holiday .date-number, .date-off { color: var(--text-secondary); }
+.schedule-date[aria-pressed="true"] .date-number { color: var(--accent); }
+.date-count, .date-done { color: inherit; }
+.chart-axis-label, .chart-x-label { fill: var(--text-secondary); }
+.chart-value-label { fill: var(--text-primary); }
+.pie-center { background: var(--surface); }
+.schedule-more > summary { border-color: var(--control-border); }
+.study-bar-stack { outline: 1px solid var(--border); }
+.study-bar-segment + .study-bar-segment { border-top: 1px solid var(--surface); }
+.form-status.error, #scheduleCompletionStatus, #scheduleChangeStatus { color: var(--danger); }
+.form-status.error:not(:empty)::before, #scheduleCompletionStatus:not(:empty)::before, #scheduleChangeStatus:not(:empty)::before { content: "! "; font-weight: 800; }
+.form-status.success, .backup-status.success { color: var(--success); }
+.form-status.success:not(:empty)::before { content: "✓ "; }
+.schedule-load-warning, .schedule-attention { color: var(--warning); background: var(--warning-soft); border-color: var(--warning); }
+.schedule-load-warning::before { content: "⚠ "; }
+#scheduleChangeNotes p { color: var(--text-primary); background: var(--surface-secondary); border-left: 3px solid var(--info); }
+.weakness-item.info { background: var(--info-soft); border-color: var(--info); }
+.weakness-item.info strong { color: var(--text-heading); }
+.weakness-item.info small { color: var(--text-primary); }
+.weakness-item.warning { background: var(--warning-soft); border-color: var(--warning); }
+.weakness-item.warning strong, .weakness-item.warning small { color: var(--warning); }
+.weakness-item.warning strong::before { content: "注意 · "; }

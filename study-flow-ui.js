@@ -16,12 +16,17 @@ function openStudyCompletion(task,undo=false){
   scheduleElement('scheduleCompletionLabel').textContent=`${task.material}／${taskTypeLabel(task.type)}／${formatTaskRange(task)}`;
   scheduleElement('completionFields').hidden=undo;
   scheduleElement('completionUndoFields').hidden=!undo;
-  scheduleElement('completionRecordNote').textContent=record?`記録済み：${record.date}・${record.subject}・${record.minutes}分。${undo?'': '同じ記録を更新します。'}`:task.done?'完了済み・時間の記録はありません。':'実際に使った時間を入力してください。';
+  scheduleElement('completionRecordNote').textContent=record?`記録済み ${record.minutes}分${undo?'':'（同じ記録を更新）'}`:task.done?'完了済み・時間未記録':'';
   const date=scheduleElement('scheduleCompletedDate');date.value=record?.date||(task.done?task.completedDate:localDateKey());date.max=localDateKey();
   date.min=materialTasks.find(t=>t.id===task.sourceNewId)?.completedDate||'';
+  scheduleElement('completionDateDetails').open=false;
+  scheduleElement('completionDateLabel').textContent=date.value===localDateKey()?'今日':date.value;
   scheduleElement('completionMinutes').value=record?.minutes||'';
+  syncCompletionPresets();
   scheduleElement('completionSubject').value=subject||record?.subject||'';
   scheduleElement('completionSubject').disabled=Boolean(subject);
+  scheduleElement('completionSubjectChoice').hidden=Boolean(subject||record?.subject);
+  scheduleElement('completionSubjectDisplay').textContent=subject||record?.subject||'科目未設定';
   scheduleElement('completionSubjectHint').hidden=Boolean(subject);
   scheduleElement('completionSubjectHint').textContent=subject?'教材に設定された科目を使用します。教材の設定から変更できます。':'科目を選ぶと、この教材の次回の記録にも使います。';
   scheduleElement('completionWithoutTime').hidden=Boolean(record)||undo;
@@ -45,9 +50,14 @@ function submitStudyCompletion(action){
   }catch(error){scheduleElement('scheduleCompletionStatus').textContent=error.message;}
   finally{completionSaving=false;}
 }
+function syncCompletionPresets(){
+  document.querySelectorAll('[data-completion-minutes]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.completionMinutes)===Number(scheduleElement('completionMinutes').value))));
+}
 document.addEventListener('DOMContentLoaded',()=>{
   scheduleElement('scheduleCompletionForm').addEventListener('submit',e=>{e.preventDefault();submitStudyCompletion('time');});
   for(const [id,action] of [['completionWithoutTime','none'],['completionKeepRecord','keep'],['completionDeleteRecord','delete']])scheduleElement(id).addEventListener('click',()=>submitStudyCompletion(action));
-  document.querySelectorAll('[data-completion-minutes]').forEach(button=>button.addEventListener('click',()=>{scheduleElement('completionMinutes').value=button.dataset.completionMinutes;scheduleElement('completionMinutes').focus();}));
+  document.querySelectorAll('[data-completion-minutes]').forEach(button=>button.addEventListener('click',()=>{scheduleElement('completionMinutes').value=button.dataset.completionMinutes;syncCompletionPresets();}));
+  scheduleElement('completionMinutes').addEventListener('input',syncCompletionPresets);
+  scheduleElement('scheduleCompletedDate').addEventListener('change',()=>{const date=scheduleElement('scheduleCompletedDate');scheduleElement('completionDateLabel').textContent=date.value===localDateKey()?'今日':date.value;});
   scheduleElement('completionCancel').addEventListener('click',()=>scheduleElement('scheduleCompletionDialog').close());
 });

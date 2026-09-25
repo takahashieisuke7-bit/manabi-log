@@ -1,6 +1,7 @@
 "use strict";
 let scheduleSelectedDate = new Date().toLocaleDateString("sv-SE");
 let scheduleMonth = scheduleSelectedDate.slice(0,7);
+let scheduleView = "week";
 let completionTaskId = "", editingPlanId = "";
 const scheduleElement = id => document.getElementById(id);
 function scheduleState() {return {tasks:structuredClone(materialTasks),plans:structuredClone(materialPlans),holidays:[...holidays]};}
@@ -52,29 +53,39 @@ function updateMaterialDraft() {
     preview.textContent=`新規終了 ${newEnd} ／ 最終復習 ${reviewEnd||"なし"}。新規 ${result.unitsPerDay}${ScheduleEngine.quantityUnit(parsed.plan.unit)}/日、復習込みの最大 ${peak}${ScheduleEngine.quantityUnit(parsed.plan.unit)}/日（この教材）。${peak>scheduleSettings.maxTotalUnitsPerDay?" 負担基準を超える日があります。量や終了日を見直せます。":""}`;
   }catch(error){preview.textContent=error.message;}
 }
+function scheduleCalendarDates(selected,month,view) {
+  const date=new Date((view==='week'?selected:month+'-01')+'T12:00:00');
+  const count=view==='week'?7:new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
+  if(view==='week')date.setDate(date.getDate()-date.getDay());
+  return Array.from({length:count},(_,i)=>{const day=new Date(date);day.setDate(day.getDate()+i);return day.toLocaleDateString('sv-SE');});
+}
 function renderScheduleCalendar() {
   const selected=scheduleMaterialFilter.value||"all";
   const tasks=materialTasks.filter(t=>selected==="all"||t.material===selected);
   const plans=materialPlans.filter(p=>selected==="all"||p.material===selected);
   const grid=scheduleElement("scheduleMonthGrid");grid.replaceChildren();
   const date=new Date(`${scheduleMonth}-01T12:00:00`);
+  grid.classList.toggle("is-week",scheduleView==="week");
+  grid.setAttribute("aria-label",scheduleView==="week"?"学習予定の週カレンダー":"学習予定の月カレンダー");
+  document.querySelectorAll("[data-schedule-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.scheduleView===scheduleView)));
+  scheduleElement("schedulePrevMonth").setAttribute("aria-label",scheduleView==="week"?"予定の前の週":"予定の前の月");
+  scheduleElement("scheduleNextMonth").setAttribute("aria-label",scheduleView==="week"?"予定の次の週":"予定の次の月");
   scheduleElement("scheduleMonthTitle").textContent=`${date.getFullYear()}年 ${date.getMonth()+1}月`;
   for(const day of ["日","月","火","水","木","金","土"]){const el=document.createElement("span");el.className="schedule-weekday";el.textContent=day;grid.append(el);}
-  const first=date.getDay(),days=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
-  for(let i=0;i<first;i++){const el=document.createElement("span");el.className="schedule-blank";grid.append(el);}
+  const keys=scheduleCalendarDates(scheduleSelectedDate,scheduleMonth,scheduleView);
+  if(scheduleView==='month')for(let i=0;i<date.getDay();i++){const el=document.createElement('span');el.className='schedule-blank';grid.append(el);}
+  else scheduleElement('scheduleMonthTitle').textContent=`${keys[0].slice(5).replace('-','/')} 〜 ${keys.at(-1).slice(5).replace('-','/')}`;
   const byDate=new Map();for(const t of tasks){if(!byDate.has(t.date))byDate.set(t.date,[]);byDate.get(t.date).push(t);}
-  for(let day=1;day<=days;day++) {
-    const key=`${scheduleMonth}-${String(day).padStart(2,"0")}`,daily=byDate.get(key)||[];
+  for(const key of keys) {
+    const day=Number(key.slice(8)),daily=byDate.get(key)||[];
     const holiday=holidays.includes(key),off=holiday||(plans.length>0&&plans.every(p=>!ScheduleEngine.studyDay(key,p,holidays)));
     const button=document.createElement("button");button.type="button";button.className=`schedule-date${off?" is-holiday":""}${key===localDateKey()?" is-today":""}`;
     button.setAttribute("aria-pressed",String(key===scheduleSelectedDate));
     button.setAttribute("aria-label",`${key}${off?" 休み":""} ${daily.length}件 完了${daily.filter(t=>t.done).length}件 ${formatScheduleTotals(daily)} ${daily.slice(0,2).map(t=>t.material).join("・")}`);
     const number=document.createElement("span");number.className="date-number";number.textContent=day;button.append(number);
     if(off){const mark=document.createElement("span");mark.className="date-off";mark.textContent="休";button.append(mark);}
-    const compactCount=n=>n>9?'9+':String(n);
-    for(const type of ['new','review']){const count=daily.filter(t=>t.type===type).length;if(count){const mark=document.createElement('span');mark.className='date-overview '+type;mark.textContent=(type==='new'?'新':'復')+compactCount(count);button.append(mark);}}
-    if(daily.length){const done=document.createElement('span');done.className='date-done';done.textContent='✓'+compactCount(daily.filter(t=>t.done).length);button.append(done);}
-    button.addEventListener("click",()=>{scheduleSelectedDate=key;renderSchedule();if(window.innerWidth<=900)scheduleElement("scheduleDayTitle").scrollIntoView({block:"start",behavior:"auto"});});grid.append(button);
+    if(daily.length){const count=document.createElement('span');count.className='date-count';count.textContent=daily.every(t=>t.done)?'✓':`${daily.length}件`;button.append(count);}
+    button.addEventListener("click",()=>{scheduleSelectedDate=key;scheduleMonth=key.slice(0,7);renderSchedule();});grid.append(button);
   }
   const selectedTasks=byDate.get(scheduleSelectedDate)||[];
   scheduleElement("scheduleDayTitle").textContent=`${scheduleSelectedDate.replaceAll("-","/")}（${"日月火水木金土"[new Date(scheduleSelectedDate+"T12:00:00").getDay()]}）${scheduleSelectedDate===localDateKey()?" 今日":""}の予定`;
@@ -94,8 +105,13 @@ function openMaterialSettings(plan) { initializePlanEdit(plan); }
 document.addEventListener("DOMContentLoaded",()=>{
   materialPlanForm.addEventListener("input",updateMaterialDraft);materialPlanForm.addEventListener("change",updateMaterialDraft);
   scheduleElement("materialReviewOffsets").value=scheduleSettings.reviewOffsets.join(",");updateMaterialDraft();
-  for(const [id,delta] of [["schedulePrevMonth",-1],["scheduleNextMonth",1]])scheduleElement(id).addEventListener("click",()=>{const d=new Date(`${scheduleMonth}-01T12:00:00`);d.setMonth(d.getMonth()+delta);scheduleMonth=d.toLocaleDateString("sv-SE").slice(0,7);scheduleSelectedDate=scheduleMonth+"-01";renderSchedule();});
-  scheduleElement("scheduleGoToday").addEventListener("click",()=>{scheduleMaterialFilter.value="all";scheduleSelectedDate=localDateKey();scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();scheduleElement("scheduleDayTitle").scrollIntoView({block:"start"});});
+  document.querySelectorAll('[data-schedule-view]').forEach(button=>button.addEventListener('click',()=>{scheduleView=button.dataset.scheduleView;renderSchedule();}));
+  for(const [id,delta] of [['schedulePrevMonth',-1],['scheduleNextMonth',1]])scheduleElement(id).addEventListener('click',()=>{
+    const d=new Date((scheduleView==='week'?scheduleSelectedDate:scheduleMonth+'-01')+'T12:00:00');
+    if(scheduleView==='week')d.setDate(d.getDate()+7*delta);else d.setMonth(d.getMonth()+delta);
+    scheduleSelectedDate=d.toLocaleDateString('sv-SE');scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();
+  });
+  scheduleElement('scheduleGoToday').addEventListener('click',()=>{scheduleMaterialFilter.value='all';scheduleSelectedDate=localDateKey();scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();});
   scheduleElement("scheduleDayHoliday").addEventListener("click",()=>{const before=scheduleState();holidays=holidays.includes(scheduleSelectedDate)?holidays.filter(d=>d!==scheduleSelectedDate):[...holidays,scheduleSelectedDate];setScheduleStatus(redistributeAllPlans(localDateKey(),before),"success");render();});
   scheduleElement("scheduleCompletionClose").addEventListener("click",()=>scheduleElement("scheduleCompletionDialog").close());
   scheduleElement("materialSettingsClose").addEventListener("click",()=>scheduleElement("materialSettingsDialog").close());
