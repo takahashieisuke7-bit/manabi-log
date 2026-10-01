@@ -82,9 +82,12 @@ function renderScheduleCalendar() {
     const button=document.createElement("button");button.type="button";button.className=`schedule-date${off?" is-holiday":""}${key===localDateKey()?" is-today":""}`;
     button.setAttribute("aria-pressed",String(key===scheduleSelectedDate));
     button.setAttribute("aria-label",`${key}${off?" 休み":""} ${daily.length}件 完了${daily.filter(t=>t.done).length}件 ${formatScheduleTotals(daily)} ${daily.slice(0,2).map(t=>t.material).join("・")}`);
+    const weekday=document.createElement('span');weekday.className='date-weekday';weekday.textContent='日月火水木金土'[new Date(key+'T12:00:00').getDay()];button.append(weekday);
     const number=document.createElement("span");number.className="date-number";number.textContent=day;button.append(number);
-    if(off){const mark=document.createElement("span");mark.className="date-off";mark.textContent="休";button.append(mark);}
-    if(daily.length){const count=document.createElement('span');count.className='date-count';count.textContent=daily.every(t=>t.done)?'✓':`${daily.length}件`;button.append(count);}
+    const status=document.createElement('span');status.className='date-status';
+    if(off){const mark=document.createElement("span");mark.className="date-off";mark.textContent="休";status.append(mark);}
+    if(daily.length){const count=document.createElement('span');count.className='date-count';count.textContent=daily.every(t=>t.done)?'✓':`${daily.length}件`;status.append(count);}
+    button.append(status);
     button.addEventListener("click",()=>{scheduleSelectedDate=key;scheduleMonth=key.slice(0,7);renderSchedule();});grid.append(button);
   }
   const selectedTasks=byDate.get(scheduleSelectedDate)||[];

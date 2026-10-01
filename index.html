@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#101113">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=21">
+  <link rel="manifest" href="manifest.webmanifest?v=31">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=21"></script>
-  <link rel="stylesheet" href="style.css?v=21">
-<link rel="stylesheet" href="schedule.css?v=21">
-  <link rel="stylesheet" href="design.css?v=21">
-  <link rel="stylesheet" href="theme.css?v=21">
+  <script src="theme.js?v=31"></script>
+  <link rel="stylesheet" href="style.css?v=31">
+<link rel="stylesheet" href="schedule.css?v=31">
+  <link rel="stylesheet" href="design.css?v=31">
+  <link rel="stylesheet" href="theme.css?v=31">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -95,7 +95,7 @@
           <p id="scheduleSummary" class="setting-note" hidden>予定を作るとここに表示されます。</p>
         </div>
       </div>
-      <div class="period-switch calendar-view-switch" aria-label="予定の表示"><button type="button" data-schedule-view="week" aria-pressed="true">週</button><button type="button" data-schedule-view="month" aria-pressed="false">月</button></div><div class="schedule-month-toolbar"><button id="schedulePrevMonth" type="button" class="secondary-button" aria-label="予定の前の月">‹</button><h3 id="scheduleMonthTitle"></h3><button id="scheduleNextMonth" type="button" class="secondary-button" aria-label="予定の次の月">›</button></div><div class="schedule-selection-toolbar"><button id="scheduleGoToday" type="button" class="secondary-button">今日に戻る</button><p id="scheduleSelectedLabel" hidden class="selected-day-label" aria-live="polite"></p></div>
+      <div class="schedule-calendar-controls"><div class="period-switch calendar-view-switch" aria-label="予定の表示"><button type="button" data-schedule-view="week" aria-pressed="true">週</button><button type="button" data-schedule-view="month" aria-pressed="false">月</button></div><div class="schedule-selection-toolbar"><button id="scheduleGoToday" type="button" class="secondary-button">今日に戻る</button><p id="scheduleSelectedLabel" hidden class="selected-day-label" aria-live="polite"></p></div></div><div class="schedule-month-toolbar"><button id="schedulePrevMonth" type="button" class="secondary-button" aria-label="予定の前の月">‹</button><h3 id="scheduleMonthTitle"></h3><button id="scheduleNextMonth" type="button" class="secondary-button" aria-label="予定の次の月">›</button></div>
 
       <div id="scheduleMonthGrid" class="schedule-month-grid" aria-label="学習予定の月カレンダー"></div>
 
@@ -270,17 +270,16 @@
     </section></div></div></section><section id="panel-record" class="screen screen-record" data-tab-panel="record" role="tabpanel" aria-labelledby="tab-record" tabindex="0" hidden><div class="page-heading"><h2>学習を記録</h2></div><div class="record-layout"><div class="record-primary"><section class="card record-entry"><div id="detailedRecord"><div class="recent-records"><h3>最近の記録から再入力</h3><div id="recentRecordButtons" class="quick-buttons"></div></div><form id="studyForm">
         <details class="date-choice" id="recordDateDetails"><summary><span id="recordDateLabel">今日</span> <span>日付を変更</span></summary><label for="studyDate">学習した日</label><input id="studyDate" type="date" required></details>
 
-        <label for="subject">科目</label>
-        <input id="subject" maxlength="30" placeholder="例：英語" required>
-
-        <label for="activityType">内容</label>
-        <select id="activityType" required></select>
+        <div class="record-basic-fields">
+          <div><label for="subject">科目</label><input id="subject" maxlength="30" placeholder="例：英語" required></div>
+          <div><label for="activityType">内容</label><select id="activityType" required></select></div>
+        </div>
 
 
 
 
         <fieldset class="duration-fields">
-          <legend>勉強時間</legend>
+          <legend class="visually-hidden">勉強時間</legend>
           <div>
             <label for="studyHours">時間</label>
             <input id="studyHours" type="number" min="0" max="23"
@@ -336,10 +335,10 @@
         <p id="emptyMessage" class="empty">まだ記録がありません。</p>
         <ul id="recordList"></ul>
       </details>
-    </section></aside></div></section><section id="panel-analysis" class="screen screen-analysis" data-tab-panel="analysis" role="tabpanel" aria-labelledby="tab-analysis" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">INSIGHTS</p><h2>学びを振り返る</h2><p>時間の使い方と、積み重ねの変化を確認。</p></div></div><div class="period-switch analysis-view-switch" aria-label="分析の種類"><button type="button" data-analysis-view="study" aria-pressed="true" aria-controls="studyAnalysis">学習時間</button><button type="button" data-analysis-view="mock" aria-pressed="false" aria-controls="mockAnalysis">模試</button></div><div id="studyAnalysis" class="analysis-layout"><section class="card study-bars-card" aria-labelledby="studyBarsTitle"><div class="section-title"><div><h2 id="studyBarsTitle">勉強時間の推移</h2><p id="studyBarsRange" class="setting-note"></p></div></div>
-<div class="period-switch" aria-label="棒グラフの集計"><button type="button" data-study-period="day" aria-pressed="true">日別</button><button type="button" data-study-period="week" aria-pressed="false">週別</button><button type="button" data-study-period="month" aria-pressed="false">月別</button></div>
-<div class="chart-nav"><button id="studyBarsPrevious" type="button">前の期間</button><button id="studyBarsToday" type="button">直近に戻る</button><button id="studyBarsNext" type="button">次の期間</button></div>
-<p id="studyBarsSummary"></p><div id="studyBars" class="study-bars" aria-label="科目別の積み上げ棒グラフ"></div><div id="studyBarsLegend" class="study-bars-legend"></div><p class="setting-note">棒を押すと、その期間の合計・科目別時間・記録を確認できます。記録がない期間は0分です。</p><div id="studyBarsDetail" class="study-bars-detail" hidden></div></section>    <section class="card weekly-review compact-details-card">
+    </section></aside></div></section><section id="panel-analysis" class="screen screen-analysis" data-tab-panel="analysis" role="tabpanel" aria-labelledby="tab-analysis" tabindex="0" hidden><div class="page-heading"><div><p class="eyebrow">INSIGHTS</p><h2>学びを振り返る</h2><p>時間の使い方と、積み重ねの変化を確認。</p></div></div><div class="period-switch analysis-view-switch" aria-label="分析の種類"><button type="button" data-analysis-view="study" aria-pressed="true" aria-controls="studyAnalysis">学習時間</button><button type="button" data-analysis-view="mock" aria-pressed="false" aria-controls="mockAnalysis">模試</button></div><div id="studyAnalysis" class="analysis-layout"><section class="card study-bars-card" aria-labelledby="studyBarsTitle"><div class="study-bars-heading"><h2 id="studyBarsTitle">勉強時間</h2>
+<div class="period-switch" aria-label="棒グラフの集計"><button type="button" data-study-period="day" aria-pressed="true">日別</button><button type="button" data-study-period="week" aria-pressed="false">週別</button><button type="button" data-study-period="month" aria-pressed="false">月別</button></div></div>
+<div class="chart-nav study-period-nav"><button id="studyBarsPrevious" type="button" aria-label="前の期間">‹</button><button id="studyBarsToday" type="button"><span id="studyBarsRange"></span><span class="study-range-reset">直近に戻る</span></button><button id="studyBarsNext" type="button" aria-label="次の期間">›</button></div>
+<p id="studyBarsSummary" class="study-bars-summary" aria-live="polite"></p><div id="studyBars" class="study-bars" aria-label="科目別の積み上げ棒グラフ"></div><div id="studyBarsLegend" class="study-bars-legend"></div><details class="study-bars-help"><summary>グラフの見方</summary><p class="setting-note">棒を押すと、その期間の合計・科目別時間・記録を確認できます。記録がない期間は0分です。</p><p id="studyBarsScope" class="setting-note"></p></details><div id="studyBarsDetail" class="study-bars-detail" hidden></div></section>    <section class="card weekly-review compact-details-card">
       <details id="weeklyDetails" open>
         <summary>
           <span>
@@ -771,16 +770,16 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=21"></script>
-  <script src="study-flow.js?v=21"></script>
-  <script src="study-flow-ui.js?v=21"></script>
-  <script src="analysis-engine.js?v=21"></script>
-  <script src="analysis-ui.js?v=21"></script>
-  <script src="schedule-ui.js?v=21"></script>
-  <script src="schedule-edit.js?v=21"></script>
-  <script src="app.js?v=21"></script>
-  <script src="ui.js?v=21"></script>
-  <script src="design-ui.js?v=21"></script>
+  <script src="schedule-engine.js?v=31"></script>
+  <script src="study-flow.js?v=31"></script>
+  <script src="study-flow-ui.js?v=31"></script>
+  <script src="analysis-engine.js?v=31"></script>
+  <script src="analysis-ui.js?v=31"></script>
+  <script src="schedule-ui.js?v=31"></script>
+  <script src="schedule-edit.js?v=31"></script>
+  <script src="app.js?v=31"></script>
+  <script src="ui.js?v=31"></script>
+  <script src="design-ui.js?v=31"></script>
 <datalist id="subjectOptions"><option value="英語"><option value="数学"><option value="国語"><option value="物理"><option value="化学"><option value="生物"><option value="日本史"><option value="世界史"><option value="地理"><option value="情報"></datalist>
 </body>
 </html>

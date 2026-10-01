@@ -16,8 +16,13 @@ function renderStudyBars(){
   const anchor=records.map(r=>r.date).sort().at(-1)||localDateKey();
   const buckets=StudyAnalysis.buckets(records,studyBarsMode,anchor,studyBarsShift,count),colors=studySubjectColors();
   document.getElementById('studyBarsNext').disabled=studyBarsShift>=0;
-  document.getElementById('studyBarsRange').textContent=`${buckets[0].start} 〜 ${buckets.at(-1).end}（${studyBarsMode==='day'?'日別・7日間':studyBarsMode==='week'?'週別・月曜始まり・4週間':'月別・6か月'}）`;
-  document.getElementById('studyBarsSummary').textContent=`期間合計 ${formatMinutes(buckets.reduce((n,b)=>n+b.total,0))}`;
+  const start=buckets[0].start,end=buckets.at(-1).end;
+  const scope=studyBarsMode==='day'?'日別・7日間':studyBarsMode==='week'?'週別・月曜始まり・4週間':'月別・6か月';
+  const shortDate=(key,includeYear=true)=>{const [year,month,day]=key.split('-');return `${includeYear?year+'/':''}${Number(month)}/${Number(day)}`;};
+  document.getElementById('studyBarsRange').textContent=`${shortDate(start)} 〜 ${shortDate(end,start.slice(0,4)!==end.slice(0,4))}`;
+  document.getElementById('studyBarsToday').setAttribute('aria-label',`${start} 〜 ${end}（${scope}）。直近に戻る`);
+  document.getElementById('studyBarsScope').textContent=scope;
+  document.getElementById('studyBarsSummary').replaceChildren(chartNode('span','study-total-label','期間合計'),chartNode('strong','study-total-value',formatMinutes(buckets.reduce((n,b)=>n+b.total,0))));
   document.querySelectorAll('[data-study-period]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.studyPeriod===studyBarsMode));b.classList.toggle('active',b.dataset.studyPeriod===studyBarsMode);});
   host.replaceChildren();const max=StudyAnalysis.axisMaximum(records,studyBarsMode);
   const axis=chartNode('div','study-bar-axis');for(const n of [max,max/2,0])axis.append(chartNode('span','',`${Number(n.toFixed(1))}分`));host.append(axis);
@@ -44,7 +49,7 @@ function renderStudyBars(){
   }
 }
 function createMockComparison(name,events,results,colorBySubject){
-  const wrap=chartNode('section','mock-comparison');wrap.append(chartNode('h3','','同じ回の科目別比較（偏差値）'));
+  const wrap=chartNode('section','mock-comparison');wrap.setAttribute('aria-label','同じ回の科目別比較（偏差値）');
   const label=chartNode('label','','比較する回'),select=chartNode('select');select.setAttribute('aria-label',name+'の比較する回');
   events.forEach(event=>{const option=chartNode('option','',`${event.round?'第'+event.round+'回':'回数未設定'}・${event.date}`);option.value=event.key;select.append(option);});select.value=events.at(-1).key;label.append(select);wrap.append(label);
   const chart=chartNode('div','mock-comparison-bars');wrap.append(chart,chartNode('p','setting-note','棒の長さは偏差値0〜100。総合は科目と分けて表示します。'));

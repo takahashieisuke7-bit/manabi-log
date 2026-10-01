@@ -66,6 +66,41 @@
 
   const nav = document.querySelector('.app-tabs');
   const tabs = [...nav.querySelectorAll('[role="tab"]')];
+  // Reuse each page's real heading in the mobile header, including its date.
+  // Returning it to its marker keeps the desktop layout and heading semantics.
+  const header = document.querySelector('.app-header');
+  const headerActions = header.querySelector('.header-actions');
+  const headingSlots = [...document.querySelectorAll('.screen > .page-heading')].map(heading => {
+    const marker = document.createComment('page heading');
+    heading.before(marker);
+    return { heading, marker, panel: heading.parentElement };
+  });
+  const compactHeader = window.matchMedia('(max-width: 900px)');
+  const todayButton = document.querySelector('#scheduleGoToday');
+  addPlan.setAttribute('aria-label', '教材を追加');
+  addPlan.title = '教材を追加';
+  todayButton.setAttribute('aria-label', '今日に戻る');
+  function syncPageHeader() {
+    const mobile = compactHeader.matches;
+    for (const { heading, marker } of headingSlots) {
+      marker.after(heading);
+      heading.classList.remove('mobile-page-heading');
+    }
+    const scheduleHeading = headingSlots.find(slot => slot.panel.dataset.tabPanel === 'schedule').heading;
+    (mobile ? document.querySelector('.schedule-calendar-controls') : scheduleHeading).append(addPlan);
+    addPlan.textContent = mobile ? '＋ 教材' : '＋ 教材を追加';
+    todayButton.textContent = mobile ? '今日' : '今日に戻る';
+    if (mobile) {
+      const current = headingSlots.find(slot => slot.panel.dataset.tabPanel === (document.body.dataset.screen || 'home'));
+      if (current) {
+        current.heading.classList.add('mobile-page-heading');
+        header.insertBefore(current.heading, headerActions);
+      }
+    }
+  }
+  compactHeader.addEventListener('change', syncPageHeader);
+  new MutationObserver(syncPageHeader).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+  syncPageHeader();
   nav.addEventListener('keydown', event => {
     const current = tabs.indexOf(event.target);
     if (current < 0) return;

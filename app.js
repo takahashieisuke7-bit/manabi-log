@@ -1178,13 +1178,18 @@ function createScheduleItem(task, { compact = false } = {}) {
     linkedRecord?`${linkedRecord.subject}・${linkedRecord.minutes}分`:task.done?'完了・時間未記録':'',
     task.fixed&&ScheduleEngine.conflicts([task,...(source?[source]:[])],materialPlans,holidays).length?'固定の衝突あり':''].filter(Boolean).join('・');
   meta.hidden=!meta.textContent;
-  main.append(title, range, meta);
-
   const kind = document.createElement("span");
   kind.className = `schedule-kind${task.type === "review" ? " review" : ""}`;
   kind.textContent = "教材・" + taskTypeLabel(task.type);
 
-  item.append(checkbox, main, kind);
+  const heading = document.createElement("div");
+  heading.className = "schedule-heading";
+  heading.append(title, kind);
+  main.append(heading, range, meta);
+  const checkTarget = document.createElement("label");
+  checkTarget.className = "schedule-check-target";
+  checkTarget.append(checkbox);
+  item.append(checkTarget, main);
 
   {
     const actions = document.createElement("div");
@@ -1437,7 +1442,7 @@ function renderActivityOptions() {
 function fillStudyForm({ subject, activity, minutes = 30, wordCount = 0, memo = "" }) {
   subjectInput.value = subject ?? "";
   studyDateInput.value = studyDateInput.value || localDateKey();
-  if (activity && activityOptions.includes(activity)) {
+  if (activity && [...activityTypeInput.options].some((option) => option.value === activity)) {
     activityTypeInput.value = activity;
   }
   studyHoursInput.value = Math.floor(minutes / 60);
@@ -1460,10 +1465,19 @@ function renderQuickFillButtons() {
     ];
   };
 
-  prioritizeSubject(records).slice(0, 4).forEach((record) => {
+  const recent = prioritizeSubject(records).slice(0, 4);
+  recentRecordButtons.classList.toggle('has-long-labels', recent.some(record =>
+    Array.from(record.subject).length > 4 || Array.from(record.activity || 'その他').length > 4));
+  recent.forEach((record) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = `${record.subject} / ${record.activity || "その他"}`;
+    button.setAttribute('aria-label', `${record.subject} / ${record.activity || 'その他'}`);
+    for (const [className, text] of [['recent-subject', record.subject], ['recent-activity', record.activity || 'その他']]) {
+      const label = document.createElement('span');
+      label.className = className;
+      label.textContent = text;
+      button.append(label);
+    }
     button.addEventListener("click", () => fillStudyForm(record));
     recentRecordButtons.append(button);
   });
@@ -2839,9 +2853,10 @@ function renderMockResults() {
       const drawSubject=()=>{plot.querySelectorAll('.line-chart-card').forEach(card=>card.chartObserver?.disconnect());plot.replaceChildren();const subject=subjectChoice.value;mockSubjectSelections.set(mockName,subject);
         if(subject)plot.append(createMockLineChart(subject+'の推移',events,[{name:subject,color:colorBySubject.get(subject)||'var(--chart-1)',values:valuesFor(subject)}],false,mockName));
       };
+      const compare=chartNode('details','mock-comparison-details');compare.open=true;
+      compare.append(chartNode('summary','','同じ回の科目比較（偏差値）'),createMockComparison(mockName,events,results,colorBySubject));body.append(compare);
       if(choices.length){body.append(label,plot);subjectChoice.addEventListener('change',drawSubject);drawSubject();}
       else body.append(chartNode('p','setting-note','偏差値は未登録です。旧得点は入力データから確認できます。'));
-      const compare=chartNode('details','mock-comparison-details');compare.append(chartNode('summary','','同じ回の科目を比較'),createMockComparison(mockName,events,results,colorBySubject));body.append(compare);
 
       const dataDetails = document.createElement("details");
       dataDetails.className = "mock-data-details";

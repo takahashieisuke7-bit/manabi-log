@@ -2,22 +2,23 @@
 :root {
   color-scheme: dark;
   --background: #101113;
-  --surface: #202126;
-  --surface-secondary: #2c2e34;
-  --surface-hover: #383b44;
-  --surface-pressed: #434752;
-  --input: #15161a;
+  --surface: #252730;
+  --surface-secondary: #30323b;
+  --surface-hover: #3c3e48;
+  --surface-pressed: #484b57;
+  --input: #1d1f26;
   --text-primary: #e1e3e8;
   --text-heading: #f8f9fc;
   --text-secondary: #b5b8c3;
-  --border: #4c505c;
+  --border: #555865;
   --control-border: #8c909f;
-  --primary: #c4adff;
-  --primary-hover: #d4c3ff;
-  --primary-pressed: #b89aef;
+  --primary: #d5c5f5;
+  --primary-hover: #ded2f8;
+  --primary-pressed: #c9b5ee;
+  --primary-edge: #d5c5f5;
   --on-accent: #231535;
-  --accent: #cab4ff;
-  --accent-soft: #352b48;
+  --accent: #d4c3f3;
+  --accent-soft: #3b304f;
   --focus-ring: #ddcdff;
   --success: #a0d8b5;
   --success-soft: #1e352a;
@@ -27,7 +28,7 @@
   --danger-soft: #3e252c;
   --info: #a2c9ef;
   --info-soft: #233243;
-  --chart-1: #c4adff;
+  --chart-1: #d4c3f3;
   --chart-2: #91bdf5;
   --chart-3: #83d0ab;
   --chart-4: #e9c37d;
@@ -48,24 +49,25 @@
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --background: #f1f2f4;
+  --background: #f9f8fc;
   --surface: #ffffff;
-  --surface-secondary: #e7e9ee;
-  --surface-hover: #dce0e8;
-  --surface-pressed: #cfd4de;
-  --input: #f7f8fa;
+  --surface-secondary: #f5f2fa;
+  --surface-hover: #efebf7;
+  --surface-pressed: #e7e0f1;
+  --input: #fcfbfe;
   --text-primary: #343740;
   --text-heading: #17191f;
   --text-secondary: #585e6a;
-  --border: #c5c8d0;
-  --control-border: #747987;
-  --primary: #6745a6;
-  --primary-hover: #56368e;
-  --primary-pressed: #472d78;
-  --on-accent: #ffffff;
-  --accent: #62409b;
-  --accent-soft: #eee8f8;
-  --focus-ring: #63429e;
+  --border: #d8d1e4;
+  --control-border: #80758f;
+  --primary: #d8c9f5;
+  --primary-hover: #cebbef;
+  --primary-pressed: #c2ace8;
+  --primary-edge: #71538f;
+  --on-accent: #302440;
+  --accent: #715698;
+  --accent-soft: #f2ebfb;
+  --focus-ring: #7149bb;
   --success: #226844;
   --success-soft: #e4f2e9;
   --warning: #805016;
@@ -74,16 +76,16 @@
   --danger-soft: #fde8ed;
   --info: #235c83;
   --info-soft: #e8f0f8;
-  --chart-1: #7250b5;
-  --chart-2: #246fa9;
-  --chart-3: #267448;
-  --chart-4: #8b5c18;
-  --chart-5: #b33853;
-  --chart-6: #5c6173;
-  --chart-7: #923a8b;
-  --chart-8: #176f71;
-  --chart-9: #5b6d22;
-  --chart-10: #a74920;
+  --chart-1: #8662b9;
+  --chart-2: #3783c1;
+  --chart-3: #2d9164;
+  --chart-4: #a67723;
+  --chart-5: #c74c70;
+  --chart-6: #737b91;
+  --chart-7: #aa5fbc;
+  --chart-8: #268c96;
+  --chart-9: #70843c;
+  --chart-10: #b85d35;
 }
 
 /* Controls choose a role; one renderer owns the foreground/background pair.
@@ -104,7 +106,7 @@ button {
 button:is([type="submit"], .schedule-complete-primary, .add-plan-button, .backup-primary, #scheduleChangeSave) {
   --control-bg: var(--primary);
   --control-fg: var(--on-accent);
-  --control-edge: var(--primary);
+  --control-edge: var(--primary-edge);
   --control-hover: var(--primary-hover);
   --control-pressed: var(--primary-pressed);
 }
@@ -156,7 +158,7 @@ input:not([type="checkbox"]):not([type="file"]), select, textarea {
 input::placeholder, textarea::placeholder { color: var(--text-secondary); opacity: 1; }
 input:disabled, select:disabled { background: var(--surface-secondary); color: var(--text-secondary); opacity: 1; border-style: dashed; }
 input[type="checkbox"]:disabled { opacity: 1; }
-input[type="checkbox"] { accent-color: var(--primary); }
+input[type="checkbox"] { accent-color: var(--accent); }
 .schedule-check:checked, .todo-item input:checked { accent-color: var(--success); }
 h1, h2, h3, h4, .today-overview strong, .summary strong { color: var(--text-heading); }
 .setting-note, .date-label, .chart-range, .chart-visible-range { color: var(--text-secondary); }
@@ -167,7 +169,9 @@ h1, h2, h3, h4, .today-overview strong, .summary strong { color: var(--text-head
 .schedule-kind.review { background: var(--info-soft); color: var(--info); }
 .schedule-item.done .schedule-kind { background: var(--success-soft); color: var(--success); }
 .todo-item.done { border-left: 3px solid var(--success); }
-.progress-bar, .level-bar, .roadmap-bar, .subject-goal-bar { background: var(--primary); }
+.progress-bar, .level-bar, .roadmap-bar, .subject-goal-bar { background: var(--accent); }
+.badge-progress::-webkit-progress-value { background: var(--accent); }
+.badge-progress::-moz-progress-bar { background: var(--accent); }
 .progress-bar.completed, .subject-goal-bar.completed { background: var(--success); }
 .badge.unlocked { border-color: var(--success); background: var(--success-soft); }
 .badge small, .badge.unlocked small { color: var(--text-secondary); }
