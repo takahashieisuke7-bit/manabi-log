@@ -42,6 +42,12 @@
     document.querySelector('#materialName').focus();
   });
   document.querySelector('.screen-schedule .page-heading').append(addPlan);
+  const materialManager = document.querySelector('#materialProgressDetails');
+  document.querySelector('#openMaterialManager').addEventListener('click', () => {
+    materialManager.open = true;
+    materialManager.querySelector('summary').focus();
+    materialManager.scrollIntoView({ block: 'start' });
+  });
   ['materialPlanForm', 'manualScheduleForm', 'scheduleSettingsForm'].forEach(id => {
     const planForm = document.getElementById(id);
     const feedback = document.createElement('p');

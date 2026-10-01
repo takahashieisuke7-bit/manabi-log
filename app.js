@@ -1197,14 +1197,14 @@ function createScheduleItem(task, { compact = false } = {}) {
 
     const edit = document.createElement("button");
     edit.type = "button";
-    edit.textContent = "編集";
-    edit.setAttribute("aria-label", `${task.material} ${taskTypeLabel(task.type)} ${formatTaskRange(task)}を編集`);
+    edit.textContent = "この予定の日付・範囲を編集";
+    edit.setAttribute("aria-label", `${task.material} ${taskTypeLabel(task.type)} ${formatTaskRange(task)}の日付・範囲を編集`);
     edit.disabled=task.done;
     edit.addEventListener("click", () => openScheduleEditDialog(task));
 
     const pin = document.createElement("button");
     pin.type = "button";
-    pin.textContent = task.fixed ? "固定解除" : "固定";
+    pin.textContent = task.fixed ? "この予定の固定を解除" : "この予定を固定";
     pin.disabled=task.done;
     pin.addEventListener("click", () => {
       openScheduleEditDialog(task);
@@ -1216,7 +1216,7 @@ function createScheduleItem(task, { compact = false } = {}) {
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "danger";
-    remove.textContent = "削除";
+    remove.textContent = "この予定を削除";
     remove.addEventListener("click", () => {
       if (task.done || task.recordId || materialTasks.some(t=>t.sourceNewId===task.id && (t.done || t.fixed || t.recordId))) { setScheduleStatus("実績・時間記録・固定された復習に紐づく予定は削除できません。", "error"); return; }
       if (!confirm("この教材予定と紐づく未完了の復習を削除しますか？")) return;
@@ -1229,10 +1229,10 @@ function createScheduleItem(task, { compact = false } = {}) {
     if(task.done){const time=document.createElement("button");time.type="button";time.textContent=linkedRecord?"時間を修正":"時間を記録";time.addEventListener("click",()=>openStudyCompletion(task));actions.append(time);}
     if(!task.done){const finish=document.createElement("button");finish.type="button";finish.className="schedule-complete-primary";finish.textContent="完了・時間を記録";finish.disabled=checkbox.disabled;finish.addEventListener("click",()=>openStudyCompletion(task));actions.append(finish);}
     const menu=document.createElement("details");menu.className="schedule-more";
-    const summary=document.createElement("summary");summary.textContent="…";summary.setAttribute("aria-label",task.material+"の管理操作");
+    const summary=document.createElement("summary");summary.textContent="変更";summary.setAttribute("aria-label",`${task.material} ${taskTypeLabel(task.type)} ${formatTaskRange(task)}の予定を変更`);
     const content=document.createElement("div");const context=document.createElement("p");context.className="setting-note";context.textContent=detailText;content.append(context,edit,pin,remove);
     const taskPlan=planById(task.planId);
-    if(taskPlan){const editPlan=document.createElement("button");editPlan.type="button";editPlan.textContent="教材全体の範囲・計画を編集";editPlan.addEventListener("click",()=>{menu.open=false;openMaterialSettings(taskPlan);});content.append(editPlan);}
+    if(taskPlan){const editPlan=document.createElement("button");editPlan.type="button";editPlan.textContent="教材全体の範囲・終了日を編集";editPlan.addEventListener("click",()=>{menu.open=false;openMaterialSettings(taskPlan);});content.append(editPlan);}
     if(task.done){const undo=document.createElement("button");undo.type="button";undo.textContent="完了を取り消す";undo.addEventListener("click",()=>openStudyCompletion(task,true));content.append(undo);}
     menu.append(summary,content);actions.append(menu);
     item.append(actions);
@@ -1274,7 +1274,8 @@ function renderMaterialProgress() {
     progress.textContent=`${formatTaskRange(plan)} ／ ${doneNew} / ${total}${ScheduleEngine.quantityUnit(plan.unit)} 完了`;
     const dates=document.createElement("p"); dates.className="material-end-dates";
     dates.textContent=`新規終了 ${newEnd}　／　最終復習 ${reviewEnd||"なし"}${all.some(t=>t.type==="new"&&!t.done)?"（予定）":""}`;
-    const settings=document.createElement("button");settings.type="button";settings.className="secondary-button compact-button";settings.textContent="範囲・計画を編集";
+    const settings=document.createElement("button");settings.type="button";settings.className="secondary-button compact-button";settings.textContent="範囲・終了日を編集";
+    settings.setAttribute('aria-label',`${plan.material}の範囲・終了日を編集`);
     settings.addEventListener("click",()=>openMaterialSettings(plan));
     card.append(name, progress, dates, settings);
     let nextRange=plan.start;
@@ -1308,6 +1309,12 @@ function renderMaterialProgress() {
     card.append(name, progress);
     materialProgressList.append(card);
   });
+  if (!materialProgressList.children.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = '教材はまだありません。「＋ 教材」から追加できます。';
+    materialProgressList.append(empty);
+  }
 }
 
 function renderScheduleFilter() {
@@ -1363,7 +1370,7 @@ function renderSchedule() {
     rescheduleSummary.hidden = false;
     rescheduleSummary.textContent = lastReschedule.summary;
     undoRescheduleButton.hidden = false;
-    undoRescheduleButton.textContent=lastReschedule.operation==="edit"?"直前の編集を取り消す":"直前の再調整を取り消す";
+    undoRescheduleButton.textContent=lastReschedule.operation==="edit"?"直前の編集を取り消す":"直前の組み直しを取り消す";
   } else {
     rescheduleSummary.hidden = true;
     rescheduleSummary.textContent = "";
@@ -3569,7 +3576,7 @@ scheduleMaterialFilter.addEventListener("change", renderSchedule);
 
 rescheduleButton.addEventListener("click", () => {
   if (materialTasks.length === 0) {
-    setScheduleStatus("再調整する教材予定がまだありません。", "error");
+    setScheduleStatus("組み直す教材予定がまだありません。", "error");
     return;
   }
   const summary = redistributeAllPlans(localDateKey());
