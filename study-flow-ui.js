@@ -42,11 +42,19 @@ function submitStudyCompletion(action){
   try{
     if(flowFingerprint()!==completionBaseline||flowStorageFingerprint()!==completionStorageBaseline)throw Error('入力中に予定または記録が更新されました。一度閉じて、画面を再読み込みしてから開き直してください。');
     completionSaving=true;
+    const originalTask=materialTasks.find(task=>task.id===completionTaskId);
+    const feedback=studySaveMessage(records,scheduleElement('scheduleCompletedDate').value);
     const state=action==='keep'||action==='delete'?StudyFlow.undo(flowState(),completionTaskId,action==='keep',createId):
       StudyFlow.finish(flowState(),completionTaskId,{withTime:action==='time',date:scheduleElement('scheduleCompletedDate').value,minutes:scheduleElement('completionMinutes').value,subject:scheduleElement('completionSubject').value},createId,localDateKey());
     saveFlowState(state);completionBaseline=flowFingerprint();
+    if(!originalTask.done&&(action==='time'||action==='none'))rememberHomeCompletion('task',originalTask.id);
+    if(action==='keep'||action==='delete')homeRecentCompletions.delete('task:'+originalTask.id);
     scheduleElement('scheduleCompletionDialog').close();completionTaskId='';
     setScheduleStatus(action==='keep'?'完了を取り消しました。学習記録は実績として残しました。':action==='delete'?'完了と紐づく学習記録を取り消しました。':action==='time'?'予定の完了と学習記録を保存しました。':'時間を記録せず完了しました。','success');render();
+    showHomeFeedback(action==='keep'||action==='delete'?'完了を取り消しました。':action==='time'?feedback:'✓ タスクを完了しました。');
+    const panel=document.querySelector(`[data-tab-panel="${document.body.dataset.screen||'home'}"]`);
+    const row=[...panel.querySelectorAll('[data-home-key]')].find(item=>item.dataset.homeKey==='task:'+originalTask.id);
+    row?.querySelector('input').focus();
   }catch(error){scheduleElement('scheduleCompletionStatus').textContent=error.message;}
   finally{completionSaving=false;}
 }

@@ -159,6 +159,7 @@ function parseBatchRecords({ date, rows, words, activity }) {
     const before = records.reduce((sum, record) => sum + record.minutes, 0);
     const previousBest = Math.max(0, ...Object.values(studyMinutesByDate()));
     const previousToday = records.filter(record => record.date === localDateKey()).reduce((sum, record) => sum + record.minutes, 0);
+    const feedback = studySaveMessage(records, values.date);
     // Commit once; the existing transaction also maintains linked schedule data.
     if (!tryCommitRecords([...parsed.records, ...records])) {
       fail('保存できませんでした。入力は残しています。' + recordCommitError); return;
@@ -167,6 +168,8 @@ function parseBatchRecords({ date, rows, words, activity }) {
     render();
     batchStatus.className = 'form-status success';
     batchStatus.textContent = `${parsed.records.length}科目・${formatMinutes(added)}を保存しました。`;
+    if (feedback !== '記録しました。') batchStatus.textContent += ` ${feedback}`;
+    showHomeFeedback(feedback);
     for (const input of batchRows.querySelectorAll('[data-batch-minutes]')) input.value = '';
     byId('batchWords').value = ''; refreshBatchTotal();
     if (calculateLevel(before + added).level > calculateLevel(before).level) showLevelUp(calculateLevel(before + added).level);

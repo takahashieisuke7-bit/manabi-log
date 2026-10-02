@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#101113">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=33">
+  <link rel="manifest" href="manifest.webmanifest?v=35">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=33"></script>
-  <link rel="stylesheet" href="style.css?v=33">
-<link rel="stylesheet" href="schedule.css?v=33">
-  <link rel="stylesheet" href="design.css?v=33">
-  <link rel="stylesheet" href="theme.css?v=33">
+  <script src="theme.js?v=35"></script>
+  <link rel="stylesheet" href="style.css?v=35">
+<link rel="stylesheet" href="schedule.css?v=35">
+  <link rel="stylesheet" href="design.css?v=35">
+  <link rel="stylesheet" href="theme.css?v=35">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -27,18 +27,25 @@
 <div class="page-heading"><h2>今日の学習</h2><time id="todayDate" class="date-label"></time></div>
 <div class="home-layout">
 <section class="card today-hero" aria-label="今日の進捗">
-  <div class="today-overview"><div><span>学習時間</span><strong id="todayTotal">0分</strong></div><div><span>目標 <span id="achievementRate">未設定</span></span><strong id="todayGoalTarget"></strong></div><div><span>予定・ToDo完了</span><strong id="todayDoneCount">0 / 0</strong></div></div>
+  <div class="today-study-line"><span>今日</span><strong id="todayTotal">0分</strong><span class="today-goal-inline">/ 目標 <span id="todayGoalTarget">未設定</span></span></div>
   <div class="progress-track" role="progressbar" aria-label="今日の目標達成率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressBar" class="progress-bar"></div></div>
+  <div class="today-progress-caption"><span>タスク <strong id="todayDoneCount">0 / 0</strong>件</span><span id="achievementRate">目標未設定</span></div>
   <span id="goalProgress" class="visually-hidden"></span><span id="achievementMessage" class="visually-hidden"></span>
 </section>
 <section class="card home-agenda" aria-label="今日やること">
   <div class="section-title"><h2>今日やること</h2><button id="goScheduleButton" class="text-button" type="button">予定を見る</button></div>
+  <p class="task-list-help">教材はチェックで記録／行から詳細・変更</p>
   <div class="unified-agenda"><div id="todayScheduleList" class="schedule-list compact"></div><div id="todoList" class="todo-list"></div></div>
+  <p id="todayReadyEmpty" class="agenda-empty" hidden></p>
+  <details id="homeWaiting" class="agenda-group" hidden><summary>着手待ち・<span id="homeWaitingCount">0</span>件</summary><p class="setting-note">新規学習を完了すると、対応する復習に取り組めます。</p><div id="homeWaitingList" class="schedule-list compact"></div></details>
+  <details id="homeCompleted" class="agenda-group" hidden><summary id="homeCompletedSummary">✓ 完了済み・<span id="homeCompletedCount">0</span>件</summary><div id="homeCompletedList" class="unified-agenda"></div></details>
   <p id="todayScheduleEmpty" class="empty">今日の予定はありません。</p><p id="todoEmpty" hidden></p>
   <span id="todayScheduleBadge" hidden></span><span id="todoBadge" hidden></span><span id="todoProgress" hidden></span>
   <details class="todo-add"><summary>＋ ToDoを追加</summary><form id="todoForm" class="todo-form"><input id="todoInput" aria-label="今日やることを追加" maxlength="50" placeholder="例：明日の教材を準備" required><button type="submit">追加</button></form></details>
   <button id="goRecordButton" class="secondary-button" type="button">予定以外の学習を記録</button>
 </section>
+<section class="home-accumulation" aria-label="学習の積み上げ"><span>累計 <strong id="homeCumulativeTime">0分</strong></span><span>今週 <strong id="homeStudyDays">0日</strong>勉強した</span></section>
+<p id="homeFeedback" class="home-feedback" role="status" aria-live="polite"></p>
 <details class="card home-goal-details"><summary>今日の科目別目標</summary><div id="homeSubjectGoals" class="home-subject-goals"></div><button id="editTodayGoal" class="text-button" type="button">目標を設定・変更</button></details>
 <details class="home-growth-details"><summary>これまでの成長・試験まで</summary><div class="home-growth-content"><section class="level-card card growth-card">
       <div class="growth-heading"><span>学びを育てよう</span><span id="levelSummaryBadge" class="goal-display">Lv.1</span></div><p id="levelSummary" class="visually-hidden"></p>
@@ -110,6 +117,7 @@
       </div>
 
       <div class="schedule-day-heading"><h3 id="scheduleDayTitle"></h3></div>
+      <p class="task-list-help">チェックで記録・行を押して詳細／変更</p>
 
       <div id="scheduleList" class="schedule-list"></div>
       <p id="scheduleEmpty" class="empty">この日の予定はありません。</p>
@@ -721,6 +729,10 @@
     </form>
   </dialog>
 
+  <dialog id="taskDetailsDialog" class="profile-dialog task-details-dialog" aria-labelledby="taskDetailsTitle">
+    <div class="dialog-header"><h2 id="taskDetailsTitle">タスクの詳細・変更</h2><button id="taskDetailsClose" class="dialog-close" type="button" aria-label="タスクの詳細を閉じる">×</button></div>
+    <div id="taskDetailsContent"></div>
+  </dialog>
   <dialog id="scheduleCompletionDialog" class="profile-dialog completion-dialog" aria-labelledby="scheduleCompletionTitle">
     <div class="dialog-header"><h2 id="scheduleCompletionTitle">学習を完了・記録</h2><button id="scheduleCompletionClose" class="dialog-close" type="button" aria-label="完了を閉じる">×</button></div>
     <form id="scheduleCompletionForm" novalidate><p id="scheduleCompletionLabel" class="edit-context"></p><p id="completionRecordNote"></p>
@@ -780,16 +792,16 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=33"></script>
-  <script src="study-flow.js?v=33"></script>
-  <script src="study-flow-ui.js?v=33"></script>
-  <script src="analysis-engine.js?v=33"></script>
-  <script src="analysis-ui.js?v=33"></script>
-  <script src="schedule-ui.js?v=33"></script>
-  <script src="schedule-edit.js?v=33"></script>
-  <script src="app.js?v=33"></script>
-  <script src="ui.js?v=33"></script>
-  <script src="design-ui.js?v=33"></script>
+  <script src="schedule-engine.js?v=35"></script>
+  <script src="study-flow.js?v=35"></script>
+  <script src="study-flow-ui.js?v=35"></script>
+  <script src="analysis-engine.js?v=35"></script>
+  <script src="analysis-ui.js?v=35"></script>
+  <script src="schedule-ui.js?v=35"></script>
+  <script src="schedule-edit.js?v=35"></script>
+  <script src="app.js?v=35"></script>
+  <script src="ui.js?v=35"></script>
+  <script src="design-ui.js?v=35"></script>
 <datalist id="subjectOptions"><option value="英語"><option value="数学"><option value="国語"><option value="物理"><option value="化学"><option value="生物"><option value="日本史"><option value="世界史"><option value="地理"><option value="情報"></datalist>
 </body>
 </html>

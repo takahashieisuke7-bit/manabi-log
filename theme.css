@@ -110,7 +110,7 @@ button:is([type="submit"], .schedule-complete-primary, .add-plan-button, .backup
   --control-hover: var(--primary-hover);
   --control-pressed: var(--primary-pressed);
 }
-button:is(.text-button, .icon-button, .dialog-close, .batch-remove, .profile-button, .legend-item, .study-bar-button),
+button:is(.text-button, .icon-button, .dialog-close, .batch-remove, .profile-button, .legend-item, .study-bar-button, .task-row-detail),
 .app-tabs button {
   --control-bg: transparent;
   --control-edge: transparent;
@@ -169,6 +169,13 @@ h1, h2, h3, h4, .today-overview strong, .summary strong { color: var(--text-head
 .schedule-kind.review { background: var(--info-soft); color: var(--info); }
 .schedule-item.done .schedule-kind { background: var(--success-soft); color: var(--success); }
 .todo-item.done { border-left: 3px solid var(--success); }
+.task-row-detail .task-row-body, .task-row-detail strong { color: var(--text-primary); }
+.task-row-detail .task-range, .task-row-detail .task-state, .task-row-detail .task-row-arrow, .task-row-detail .todo-kind { color: var(--text-secondary); }
+.task-row-detail .schedule-kind { background: var(--surface-secondary); color: var(--text-secondary); }
+.task-row-detail .schedule-kind.review { background: var(--info-soft); color: var(--info); }
+.done .task-row-detail .schedule-kind, #homeCompletedSummary { color: var(--success); }
+.done .task-row-detail .schedule-kind { background: var(--success-soft); }
+:is(.schedule-item, .todo-item).just-completed { background: var(--success-soft); border-left: 3px solid var(--success); }
 .progress-bar, .level-bar, .roadmap-bar, .subject-goal-bar { background: var(--accent); }
 .badge-progress::-webkit-progress-value { background: var(--accent); }
 .badge-progress::-moz-progress-bar { background: var(--accent); }

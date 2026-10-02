@@ -1066,60 +1066,140 @@ function latestMockResultBySubject() {
   return latest;
 }
 
-function renderTodos() {
-  const todayKey = localDateKey();
-  const todaysTodos = todos.filter((todo) => todo.date === todayKey);
-  const doneCount = todaysTodos.filter((todo) => todo.done).length;
+// Presentation state only: a saved completion briefly stays in its original row.
+const homeRecentCompletions = new Map();
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('taskDetailsClose').addEventListener('click', () => document.getElementById('taskDetailsDialog').close());
+});
+function rememberHomeCompletion(kind, id) {
+  const key = `${kind}:${id}`, marker = Symbol();
+  homeRecentCompletions.set(key, marker);
+  setTimeout(() => {
+    if (homeRecentCompletions.get(key) !== marker) return;
+    const focusedRow = document.activeElement?.closest('[data-home-key]');
+    const restoreFocus = (document.body.dataset.screen || 'home') === 'home' && focusedRow?.dataset.homeKey === key;
+    homeRecentCompletions.delete(key);
+    renderHomeAgenda();
+    if (restoreFocus) document.getElementById('homeCompletedSummary').focus();
+  }, 900);
+}
 
-  todoList.replaceChildren();
-  todoEmpty.hidden = todaysTodos.length > 0;
-  todoBadge.textContent = `${doneCount} / ${todaysTodos.length}`;
-  if (todaysTodos.length === 0) {
-    todoProgress.textContent = "今日の勝ち筋を作ろう。";
-  } else if (doneCount === todaysTodos.length) {
-    todoProgress.textContent = "今日のやること完了。いい流れ、そのまま積もう。";
-  } else {
-    todoProgress.textContent = `残り${todaysTodos.length - doneCount}個。迷う時間を減らして、上から潰そう。`;
+function groupLearningTasks(tasks, allTasks) {
+  const byId = new Map(allTasks.map(task => [task.id, task]));
+  const groups = { ready: [], waiting: [], completed: [] };
+  for (const task of tasks) {
+    const source = byId.get(task.sourceNewId);
+    groups[task.done ? 'completed' : source && !source.done ? 'waiting' : 'ready'].push(task);
   }
+  return groups;
+}
 
-  todaysTodos.forEach((todo) => {
-    const item = document.createElement("label");
-    item.className = `todo-item${todo.done ? " done" : ""}`;
+function studySaveMessage(previousRecords, savedDate) {
+  const today = localDateKey();
+  if (savedDate !== today) return '記録しました。';
+  const dates = previousRecords.filter(record => record.minutes > 0 && record.date <= today).map(record => record.date).sort();
+  if (dates.includes(today)) return '記録しました。';
+  return dates.length && dates.at(-1) < addDays(today, -1)
+    ? 'また一歩積み上げたね。' : '今日の一歩を積み上げました。';
+}
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = todo.done;
-    checkbox.setAttribute("aria-label", todo.text + "を完了");
-    checkbox.addEventListener("change", () => {
-      todos = todos.map((item) => (
-        item.id === todo.id ? { ...item, done: checkbox.checked } : item
-      ));
-      saveTodos();
-      renderTodos();
-      renderWeeklyReview();
-      renderWeaknessAlerts();
-    });
+function showHomeFeedback(message) {
+  document.getElementById('homeFeedback').textContent = message;
+}
 
-    const text = document.createElement("span");
-    text.textContent = todo.text;
+function renderHomeAccumulation() {
+  const total = records.reduce((sum, record) => sum + record.minutes, 0);
+  const week = weekRange(0), today = localDateKey();
+  const days = new Set(records.filter(record => record.minutes > 0 && record.date >= week.startKey && record.date <= today).map(record => record.date));
+  setReadableDuration(document.getElementById('homeCumulativeTime'), formatMinutes(total));
+  document.getElementById('homeStudyDays').textContent = `${days.size}日`;
+}
 
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "todo-delete";
-    remove.setAttribute("aria-label", "やることを削除");
-    remove.textContent = "×";
-    remove.addEventListener("click", () => {
-      todos = todos.filter((item) => item.id !== todo.id);
-      saveTodos();
-      renderTodos();
-      renderWeaknessAlerts();
-    });
+function setTodoCompleted(todo, done) {
+  todos = todos.map(item => item.id === todo.id ? { ...item, done } : item);
+  saveTodos();
+  if (done && !todo.done) rememberHomeCompletion('todo', todo.id);
+  if (!done) homeRecentCompletions.delete('todo:' + todo.id);
+  renderTodos();
+  renderWeeklyReview();
+  renderWeaknessAlerts();
+  if ((document.body.dataset.screen || 'home') === 'home') {
+    const row = [...document.querySelectorAll('.home-agenda [data-home-key]')].find(item => item.dataset.homeKey === 'todo:' + todo.id);
+    row?.querySelector('input').focus();
+  }
+}
 
-    const kind=document.createElement("small");kind.className="todo-kind";kind.textContent="ToDo";
-    item.append(checkbox, text, kind, remove);
-    todoList.append(item);
-  });
+function createTodoItem(todo) {
+  const item = document.createElement('div');
+  item.className = `todo-item${todo.done ? ' done' : ''}${homeRecentCompletions.has('todo:' + todo.id) ? ' just-completed' : ''}`;
+  item.dataset.homeKey = 'todo:' + todo.id;
+  const target = document.createElement('label');
+  target.className = 'schedule-check-target';
+  const check = document.createElement('input');
+  check.type = 'checkbox'; check.checked = todo.done;
+  check.setAttribute('aria-label', `${todo.text}${todo.done ? 'の完了を取り消す' : 'を完了'}`);
+  check.addEventListener('change', () => setTodoCompleted(todo, check.checked));
+  target.append(check);
+  const row = document.createElement('button');
+  row.type = 'button'; row.className = 'task-row-detail';
+  row.setAttribute('aria-label', `${todo.text}のToDo詳細`);
+  row.setAttribute('aria-haspopup', 'dialog');
+  const title = document.createElement('strong'); title.textContent = todo.text;
+  const kind = document.createElement('span'); kind.className = 'todo-kind'; kind.textContent = 'ToDo';
+  const body = document.createElement('span'); body.className = 'task-row-body'; body.append(title, kind);
+  const arrow = document.createElement('span'); arrow.className = 'task-row-arrow'; arrow.textContent = '›'; arrow.setAttribute('aria-hidden', 'true');
+  row.append(body, arrow);
+  row.addEventListener('click', () => openTodoDetails(todo));
+  item.append(target, row);
+  return item;
+}
+
+function openTodoDetails(todo) {
+  const dialog = document.getElementById('taskDetailsDialog'), content = document.getElementById('taskDetailsContent');
+  content.replaceChildren();
+  document.getElementById('taskDetailsTitle').textContent = 'ToDoの詳細';
+  const title = document.createElement('p'); title.className = 'task-detail-material'; title.textContent = todo.text;
+  const note = document.createElement('p'); note.className = 'setting-note'; note.textContent = todo.done ? '✓ 完了済み' : '手動ToDo・未完了';
+  const actions = document.createElement('div'); actions.className = 'task-detail-actions';
+  const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'schedule-complete-primary';
+  toggle.textContent = todo.done ? '完了を取り消す' : 'ToDoを完了';
+  toggle.addEventListener('click', () => { dialog.close(); const current = todos.find(item => item.id === todo.id); if (current) setTodoCompleted(current, !current.done); });
+  const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'danger'; remove.textContent = 'このToDoを削除';
+  remove.addEventListener('click', () => { dialog.close(); todos = todos.filter(item => item.id !== todo.id); saveTodos(); renderTodos(); renderWeaknessAlerts(); });
+  actions.append(toggle, remove); content.append(title, note, actions); dialog.showModal();
+}
+
+function renderTodos() {
+  const todaysTodos = todos.filter(todo => todo.date === localDateKey());
+  const doneCount = todaysTodos.filter(todo => todo.done).length;
+  todoBadge.textContent = `${doneCount} / ${todaysTodos.length}`;
+  todoProgress.textContent = todaysTodos.length && doneCount === todaysTodos.length ? '今日のToDoを終えました。' : `残り${todaysTodos.length - doneCount}件。自分のペースで。`;
+  renderHomeAgenda();
   renderTodayOverview();
+}
+
+function renderHomeAgenda() {
+  const today = localDateKey();
+  const tasks = materialTasks.filter(task => task.date === today).sort((a, b) => a.material.localeCompare(b.material, 'ja') || a.start - b.start);
+  const dailyTodos = todos.filter(todo => todo.date === today);
+  const groups = groupLearningTasks(tasks, materialTasks);
+  const recent = groups.completed.filter(task => homeRecentCompletions.has('task:' + task.id));
+  const doneTasks = groups.completed.filter(task => !homeRecentCompletions.has('task:' + task.id));
+  const doneTodos = dailyTodos.filter(todo => todo.done && !homeRecentCompletions.has('todo:' + todo.id));
+  const waiting = document.getElementById('homeWaitingList'), completed = document.getElementById('homeCompletedList');
+  todayScheduleList.replaceChildren(); todoList.replaceChildren(); waiting.replaceChildren(); completed.replaceChildren();
+  [...groups.ready, ...recent].sort((a, b) => a.material.localeCompare(b.material, 'ja') || a.start - b.start).forEach(task => todayScheduleList.append(createScheduleItem(task)));
+  dailyTodos.filter(todo => !todo.done || homeRecentCompletions.has('todo:' + todo.id)).forEach(todo => todoList.append(createTodoItem(todo)));
+  groups.waiting.forEach(task => waiting.append(createScheduleItem(task)));
+  doneTasks.forEach(task => completed.append(createScheduleItem(task)));
+  doneTodos.forEach(todo => completed.append(createTodoItem(todo)));
+  document.getElementById('homeWaiting').hidden = !groups.waiting.length;
+  document.getElementById('homeWaitingCount').textContent = groups.waiting.length;
+  document.getElementById('homeCompleted').hidden = !(doneTasks.length + doneTodos.length);
+  document.getElementById('homeCompletedCount').textContent = doneTasks.length + doneTodos.length;
+  const empty = document.getElementById('todayReadyEmpty');
+  empty.hidden = !!(todayScheduleList.children.length + todoList.children.length) || !(tasks.length + dailyTodos.length);
+  empty.textContent = groups.waiting.length ? '新規学習を終えると、復習に取り組めます。' : '✓ 今日のタスクを終えました。';
 }
 
 function renderTodayOverview() {
@@ -1130,130 +1210,77 @@ function renderTodayOverview() {
   todoEmpty.hidden=true;
 }
 
-function createScheduleItem(task, { compact = false } = {}) {
-  const item = document.createElement("div");
-  item.className = `schedule-item${task.done ? " done" : ""}`;
-
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.className = "schedule-check";
-  checkbox.checked = task.done;
-  checkbox.setAttribute("aria-label", `${task.material} ${formatTaskRange(task)} ${taskTypeLabel(task.type)}を完了`);
-  const source=materialTasks.find(t=>t.id===task.sourceNewId);
-  checkbox.disabled=Boolean(!task.done && source && !source.done);
-  checkbox.addEventListener("change", () => {
-    checkbox.checked=task.done;
-    if(task.done) { openStudyCompletion(task, true); return; }
-    openStudyCompletion(task);
-  });
-
-  const main = document.createElement("div");
-  main.className = "schedule-main";
-  const title = document.createElement("strong");
-  title.textContent = task.material;
-  const range = document.createElement("span");
-  range.textContent = formatTaskRange(task);
-  const meta = document.createElement("small");
-  const linkedRecord=linkedStudyRecord(task);
-  const labels = [
-    task.date,
-    task.fixed ? "固定" : "",
-    task.manual ? "手動調整" : "",
-  ].filter(Boolean);
-  meta.textContent = compact ? [taskTypeLabel(task.type), task.fixed ? "固定" : ""].filter(Boolean).join("・") : labels.join("・");
-  if(task.done) labels.push(`完了 ${task.completedDate || task.date}`);
-  else if(source && !source.done) labels.push("新規学習の完了待ち");
-  else if(task.date < localDateKey()) labels.push("未完了・期限超過");
-  if(task.dueDate && task.dueDate!==task.date) labels.push(`基準日 ${task.dueDate} → ${task.date}`);
-  else if(task.originalDate && task.originalDate!==task.date) labels.push(`移動前 ${task.originalDate} → ${task.date}`);
-  if(task.fixed && ScheduleEngine.conflicts([task,...(source?[source]:[])],materialPlans,holidays).length) labels.push("固定の衝突あり・編集で調整");
-  meta.textContent=labels.join("・");
-  labels.push(task.done?"✓ 完了済み":"○ 未完了");
-  labels.push(linkedRecord?`記録 ${linkedRecord.date}・${linkedRecord.subject}・${linkedRecord.minutes}分`:task.done?"時間未記録":"");
-  if(task.type==="review"&&ScheduleEngine.reviewRounds(task).length)labels.push(`復習 ${ScheduleEngine.reviewRounds(task).join("・")}日後${ScheduleEngine.reviewRounds(task).length>1?"を1回に統合":""}`);
-  const detailText=labels.filter(Boolean).join("・");
-  meta.textContent=[task.fixed?'固定':'',task.manual?'個別調整':'',
-    source&&!source.done?'新規学習の完了待ち':'',
-    !task.done&&task.date<localDateKey()?'期限超過':'',
-    linkedRecord?`${linkedRecord.subject}・${linkedRecord.minutes}分`:task.done?'完了・時間未記録':'',
-    task.fixed&&ScheduleEngine.conflicts([task,...(source?[source]:[])],materialPlans,holidays).length?'固定の衝突あり':''].filter(Boolean).join('・');
-  meta.hidden=!meta.textContent;
-  const kind = document.createElement("span");
-  kind.className = `schedule-kind${task.type === "review" ? " review" : ""}`;
-  kind.textContent = "教材・" + taskTypeLabel(task.type);
-
-  const heading = document.createElement("div");
-  heading.className = "schedule-heading";
-  heading.append(title, kind);
-  main.append(heading, range, meta);
-  const checkTarget = document.createElement("label");
-  checkTarget.className = "schedule-check-target";
-  checkTarget.append(checkbox);
-  item.append(checkTarget, main);
-
-  {
-    const actions = document.createElement("div");
-    actions.className = "schedule-actions";
-
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.textContent = "この予定の日付・範囲を編集";
-    edit.setAttribute("aria-label", `${task.material} ${taskTypeLabel(task.type)} ${formatTaskRange(task)}の日付・範囲を編集`);
-    edit.disabled=task.done;
-    edit.addEventListener("click", () => openScheduleEditDialog(task));
-
-    const pin = document.createElement("button");
-    pin.type = "button";
-    pin.textContent = task.fixed ? "この予定の固定を解除" : "この予定を固定";
-    pin.disabled=task.done;
-    pin.addEventListener("click", () => {
-      openScheduleEditDialog(task);
-      editScheduleFixedInput.checked=!task.fixed;
-      updateTaskEditHint();
-      previewTaskEdit();
-    });
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "danger";
-    remove.textContent = "この予定を削除";
-    remove.addEventListener("click", () => {
-      if (task.done || task.recordId || materialTasks.some(t=>t.sourceNewId===task.id && (t.done || t.fixed || t.recordId))) { setScheduleStatus("実績・時間記録・固定された復習に紐づく予定は削除できません。", "error"); return; }
-      if (!confirm("この教材予定と紐づく未完了の復習を削除しますか？")) return;
-      materialTasks = materialTasks.filter((entry) => entry.id !== task.id && entry.sourceNewId !== task.id);
-      saveMaterialTasks();
-      render();
-    });
-
-    remove.disabled=task.done;
-    if(task.done){const time=document.createElement("button");time.type="button";time.textContent=linkedRecord?"時間を修正":"時間を記録";time.addEventListener("click",()=>openStudyCompletion(task));actions.append(time);}
-    if(!task.done){const finish=document.createElement("button");finish.type="button";finish.className="schedule-complete-primary";finish.textContent="完了・時間を記録";finish.disabled=checkbox.disabled;finish.addEventListener("click",()=>openStudyCompletion(task));actions.append(finish);}
-    const menu=document.createElement("details");menu.className="schedule-more";
-    const summary=document.createElement("summary");summary.textContent="変更";summary.setAttribute("aria-label",`${task.material} ${taskTypeLabel(task.type)} ${formatTaskRange(task)}の予定を変更`);
-    const content=document.createElement("div");const context=document.createElement("p");context.className="setting-note";context.textContent=detailText;content.append(context,edit,pin,remove);
-    const taskPlan=planById(task.planId);
-    if(taskPlan){const editPlan=document.createElement("button");editPlan.type="button";editPlan.textContent="教材全体の範囲・終了日を編集";editPlan.addEventListener("click",()=>{menu.open=false;openMaterialSettings(taskPlan);});content.append(editPlan);}
-    if(task.done){const undo=document.createElement("button");undo.type="button";undo.textContent="完了を取り消す";undo.addEventListener("click",()=>openStudyCompletion(task,true));content.append(undo);}
-    menu.append(summary,content);actions.append(menu);
-    item.append(actions);
-  }
-
+function createScheduleItem(task) {
+  const item = document.createElement('div');
+  item.className = `schedule-item${task.done ? ' done' : ''}${homeRecentCompletions.has('task:' + task.id) ? ' just-completed' : ''}`;
+  item.dataset.homeKey = 'task:' + task.id;
+  const source = materialTasks.find(entry => entry.id === task.sourceNewId);
+  const target = document.createElement('label'); target.className = 'schedule-check-target';
+  const check = document.createElement('input'); check.type = 'checkbox'; check.className = 'schedule-check'; check.checked = task.done;
+  check.disabled = Boolean(!task.done && source && !source.done);
+  check.setAttribute('aria-label', `${task.material} ${formatTaskRange(task)} ${taskTypeLabel(task.type)}${task.done ? 'の完了を取り消す' : 'を完了して時間を記録'}`);
+  check.addEventListener('change', () => { check.checked = task.done; openStudyCompletion(task, task.done); });
+  target.append(check);
+  const row = document.createElement('button'); row.type = 'button'; row.className = 'task-row-detail schedule-main';
+  row.setAttribute('aria-label', `${task.material} ${taskTypeLabel(task.type)} ${formatTaskRange(task)}の詳細・変更`);
+  row.setAttribute('aria-haspopup', 'dialog');
+  const body = document.createElement('span'); body.className = 'task-row-body';
+  const title = document.createElement('strong'); title.textContent = task.material;
+  const range = document.createElement('span'); range.className = 'task-range'; range.textContent = formatTaskRange(task);
+  const kind = document.createElement('span'); kind.className = `schedule-kind${task.type === 'review' ? ' review' : ''}`; kind.textContent = taskTypeLabel(task.type) + (task.fixed ? '・固定' : task.manual ? '・手動' : '');
+  const line = document.createElement('span'); line.className = 'task-range-line'; line.append(range, kind);
+  body.append(title, line);
+  const record = linkedStudyRecord(task);
+  const labels = [!task.done && source && !source.done ? '新規学習の完了待ち' : '', !task.done && task.date < localDateKey() ? '期限超過' : '', record ? `${record.minutes}分記録済み` : task.done ? '時間未記録' : '', task.fixed && ScheduleEngine.conflicts([task, ...(source ? [source] : [])], materialPlans, holidays).length ? '固定の衝突あり' : ''].filter(Boolean);
+  if (labels.length) { const meta = document.createElement('small'); meta.className = 'task-state'; meta.textContent = labels.join('・'); body.append(meta); }
+  const arrow = document.createElement('span'); arrow.className = 'task-row-arrow'; arrow.textContent = '›'; arrow.setAttribute('aria-hidden', 'true');
+  row.append(body, arrow); row.addEventListener('click', () => openTaskDetails(task));
+  item.append(target, row);
   return item;
 }
 
-function renderTodaySchedule() {
-  const todayKey = localDateKey();
-  const todaysTasks = materialTasks
-    .filter((task) => task.date === todayKey)
-    .sort((a, b) => Number(a.done) - Number(b.done) || a.material.localeCompare(b.material, "ja"));
-  const doneCount = todaysTasks.filter((task) => task.done).length;
+function openTaskDetails(task) {
+  task = materialTasks.find(entry => entry.id === task.id);
+  if (!task) return;
+  const dialog = document.getElementById('taskDetailsDialog'), content = document.getElementById('taskDetailsContent');
+  content.replaceChildren(); document.getElementById('taskDetailsTitle').textContent = 'タスクの詳細・変更';
+  const record = linkedStudyRecord(task), source = materialTasks.find(entry => entry.id === task.sourceNewId);
+  const title = document.createElement('p'); title.className = 'task-detail-material'; title.textContent = task.material;
+  const range = document.createElement('p'); range.className = 'task-detail-range'; range.textContent = `${taskTypeLabel(task.type)}・${formatTaskRange(task)}`;
+  const note = document.createElement('p'); note.className = 'setting-note';
+  const labels = [task.date, task.subject || planById(task.planId)?.subject || '', task.done ? `✓ 完了 ${task.completedDate || task.date}` : source && !source.done ? '新規学習の完了待ち' : '○ 未完了', task.fixed ? '固定' : '', task.manual ? '個別調整' : '', !task.done && task.date < localDateKey() ? '期限超過' : '', record ? `記録 ${record.date}・${record.subject}・${record.minutes}分` : task.done ? '時間未記録' : ''];
+  if (task.dueDate && task.dueDate !== task.date) labels.push(`基準日 ${task.dueDate} → ${task.date}`);
+  else if (task.originalDate && task.originalDate !== task.date) labels.push(`移動前 ${task.originalDate} → ${task.date}`);
+  const rounds = ScheduleEngine.reviewRounds(task);
+  if (task.type === 'review' && rounds.length) labels.push(`復習 ${rounds.join('・')}日後${rounds.length > 1 ? 'を1回に統合' : ''}`);
+  if (task.fixed && ScheduleEngine.conflicts([task, ...(source ? [source] : [])], materialPlans, holidays).length) labels.push('固定の衝突あり・編集で調整');
+  note.textContent = labels.filter(Boolean).join('・');
+  const status = document.createElement('p'); status.className = 'form-status error'; status.setAttribute('role', 'status');
+  const actions = document.createElement('div'); actions.className = 'task-detail-actions';
+  const addAction = (label, callback, { disabled = false, className = 'secondary-button' } = {}) => {
+    const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.className = className; button.disabled = disabled;
+    button.addEventListener('click', () => { const current = materialTasks.find(entry => entry.id === task.id); if (!current) { dialog.close(); return; } callback(current); });
+    actions.append(button);
+  };
+  const handoff = callback => current => { dialog.close(); callback(current); };
+  addAction(task.done ? record ? '時間を修正' : '時間を記録' : '完了・時間を記録', handoff(current => openStudyCompletion(current)), { disabled: Boolean(!task.done && source && !source.done), className: 'schedule-complete-primary' });
+  addAction('この予定の日付・範囲を編集', handoff(openScheduleEditDialog), { disabled: task.done });
+  const plan = planById(task.planId);
+  if (plan) addAction('教材全体の範囲・終了日を編集', handoff(current => openMaterialSettings(planById(current.planId))));
+  addAction(task.fixed ? 'この予定の固定を解除' : 'この予定を固定', handoff(current => { openScheduleEditDialog(current); editScheduleFixedInput.checked = !current.fixed; updateTaskEditHint(); previewTaskEdit(); }), { disabled: task.done });
+  if (task.done) addAction('完了を取り消す', handoff(current => openStudyCompletion(current, true)));
+  addAction('この予定を削除', current => {
+    if (current.done || current.recordId || materialTasks.some(entry => entry.sourceNewId === current.id && (entry.done || entry.fixed || entry.recordId))) { status.textContent = '実績・時間記録・固定された復習に紐づく予定は削除できません。'; setScheduleStatus(status.textContent, 'error'); return; }
+    if (!confirm('この教材予定と紐づく未完了の復習を削除しますか？')) return;
+    dialog.close(); materialTasks = materialTasks.filter(entry => entry.id !== current.id && entry.sourceNewId !== current.id); saveMaterialTasks(); render();
+  }, { disabled: task.done, className: 'danger' });
+  content.append(title, range, note, status, actions); dialog.showModal();
+}
 
-  todayScheduleList.replaceChildren();
-  todayScheduleEmpty.hidden = todaysTasks.length > 0;
-  todayScheduleBadge.textContent = `${doneCount} / ${todaysTasks.length}`;
-  todaysTasks.forEach((task) => {
-    todayScheduleList.append(createScheduleItem(task, { compact: true }));
-  });
+function renderTodaySchedule() {
+  const tasks = materialTasks.filter(task => task.date === localDateKey());
+  todayScheduleBadge.textContent = `${tasks.filter(task => task.done).length} / ${tasks.length}`;
+  renderHomeAgenda();
   renderTodayOverview();
 }
 
@@ -1360,9 +1387,10 @@ function renderSchedule() {
   scheduleSummary.textContent = materialTasks.length === 0
     ? "予定を作るとここに表示されます。"
     : `教材${new Set(materialTasks.map((task) => task.material)).size}件・予定${doneCount}/${materialTasks.length}件完了`;
-  for(const done of [false,true]){
-    const group=visibleTasks.filter(t=>t.done===done);if(!group.length)continue;
-    const heading=document.createElement("h4");heading.className="schedule-group-title";heading.textContent=(done?"✓ 完了済み":"○ 未完了")+" · "+group.length+"件";scheduleList.append(heading);
+  const groups = groupLearningTasks(visibleTasks, materialTasks);
+  for(const [key, label] of [['ready','○ 未完了'], ['waiting','着手待ち'], ['completed','✓ 完了済み']]){
+    const group=groups[key];if(!group.length)continue;
+    const heading=document.createElement("h4");heading.className="schedule-group-title";heading.textContent=label+" · "+group.length+"件";scheduleList.append(heading);
     group.forEach(task=>scheduleList.append(createScheduleItem(task)));
   }
 
@@ -3156,6 +3184,7 @@ function render() {
 
   setReadableDuration(allTotal, formatMinutes(total));
   setReadableDuration(todayTotal, formatMinutes(today));
+  renderHomeAccumulation();
   todayWords.textContent = `${todayWordCount}個`;
   allWords.textContent = `累計 ${totalWordCount}個`;
   currentStreak.textContent = `${streaks.current}日`;
@@ -3165,11 +3194,12 @@ function render() {
   goalDisplay.textContent = dailyGoal > 0 ? formatMinutes(dailyGoal) : "未設定";
   if (dailyGoal === 0) {
     goalProgress.textContent = "目標を設定してみよう";
-    achievementRate.textContent = "未設定";
+    achievementRate.textContent = "目標未設定";
     achievementMessage.textContent = "まず今日の基準を決めよう。";
     progressBar.style.width = "0%";
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", "0");
+    progressTrack.setAttribute("aria-valuetext", `今日${formatMinutes(today)}・目標未設定`);
   } else if (today >= dailyGoal) {
     const rate = Math.floor((today / dailyGoal) * 100);
     goalProgress.textContent = "今日の目標達成！";
@@ -3178,6 +3208,7 @@ function render() {
     progressBar.style.width = "100%";
     progressBar.classList.add("completed");
     progressTrack.setAttribute("aria-valuenow", "100");
+    progressTrack.setAttribute("aria-valuetext", `今日${formatMinutes(today)}・目標達成 ${rate}%`);
   } else {
     const rate = Math.floor((today / dailyGoal) * 100);
     goalProgress.textContent = `目標まであと${formatMinutes(dailyGoal - today)}`;
@@ -3188,6 +3219,7 @@ function render() {
     progressBar.style.width = `${rate}%`;
     progressBar.classList.remove("completed");
     progressTrack.setAttribute("aria-valuenow", String(rate));
+    progressTrack.setAttribute("aria-valuetext", `今日${formatMinutes(today)}・目標まであと${formatMinutes(dailyGoal - today)}`);
   }
   const unlockedBadgeCount = renderBadges(
     total,
@@ -3239,13 +3271,15 @@ form.addEventListener("submit", (event) => {
   }
 
   const nextRecords = [parsed.record, ...records];
+  const feedback = studySaveMessage(records, parsed.record.date);
   if (!tryCommitRecords(nextRecords)) {
     setRecordStatus("保存できませんでした。入力内容は残しています。ブラウザの空き容量やプライベートモード設定を確認してください。", "error");
     return;
   }
 
   render();
-  setRecordStatus("記録しました。", "success");
+  setRecordStatus(feedback, "success");
+  showHomeFeedback(feedback);
   const newLevel = calculateLevel(previousTotal + parsed.record.minutes).level;
   if (newLevel > previousLevel) {
     showLevelUp(newLevel);
