@@ -1,36 +1,39 @@
 /* Color roles shared by every screen. Geometry stays in design.css. */
 :root {
   color-scheme: dark;
-  --background: #101113;
-  --surface: #252730;
-  --surface-secondary: #30323b;
-  --surface-hover: #3c3e48;
-  --surface-pressed: #484b57;
-  --input: #1d1f26;
-  --text-primary: #e1e3e8;
-  --text-heading: #f8f9fc;
-  --text-secondary: #b5b8c3;
-  --border: #555865;
-  --control-border: #8c909f;
-  --primary: #d5c5f5;
-  --primary-hover: #ded2f8;
-  --primary-pressed: #c9b5ee;
-  --primary-edge: #d5c5f5;
-  --on-accent: #231535;
-  --accent: #d4c3f3;
-  --accent-soft: #3b304f;
-  --focus-ring: #ddcdff;
-  --success: #a0d8b5;
-  --success-soft: #1e352a;
+  --background: #101722;
+  --surface: #1b2738;
+  --surface-secondary: #243247;
+  --surface-hover: #2b3c53;
+  --surface-pressed: #324660;
+  --input: #152132;
+  --text-primary: #e3ecf9;
+  --text-heading: #f7faff;
+  --text-secondary: #bbc9dc;
+  --border: #3a4b63;
+  --control-border: #8496b3;
+  --primary: #2463eb;
+  --primary-hover: #1b53ce;
+  --primary-pressed: #1947ac;
+  --primary-edge: #85b4ff;
+  --on-accent: #ffffff;
+  --accent: #91bcff;
+  --accent-soft: #223a5c;
+  --focus-ring: #a3c7ff;
+  --success: #7bdfc4;
+  --on-success: #101722;
+  --success-soft: #163b34;
+  --progress-fill: #36c6a5;
+  --progress-track: #243247;
   --warning: #efc888;
   --warning-soft: #392e1b;
   --danger: #ffa9b3;
   --danger-soft: #3e252c;
   --info: #a2c9ef;
   --info-soft: #233243;
-  --chart-1: #d4c3f3;
-  --chart-2: #91bdf5;
-  --chart-3: #83d0ab;
+  --chart-1: #83b5ff;
+  --chart-2: #65d1c7;
+  --chart-3: #c3a4ef;
   --chart-4: #e9c37d;
   --chart-5: #efa3b0;
   --chart-6: #c5c8d5;
@@ -49,36 +52,39 @@
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --background: #f9f8fc;
+  --background: #f5f7fb;
   --surface: #ffffff;
-  --surface-secondary: #f5f2fa;
-  --surface-hover: #efebf7;
-  --surface-pressed: #e7e0f1;
-  --input: #fcfbfe;
-  --text-primary: #343740;
-  --text-heading: #17191f;
-  --text-secondary: #585e6a;
-  --border: #d8d1e4;
-  --control-border: #80758f;
-  --primary: #d8c9f5;
-  --primary-hover: #cebbef;
-  --primary-pressed: #c2ace8;
-  --primary-edge: #71538f;
-  --on-accent: #302440;
-  --accent: #715698;
-  --accent-soft: #f2ebfb;
-  --focus-ring: #7149bb;
-  --success: #226844;
-  --success-soft: #e4f2e9;
+  --surface-secondary: #edf2fa;
+  --surface-hover: #e7eef9;
+  --surface-pressed: #dce6f5;
+  --input: #f8faff;
+  --text-primary: #243650;
+  --text-heading: #14243d;
+  --text-secondary: #56647a;
+  --border: #e0e7f1;
+  --control-border: #7d8ba2;
+  --primary: #2463eb;
+  --primary-hover: #1b53ce;
+  --primary-pressed: #1947ac;
+  --primary-edge: #2463eb;
+  --on-accent: #ffffff;
+  --accent: #1d57cf;
+  --accent-soft: #eaf1ff;
+  --focus-ring: #1d57cf;
+  --success: #087a62;
+  --on-success: #ffffff;
+  --success-soft: #e5f6f0;
+  --progress-fill: #14977c;
+  --progress-track: #edf2fa;
   --warning: #805016;
   --warning-soft: #fff0d8;
   --danger: #a92b3c;
   --danger-soft: #fde8ed;
   --info: #235c83;
   --info-soft: #e8f0f8;
-  --chart-1: #8662b9;
-  --chart-2: #3783c1;
-  --chart-3: #2d9164;
+  --chart-1: #2463eb;
+  --chart-2: #0e8a82;
+  --chart-3: #8d5dc6;
   --chart-4: #a67723;
   --chart-5: #c74c70;
   --chart-6: #737b91;
@@ -102,8 +108,10 @@ button {
   box-shadow: none !important;
   text-shadow: none !important;
   filter: none !important;
+  /* Apply foreground and background together when switching themes. */
+  transition: none !important;
 }
-button:is([type="submit"], .schedule-complete-primary, .add-plan-button, .backup-primary, #scheduleChangeSave) {
+button:is([type="submit"], .schedule-complete-primary, .add-plan-button, .backup-primary, #scheduleChangeSave, #goRecordButton) {
   --control-bg: var(--primary);
   --control-fg: var(--on-accent);
   --control-edge: var(--primary-edge);
@@ -134,6 +142,14 @@ button:is([aria-pressed="true"], [aria-selected="true"], .active) {
   font-weight: 800;
   box-shadow: inset 0 -2px 0 var(--accent) !important;
 }
+.app-tabs button[aria-selected="true"], .period-switch button:is([aria-pressed="true"], .active) {
+  --control-bg: var(--primary);
+  --control-fg: var(--on-accent);
+  --control-edge: var(--primary-edge);
+  --control-hover: var(--primary-hover);
+  --control-pressed: var(--primary-pressed);
+  box-shadow: none !important;
+}
 button:not(:disabled):hover { background: var(--control-hover) !important; }
 button:not(:disabled):active { background: var(--control-pressed) !important; }
 button:disabled {
@@ -160,31 +176,76 @@ input:disabled, select:disabled { background: var(--surface-secondary); color: v
 input[type="checkbox"]:disabled { opacity: 1; }
 input[type="checkbox"] { accent-color: var(--accent); }
 .schedule-check:checked, .todo-item input:checked { accent-color: var(--success); }
+/* Draw the checkbox with the same roles as the app, including its unchecked boundary. */
+input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  box-sizing: border-box;
+  border: 2px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--input);
+  cursor: pointer;
+}
+input[type="checkbox"]:checked {
+  --checkbox-fill: var(--primary);
+  --checkbox-edge: var(--primary-edge);
+  --checkbox-mark: var(--on-accent);
+  background: var(--checkbox-fill);
+  border-color: var(--checkbox-edge);
+}
+input.schedule-check:checked, .todo-item input:checked {
+  --checkbox-fill: var(--success);
+  --checkbox-edge: var(--success);
+  --checkbox-mark: var(--on-success);
+}
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 11px;
+  left: 6px;
+  top: 2px;
+  border: solid var(--checkbox-mark);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:disabled { border-color: var(--control-border); border-style: dashed; background: var(--surface-secondary); cursor: not-allowed; }
+input[type="checkbox"]:disabled:checked::after { border-color: var(--text-secondary); }
+@media (forced-colors: active) {
+  input[type="checkbox"] { appearance: auto; }
+  input[type="checkbox"]::after { content: none; }
+}
 h1, h2, h3, h4, .today-overview strong, .summary strong { color: var(--text-heading); }
 .setting-note, .date-label, .chart-range, .chart-visible-range { color: var(--text-secondary); }
 .growth-card.card, .current-title { background: var(--surface); border-color: var(--border); }
 .profile-button > span { color: var(--accent); background: var(--accent-soft); }
+#themeToggle { --control-bg: var(--accent-soft); --control-fg: var(--accent); }
 .app-tabs button.active svg { filter: none; stroke-width: 2.2; }
 .schedule-kind, .schedule-kind.new { background: var(--surface-secondary); color: var(--text-secondary); }
 .schedule-kind.review { background: var(--info-soft); color: var(--info); }
 .schedule-item.done .schedule-kind { background: var(--success-soft); color: var(--success); }
 .todo-item.done { border-left: 3px solid var(--success); }
 .task-row-detail .task-row-body, .task-row-detail strong { color: var(--text-primary); }
-.task-row-detail .task-range, .task-row-detail .task-state, .task-row-detail .task-row-arrow, .task-row-detail .todo-kind { color: var(--text-secondary); }
-.task-row-detail .schedule-kind { background: var(--surface-secondary); color: var(--text-secondary); }
+.task-row-detail .task-range { color: var(--text-primary); }
+.task-row-detail .task-state, .task-row-detail .todo-kind { color: var(--text-secondary); }
+.task-row-detail .task-row-arrow { color: var(--accent); }
+.task-row-detail .schedule-kind { background: var(--accent-soft); color: var(--accent); }
 .task-row-detail .schedule-kind.review { background: var(--info-soft); color: var(--info); }
 .done .task-row-detail .schedule-kind, #homeCompletedSummary { color: var(--success); }
 .done .task-row-detail .schedule-kind { background: var(--success-soft); }
 :is(.schedule-item, .todo-item).just-completed { background: var(--success-soft); border-left: 3px solid var(--success); }
-.progress-bar, .level-bar, .roadmap-bar, .subject-goal-bar { background: var(--accent); }
-.badge-progress::-webkit-progress-value { background: var(--accent); }
-.badge-progress::-moz-progress-bar { background: var(--accent); }
-.progress-bar.completed, .subject-goal-bar.completed { background: var(--success); }
+.progress-track, .level-track, .roadmap-track, .subject-goal-track { background: var(--progress-track); }
+.progress-bar, .level-bar, .roadmap-bar, .subject-goal-bar { background: var(--progress-fill); }
+.badge-progress::-webkit-progress-value { background: var(--progress-fill); }
+.badge-progress::-moz-progress-bar { background: var(--progress-fill); }
+.badge-progress::-webkit-progress-bar, .badge-progress { background: var(--progress-track); }
+.progress-bar.completed, .subject-goal-bar.completed { background: var(--progress-fill); }
 .badge.unlocked { border-color: var(--success); background: var(--success-soft); }
 .badge small, .badge.unlocked small { color: var(--text-secondary); }
 .schedule-date.is-today .date-number { background: transparent; color: var(--accent); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
 .schedule-date.is-holiday .date-number, .date-off { color: var(--text-secondary); }
 .schedule-date[aria-pressed="true"] .date-number { color: var(--accent); }
+.date-kinds .new, .date-overview.new, .date-overview > span:first-child { color: var(--accent); }
 .date-count, .date-done { color: inherit; }
 .chart-axis-label, .chart-x-label { fill: var(--text-secondary); }
 .chart-value-label { fill: var(--text-primary); }

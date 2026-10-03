@@ -291,7 +291,7 @@ dialog::backdrop { background: #0b0a1277; backdrop-filter: blur(4px); }
 .home-layout { display: flex; flex-direction: column; }
 .home-layout > .today-hero { display: grid; gap: 8px; padding: 12px; }
 .today-study-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px; color: var(--text-secondary); }
-.today-study-line #todayTotal { margin: 0; font-size: 23px; line-height: 1.35; color: var(--text-heading); }
+.today-study-line #todayTotal { margin: 0; font-size: 26px; font-weight: 800; line-height: 1.35; color: var(--text-heading); }
 .today-study-line .duration-part, .home-accumulation .duration-part { display: inline-block; white-space: nowrap; font: inherit; color: inherit; }
 .today-goal-inline { white-space: nowrap; }
 .today-progress-caption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--text-secondary); }
