@@ -82,16 +82,20 @@
   --danger-soft: #fde8ed;
   --info: #235c83;
   --info-soft: #e8f0f8;
-  --chart-1: #2463eb;
-  --chart-2: #0e8a82;
-  --chart-3: #8d5dc6;
-  --chart-4: #a67723;
-  --chart-5: #c74c70;
-  --chart-6: #737b91;
-  --chart-7: #aa5fbc;
-  --chart-8: #268c96;
-  --chart-9: #70843c;
-  --chart-10: #b85d35;
+  --surface-blue: #f0f6ff;
+  --surface-mint: #edf8f5;
+  --border-blue: #bdd7f4;
+  --border-mint: #b6ded2;
+  --chart-1: #1784dc;
+  --chart-2: #009781;
+  --chart-3: #9863e0;
+  --chart-4: #bd7b00;
+  --chart-5: #df558a;
+  --chart-6: #54942b;
+  --chart-7: #b75cda;
+  --chart-8: #0095b3;
+  --chart-9: #799124;
+  --chart-10: #d9661b;
 }
 
 /* Controls choose a role; one renderer owns the foreground/background pair.
@@ -266,3 +270,15 @@ h1, h2, h3, h4, .today-overview strong, .summary strong { color: var(--text-head
 .weakness-item.warning { background: var(--warning-soft); border-color: var(--warning); }
 .weakness-item.warning strong, .weakness-item.warning small { color: var(--warning); }
 .weakness-item.warning strong::before { content: "注意 · "; }
+
+/* Light-only card tones leave the dark palette and all layout measurements intact. */
+:root[data-theme="light"] :is(.study-bars-card, .schedule-overview-card, .record-entry, .mock-section, .growth-card.card) {
+  background: var(--surface-blue);
+  border-color: var(--border-blue);
+}
+:root[data-theme="light"] :is(.today-hero, .chart-card, .home-goal-details, .current-title) {
+  background: var(--surface-mint);
+  border-color: var(--border-mint);
+}
+:root[data-theme="light"] .home-agenda { border-color: var(--border-blue); }
+:root[data-theme="light"] .study-total-value { color: var(--accent); }
