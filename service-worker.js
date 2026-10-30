@@ -1,20 +1,20 @@
-const CACHE_NAME = "manabi-log-v37";
+const CACHE_NAME = "manabi-log-v38";
 const APP_ASSETS = [
-  "./theme.css?v=37",
-  "./design.css?v=37", "./design-ui.js?v=37",
-  "./study-flow.js?v=37", "./study-flow-ui.js?v=37", "./analysis-engine.js?v=37", "./analysis-ui.js?v=37",
-  "./schedule-edit.js?v=37",
-  "./schedule-engine.js?v=37",
-  "./schedule-ui.js?v=37",
-  "./schedule.css?v=37",
+  "./theme.css?v=38",
+  "./design.css?v=38", "./design-ui.js?v=38",
+  "./study-flow.js?v=38", "./study-flow-ui.js?v=38", "./analysis-engine.js?v=38", "./analysis-ui.js?v=38",
+  "./schedule-edit.js?v=38",
+  "./schedule-engine.js?v=38",
+  "./schedule-ui.js?v=38",
+  "./schedule.css?v=38",
   "./",
   "./index.html",
-  "./style.css?v=37",
-  "./app.js?v=37",
-  "./manifest.webmanifest?v=37",
+  "./style.css?v=38",
+  "./app.js?v=38",
+  "./manifest.webmanifest?v=38",
   "./icon.svg",
-  "./theme.js?v=37",
-  "./ui.js?v=37",
+  "./theme.js?v=38",
+  "./ui.js?v=38", "./schedule-settings-ui.js?v=38",
 ];
 
 self.addEventListener("install", (event) => {

@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#101722">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="まなびログ">
-  <link rel="manifest" href="manifest.webmanifest?v=37">
+  <link rel="manifest" href="manifest.webmanifest?v=38">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <title>まなびログ</title>
-  <script src="theme.js?v=37"></script>
-  <link rel="stylesheet" href="style.css?v=37">
-<link rel="stylesheet" href="schedule.css?v=37">
-  <link rel="stylesheet" href="design.css?v=37">
-  <link rel="stylesheet" href="theme.css?v=37">
+  <script src="theme.js?v=38"></script>
+  <link rel="stylesheet" href="style.css?v=38">
+<link rel="stylesheet" href="schedule.css?v=38">
+  <link rel="stylesheet" href="design.css?v=38">
+  <link rel="stylesheet" href="theme.css?v=38">
 </head>
 <body>
   <header class="app-header"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16M3 3l9 2 9-2v16l-9 2-9-2Z"/></svg></span><div><h1>まなびログ</h1><p>小さな一歩を、確かな力に。</p></div></div><div class="header-actions"><button id="themeToggle" class="icon-button" type="button" aria-label="ライトテーマに切り替える"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><button id="settingsButton" class="icon-button" type="button" aria-label="設定を開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m9 3-.6 2-2 .9-2-.3-2 3 1.5 1.5v3L2.4 15l2 3 2-.3 2 .9L9 21h6l.6-2.4 2-.9 2 .3 2-3-1.5-1.9v-3L21.6 9l-2-3-2 .3-2-.9L15 3Z"/></svg></button><button id="profileButton" class="profile-button" type="button" aria-label="プロフィールを開く"><span id="profileInitial">学</span></button></div></header>
@@ -109,7 +109,7 @@
       <div class="schedule-manage-tools" role="group" aria-label="予定と教材の管理">
         <div class="schedule-manage-buttons">
           <button id="rescheduleButton" class="secondary-button" type="button" aria-describedby="rescheduleHelp">予定を組み直す</button>
-          <button id="openMaterialManager" class="secondary-button" type="button" aria-controls="materialProgressDetails">教材を編集</button>
+          <button id="openMaterialManager" class="secondary-button" type="button" aria-controls="scheduleToolsDialog" aria-haspopup="dialog">教材・予定設定</button>
         </div>
         <p id="rescheduleHelp" class="setting-note">全教材の未完了を今日から組み直します。固定・完了済みは保持。</p>
         <p id="scheduleStatus" class="form-status" role="status" aria-live="polite"></p>
@@ -139,56 +139,30 @@
 
       </div>
       <form id="materialPlanForm" class="material-plan-form">
-        <div class="wide-field"><label for="materialMode">日程の作り方</label><select id="materialMode"><option value="deadline">終えたい日から割り振る</option><option value="quantity">1日の量から終了日を計算する</option></select></div>
-        <div class="wide-field">
-          <label for="materialSubject">教材の科目（未設定でも作成できます）</label><input id="materialSubject" list="subjectOptions" maxlength="30" placeholder="例：英語">
-        </div>
-        <div>
-          <label for="materialName">教材名</label>
-          <input id="materialName" maxlength="40" placeholder="例：ターゲット1900" required>
-        </div>
-        <div>
-          <label for="materialUnit">単位</label>
-          <select id="materialUnit" required>
-            <option value="単語番号">単語番号</option>
-            <option value="ページ">ページ</option>
-            <option value="問題番号">問題番号</option>
-            <option value="講">講</option>
-            <option value="項目">項目</option>
-          </select>
-        </div>
-        <div>
-          <label for="materialRangeStart">開始範囲</label>
-          <input id="materialRangeStart" type="number" min="1" max="99999" inputmode="numeric" placeholder="1" required>
-        </div>
-        <div>
-          <label for="materialRangeEnd">終了範囲</label>
-          <input id="materialRangeEnd" type="number" min="1" max="99999" inputmode="numeric" placeholder="800" required>
-        </div>
-        <div>
-          <label for="materialStartDate">開始日</label>
-          <input id="materialStartDate" type="date" required>
-        </div>
-        <div id="materialDeadlineField">
-          <label for="materialEndDate">終えたい日</label>
-          <input id="materialEndDate" type="date" required>
-        </div>
-        <div id="materialQuantityField" hidden><label for="materialDailyQuantity">1日の量</label><input id="materialDailyQuantity" type="number" min="1" max="99999" value="50" inputmode="numeric"><span id="materialQuantityUnit" class="setting-note">語 / 日</span></div>
-        <fieldset class="weekday-picker">
-          <legend>勉強する曜日</legend>
-          <label><input type="checkbox" name="materialWeekday" value="1" checked>月</label>
-          <label><input type="checkbox" name="materialWeekday" value="2" checked>火</label>
-          <label><input type="checkbox" name="materialWeekday" value="3" checked>水</label>
-          <label><input type="checkbox" name="materialWeekday" value="4" checked>木</label>
-          <label><input type="checkbox" name="materialWeekday" value="5" checked>金</label>
-          <label><input type="checkbox" name="materialWeekday" value="6">土</label>
-          <label><input type="checkbox" name="materialWeekday" value="0">日</label>
-        </fieldset>
-        <div class="wide-field review-settings"><label class="inline-checkbox"><input id="materialReviewEnabled" type="checkbox" checked>この教材を復習する</label>
-        <label for="materialReviewOffsets">最初の学習から何日後に復習するか</label><input id="materialReviewOffsets" value="1,3,7,14" maxlength="80" placeholder="1,3,7,14"><p class="setting-note">実際の学習完了日から数え、休日は次の学習日に移動します。</p></div>
-        <div id="materialDraftPreview" class="material-draft-preview wide-field" role="status"></div>
-        <button type="submit">自動で予定を作成</button>
-      </form>
+  <fieldset class="material-form-section wide-field"><legend>教材と範囲</legend><div class="material-fields-grid">
+    <div class="wide-field"><label for="materialName">教材名</label><input id="materialName" maxlength="40" placeholder="例：ターゲット1900" required></div>
+    <div><label for="materialSubject">科目（任意）</label><input id="materialSubject" list="subjectOptions" maxlength="30" placeholder="例：英語"></div>
+    <div><label for="materialUnit">単位</label><select id="materialUnit" required><option value="単語番号">単語番号</option><option value="ページ">ページ</option><option value="問題番号">問題番号</option><option value="講">講</option><option value="項目">項目</option></select></div>
+    <div><label for="materialRangeStart">どこから</label><input id="materialRangeStart" type="number" min="1" max="99999" inputmode="numeric" placeholder="1" required></div>
+    <div><label for="materialRangeEnd">どこまで</label><input id="materialRangeEnd" type="number" min="1" max="99999" inputmode="numeric" placeholder="800" required></div>
+  </div></fieldset>
+  <fieldset class="material-form-section wide-field"><legend>進め方</legend>
+    <label for="materialMode">予定の決め方</label><select id="materialMode"><option value="deadline">終えたい日から1日の量を計算</option><option value="quantity">1日に進める量を決める</option></select>
+    <div class="material-fields-grid">
+      <div><label for="materialStartDate">開始日</label><input id="materialStartDate" type="date" required></div>
+      <div id="materialDeadlineField"><label for="materialEndDate">終えたい日</label><input id="materialEndDate" type="date" required></div>
+      <div id="materialQuantityField" hidden><label for="materialDailyQuantity">1日に進める量</label><input id="materialDailyQuantity" type="number" min="1" max="99999" value="50" inputmode="numeric"><span id="materialQuantityUnit" class="setting-note">語 / 日</span></div>
+    </div>
+    <fieldset class="weekday-picker"><legend>勉強する曜日</legend><label><input type="checkbox" name="materialWeekday" value="1" checked>月</label><label><input type="checkbox" name="materialWeekday" value="2" checked>火</label><label><input type="checkbox" name="materialWeekday" value="3" checked>水</label><label><input type="checkbox" name="materialWeekday" value="4" checked>木</label><label><input type="checkbox" name="materialWeekday" value="5" checked>金</label><label><input type="checkbox" name="materialWeekday" value="6">土</label><label><input type="checkbox" name="materialWeekday" value="0">日</label> <div class="weekday-presets"><button type="button" data-weekday-preset="all">毎日</button><button type="button" data-weekday-preset="weekdays">平日</button></div></fieldset>
+  </fieldset>
+  <div class="wide-field review-settings"><label class="inline-checkbox"><input id="materialReviewEnabled" type="checkbox" checked>自動で復習を入れる</label>
+    <details id="materialReviewDetails" class="settings-disclosure"><summary>復習間隔を変更 <span id="materialReviewSummary" class="setting-note">1・3・7・14日後</span></summary>
+      <label for="materialReviewOffsets">学習完了から何日後に復習するか</label><input id="materialReviewOffsets" value="1,3,7,14" maxlength="80" placeholder="1,3,7,14"><p class="setting-note">例：1,3,7,14。休日は次の学習日に移動します。</p>
+    </details>
+  </div>
+  <div id="materialDraftPreview" class="material-draft-preview wide-field" role="status"></div>
+  <button type="submit">自動で予定を作成</button>
+</form>
       </details>
     </section>    <section class="card">
       <details class="schedule-details">
@@ -743,25 +717,44 @@
       <div id="completionUndoFields" hidden><p id="completionUndoNote"></p><button id="completionKeepRecord" type="button" class="secondary-button">記録を残して取り消す</button><button id="completionDeleteRecord" type="button" class="secondary-button">記録も削除して取り消す</button></div>
       <p id="scheduleCompletionStatus" role="status"></p><div class="completion-actions"><button id="completionSave" type="submit">時間を記録して完了</button><button id="completionWithoutTime" type="button" class="secondary-button">時間を記録せず完了</button><button id="completionCancel" type="button" class="secondary-button">キャンセル</button></div>
     </form></dialog>
+<dialog id="scheduleToolsDialog" class="profile-dialog schedule-tools-dialog" aria-labelledby="scheduleToolsTitle">
+  <div class="dialog-header"><h2 id="scheduleToolsTitle" tabindex="-1">教材・予定設定</h2><button id="scheduleToolsClose" class="dialog-close" type="button" aria-label="教材・予定設定を閉じる">×</button></div>
+  <button id="scheduleToolsBack" class="text-button" type="button" hidden>‹ 教材一覧へ戻る</button>
+  <p id="scheduleToolsStatus" class="form-status" role="status" aria-live="polite"></p>
+  <section data-schedule-tool-panel="materials"><div class="schedule-tool-menu" aria-label="設定の項目">
+    <button type="button" class="add-plan-button" data-open-schedule-tool="create">＋ 教材を追加</button>
+    <button type="button" data-open-schedule-tool="holiday">休日の設定</button>
+    <button type="button" data-open-schedule-tool="rules">復習・負担の設定</button>
+    <button type="button" data-open-schedule-tool="manual">1件だけ予定を追加</button>
+  </div></section>
+  <section data-schedule-tool-panel="create" hidden></section>
+  <section data-schedule-tool-panel="holiday" hidden></section>
+  <section data-schedule-tool-panel="rules" hidden><p class="setting-note">新しい教材の復習の初期値と、量が多い日の警告基準です。既存教材の復習は、教材一覧から変更できます。</p></section>
+  <section data-schedule-tool-panel="manual" hidden></section>
+</dialog>
   <dialog id="materialSettingsDialog" class="profile-dialog" aria-label="教材の設定"><div class="dialog-header"><h2 id="materialSettingsTitle">教材の設定</h2><button id="materialSettingsClose" class="dialog-close" type="button" aria-label="教材の設定を閉じる">×</button></div>
     <form id="materialSettingsForm">
-      <fieldset class="duration-fields"><legend>教材全体の範囲</legend>
-        <div><label for="planRangeStart">開始範囲</label><input id="planRangeStart" type="number" min="1" max="99999" step="1" inputmode="numeric" required></div>
-        <div><label for="planRangeEnd">終了範囲</label><input id="planRangeEnd" type="number" min="1" max="99999" step="1" inputmode="numeric" required></div>
-      </fieldset>
-      <p id="planRangeHint" class="setting-note" aria-live="polite"></p>
-      <p class="setting-note">未完了の予定と復習を新しい範囲に合わせて再配分します。完了済み・記録済み・固定・個別編集した範囲は残してください。</p>
-      <label for="planSubject">教材の科目</label><input id="planSubject" list="subjectOptions" maxlength="30" placeholder="例：英語">
-<label for="planMode">配分の基準</label><select id="planMode"><option value="quantity">1日の量を優先する</option><option value="deadline">終了目標日を優先して量を計算する</option></select>
-      <label for="planDailyQuantity">1日に進める量</label><input id="planDailyQuantity" type="number" min="1" max="99999" required inputmode="numeric">
-      <label for="planEndDate">新規学習の終了目標日</label><input id="planEndDate" type="date" required>
-      <p id="planModeHelp" class="setting-note"></p>
-      <fieldset id="planWeekdays" class="weekday-picker"><legend>勉強する曜日</legend><label><input type="checkbox" name="planWeekday" value="1">月</label><label><input type="checkbox" name="planWeekday" value="2">火</label><label><input type="checkbox" name="planWeekday" value="3">水</label><label><input type="checkbox" name="planWeekday" value="4">木</label><label><input type="checkbox" name="planWeekday" value="5">金</label><label><input type="checkbox" name="planWeekday" value="6">土</label><label><input type="checkbox" name="planWeekday" value="0">日</label></fieldset>
-      <label class="inline-checkbox"><input id="planReviewEnabled" type="checkbox">復習する</label><label for="planReviewOffsets">最初の学習から何日後に復習するか</label><input id="planReviewOffsets" maxlength="80">
-      <label for="planFixedChoice">曜日・休日と固定予定が衝突したら</label><select id="planFixedChoice"><option value="keep">固定を維持する（例外日として残す）</option><option value="release">衝突する未完了の固定を解除して調整</option></select>
-      <p class="edit-impact">後続の予定・復習にも影響する変更です。未完了の予定へ反映し、完了済み実績を保持します。</p>
-      <p id="materialSettingsStatus" class="form-status" role="status"></p><div class="edit-dialog-actions"><button id="materialSettingsCancel" type="button" class="secondary-button">キャンセル</button><button type="submit">変更内容を確認</button></div>
-    </form></dialog>
+  <fieldset class="material-form-section"><legend>教材全体の範囲</legend><div class="material-fields-grid">
+    <div><label for="planRangeStart">どこから</label><input id="planRangeStart" type="number" min="1" max="99999" step="1" inputmode="numeric" required></div>
+    <div><label for="planRangeEnd">どこまで</label><input id="planRangeEnd" type="number" min="1" max="99999" step="1" inputmode="numeric" required></div>
+  </div><p id="planRangeHint" class="setting-note" aria-live="polite"></p>
+    <label for="planSubject">科目（任意）</label><input id="planSubject" list="subjectOptions" maxlength="30" placeholder="例：英語">
+  </fieldset>
+  <fieldset class="material-form-section"><legend>進め方</legend>
+    <label for="planMode">予定の決め方</label><select id="planMode"><option value="deadline">終えたい日から1日の量を計算</option><option value="quantity">1日に進める量を決める</option></select>
+    <div id="planDailyQuantityField"><label for="planDailyQuantity">1日に進める量</label><input id="planDailyQuantity" type="number" min="1" max="99999" required inputmode="numeric"></div>
+    <p id="planQuantityHint" class="setting-note">1日の量は自動計算されます。</p>
+    <label id="planEndDateLabel" for="planEndDate">終えたい日</label><input id="planEndDate" type="date" required>
+    <p id="planModeHelp" class="setting-note"></p>
+    <fieldset id="planWeekdays" class="weekday-picker"><legend>勉強する曜日</legend><label><input type="checkbox" name="planWeekday" value="1">月</label><label><input type="checkbox" name="planWeekday" value="2">火</label><label><input type="checkbox" name="planWeekday" value="3">水</label><label><input type="checkbox" name="planWeekday" value="4">木</label><label><input type="checkbox" name="planWeekday" value="5">金</label><label><input type="checkbox" name="planWeekday" value="6">土</label><label><input type="checkbox" name="planWeekday" value="0">日</label> <div class="weekday-presets"><button type="button" data-weekday-preset="all">毎日</button><button type="button" data-weekday-preset="weekdays">平日</button></div></fieldset>
+  </fieldset>
+  <div class="review-settings"><label class="inline-checkbox"><input id="planReviewEnabled" type="checkbox">自動で復習を入れる</label>
+    <details id="planReviewDetails" class="settings-disclosure"><summary>復習間隔を変更 <span id="planReviewSummary" class="setting-note"></span></summary><label for="planReviewOffsets">学習完了から何日後に復習するか</label><input id="planReviewOffsets" maxlength="80"><p class="setting-note">例：1,3,7,14。既存の間隔はそのまま引き継ぎます。</p></details>
+  </div>
+  <details id="planFixedDetails" class="settings-disclosure"><summary>固定予定との調整方法</summary><label for="planFixedChoice">曜日・休日と固定予定が衝突したら</label><select id="planFixedChoice"><option value="keep">固定を維持する（例外日として残す）</option><option value="release">衝突する未完了の固定を解除して調整</option></select></details>
+  <p class="edit-impact">この教材全体の未完了予定・復習を再配分します。完了済みの実績は保持し、次の画面で変更を確認します。</p>
+  <p id="materialSettingsStatus" class="form-status" role="status"></p><div class="edit-dialog-actions"><button id="materialSettingsCancel" type="button" class="secondary-button">キャンセル</button><button type="submit">変更内容を確認</button></div>
+</form></dialog>
   <dialog id="scheduleChangeDialog" class="profile-dialog schedule-change-dialog" aria-label="変更内容の確認"><div class="dialog-header"><h2>変更内容の確認</h2><button id="scheduleChangeClose" class="dialog-close" type="button" aria-label="変更の確認をキャンセル">×</button></div>
     <p id="scheduleChangeScope" class="edit-impact"></p><div id="scheduleChangeSummary" class="edit-summary"></div><div id="scheduleChangeSettings"></div><div id="scheduleChangeNotes"></div><p id="scheduleChangeCounts"></p>
     <details id="scheduleChangeDetails"><summary>変更の詳細</summary><div id="scheduleChangeList" class="schedule-change-list"></div></details><p id="scheduleChangeStatus" class="form-status" role="status"></p>
@@ -792,16 +785,17 @@
     </li>
   </template>
 
-  <script src="schedule-engine.js?v=37"></script>
-  <script src="study-flow.js?v=37"></script>
-  <script src="study-flow-ui.js?v=37"></script>
-  <script src="analysis-engine.js?v=37"></script>
-  <script src="analysis-ui.js?v=37"></script>
-  <script src="schedule-ui.js?v=37"></script>
-  <script src="schedule-edit.js?v=37"></script>
-  <script src="app.js?v=37"></script>
-  <script src="ui.js?v=37"></script>
-  <script src="design-ui.js?v=37"></script>
+  <script src="schedule-engine.js?v=38"></script>
+  <script src="study-flow.js?v=38"></script>
+  <script src="study-flow-ui.js?v=38"></script>
+  <script src="analysis-engine.js?v=38"></script>
+  <script src="analysis-ui.js?v=38"></script>
+  <script src="schedule-ui.js?v=38"></script>
+  <script src="schedule-edit.js?v=38"></script>
+  <script src="app.js?v=38"></script>
+  <script src="ui.js?v=38"></script>
+  <script src="design-ui.js?v=38"></script>
+  <script src="schedule-settings-ui.js?v=38"></script>
 <datalist id="subjectOptions"><option value="英語"><option value="数学"><option value="国語"><option value="物理"><option value="化学"><option value="生物"><option value="日本史"><option value="世界史"><option value="地理"><option value="情報"></datalist>
 </body>
 </html>

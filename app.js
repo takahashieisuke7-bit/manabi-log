@@ -1303,8 +1303,11 @@ function renderMaterialProgress() {
     dates.textContent=`新規終了 ${newEnd}　／　最終復習 ${reviewEnd||"なし"}${all.some(t=>t.type==="new"&&!t.done)?"（予定）":""}`;
     const settings=document.createElement("button");settings.type="button";settings.className="secondary-button compact-button";settings.textContent="範囲・終了日を編集";
     settings.setAttribute('aria-label',`${plan.material}の範囲・終了日を編集`);
+    settings.dataset.materialSettings = plan.id;
     settings.addEventListener("click",()=>openMaterialSettings(plan));
-    card.append(name, progress, dates, settings);
+    const method=document.createElement("p");method.className="material-method setting-note";
+    method.textContent=`${plan.subject||"科目未設定"}・${plan.mode==="quantity"?`1日${plan.dailyQuantity}${ScheduleEngine.quantityUnit(plan.unit)}`:`${plan.endDate}まで`}・${plan.weekdays.map(d=>"日月火水木金土"[d]).join("・")}`;
+    card.append(name, method, progress, dates, settings);
     let nextRange=plan.start;
     const gaps=[];
     for(const task of [...planTasks].sort((a,b)=>a.start-b.start)) {
@@ -1333,7 +1336,8 @@ function renderMaterialProgress() {
     name.textContent = material;
     const progress = document.createElement("span");
     progress.textContent = `手動予定 ${doneCount} / ${tasks.length}件 完了`;
-    card.append(name, progress);
+    const help=document.createElement("p");help.className="setting-note";help.textContent="手動の教材は、日付ごとの予定を押して範囲や日付を変更できます。";
+    card.append(name, progress, help);
     materialProgressList.append(card);
   });
   if (!materialProgressList.children.length) {

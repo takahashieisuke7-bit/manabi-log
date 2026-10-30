@@ -32,21 +32,16 @@
   applyTheme(root.dataset.theme);
 
   // Put creation within reach even when a material has many future tasks.
-  const createDetails = document.querySelector('.plan-create-details');
   const addPlan = document.createElement('button');
   addPlan.type = 'button';
   addPlan.className = 'add-plan-button';
   addPlan.textContent = '＋ 教材を追加';
   addPlan.addEventListener('click', () => {
-    createDetails.open = true;
-    document.querySelector('#materialName').focus();
+    document.dispatchEvent(new CustomEvent('manabi:schedule-tool', { detail: 'create' }));
   });
   document.querySelector('.screen-schedule .page-heading').append(addPlan);
-  const materialManager = document.querySelector('#materialProgressDetails');
   document.querySelector('#openMaterialManager').addEventListener('click', () => {
-    materialManager.open = true;
-    materialManager.querySelector('summary').focus();
-    materialManager.scrollIntoView({ block: 'start' });
+    document.dispatchEvent(new CustomEvent('manabi:schedule-tool', { detail: 'materials' }));
   });
   ['materialPlanForm', 'manualScheduleForm', 'scheduleSettingsForm'].forEach(id => {
     const planForm = document.getElementById(id);

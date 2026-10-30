@@ -31,6 +31,8 @@ function initializePlanEdit(plan) {
   scheduleElement("planReviewEnabled").checked=plan.reviewEnabled!==false;
   scheduleElement("planReviewOffsets").value=plan.reviewOffsets.join(",");
   scheduleElement("planFixedChoice").value="keep";
+  scheduleElement("planReviewDetails").open=false;
+  scheduleElement("planFixedDetails").open=false;
   document.querySelectorAll("input[name='planWeekday']").forEach(el=>el.checked=plan.weekdays.includes(Number(el.value)));
   scheduleElement("materialSettingsStatus").textContent="";updatePlanModeHint();
   scheduleElement("materialSettingsDialog").showModal();
@@ -40,8 +42,14 @@ function updatePlanModeHint() {
   const start=Number(scheduleElement("planRangeStart").value),end=Number(scheduleElement("planRangeEnd").value);
   scheduleElement("planRangeHint").textContent=plan?`現在 ${formatTaskRange(plan)} ／ 変更後 ${Number.isInteger(start)&&Number.isInteger(end)&&start>=1&&end>=start&&end<=99999?`${end-start+1}${ScheduleEngine.quantityUnit(plan.unit)}`:"範囲を確認してください"}`:"";
   const quantity=scheduleElement("planMode").value==="quantity";
-  scheduleElement("planModeHelp").textContent=quantity?"1日の量で割り振り、終了予定日と目標日を比較します。目標を超える場合は確認画面でお知らせします。":"終了目標日までの学習日数から1日の量を自動計算します。入力した量で進める場合は「1日の量を優先する」を選んでください。";
+  scheduleElement("planDailyQuantityField").hidden=!quantity;
+  scheduleElement("planDailyQuantity").disabled=!quantity;
+  scheduleElement("planQuantityHint").hidden=quantity;
+  scheduleElement("planEndDateLabel").textContent=quantity?"比較用の目標日":"終えたい日";
+  scheduleElement("planModeHelp").textContent=quantity?"決めた量で進めます。目標日を超える場合は確認画面でお知らせします。":"終えたい日と勉強する曜日から、1日の量を自動で計算します。";
   scheduleElement("planReviewOffsets").disabled=!scheduleElement("planReviewEnabled").checked;
+  scheduleElement("planReviewDetails").hidden=!scheduleElement("planReviewEnabled").checked;
+  scheduleElement("planReviewSummary").textContent=scheduleElement("planReviewOffsets").value.replace(/[,、\s]+/g,"・")+"日後";
 }
 function previewTaskEdit() {
   try {
@@ -56,12 +64,20 @@ function previewPlanEdit() {
   try {
     const before=scheduleState(),enabled=scheduleElement("planReviewEnabled").checked;
     const old=planById(editingPlanId);
-    const changes={start:Number(scheduleElement("planRangeStart").value),end:Number(scheduleElement("planRangeEnd").value),subject:scheduleElement("planSubject").value.trim(),mode:scheduleElement("planMode").value,dailyQuantity:Number(scheduleElement("planDailyQuantity").value),endDate:scheduleElement("planEndDate").value,
+    const mode=scheduleElement("planMode").value,enteredQuantity=Number(scheduleElement("planDailyQuantity").value);
+    // The deadline calculation does not use this field. Keep its prior valid metadata
+    // if an unfinished quantity draft was hidden, without erasing the user's input.
+    const quantity=mode==="deadline"&&(!Number.isInteger(enteredQuantity)||enteredQuantity<1||enteredQuantity>99999)?old.dailyQuantity:enteredQuantity;
+    const changes={start:Number(scheduleElement("planRangeStart").value),end:Number(scheduleElement("planRangeEnd").value),subject:scheduleElement("planSubject").value.trim(),mode,dailyQuantity:quantity,endDate:scheduleElement("planEndDate").value,
       weekdays:[...document.querySelectorAll("input[name='planWeekday']:checked")].map(el=>Number(el.value)),reviewEnabled:enabled,
       reviewOffsets:enabled?parseOffsets(scheduleElement("planReviewOffsets").value):old.reviewOffsets};
     const result=ScheduleEngine.editPlan(before.tasks,before.plans,before.holidays,editingPlanId,changes,{fixed:scheduleElement("planFixedChoice").value},createId,localDateKey());
     showSchedulePreview(before,result,"materialSettingsDialog","",editingPlanId);
-  }catch(error){scheduleElement("materialSettingsStatus").textContent=error.message;}
+  }catch(error){
+    scheduleElement("materialSettingsStatus").textContent=error.message;
+    if(/復習/.test(error.message))scheduleElement("planReviewDetails").open=true;
+    if(/固定/.test(error.message))scheduleElement("planFixedDetails").open=true;
+  }
 }
 function describeEditTask(task) {
   if(!task)return "なし";
