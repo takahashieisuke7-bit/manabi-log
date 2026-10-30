@@ -1,6 +1,6 @@
 "use strict";
 let pendingScheduleEdit = null;
-const scheduleFingerprint = state => JSON.stringify([state.tasks,state.plans,state.holidays]);
+const scheduleFingerprint = state => JSON.stringify([state.tasks,state.plans,state.holidays,state.archivedMaterials,state.archiveStorage]);
 
 function initializeTaskEdit(task) {
   scheduleEditDialog.classList.toggle("is-linked",Boolean(task.planId));
@@ -54,9 +54,9 @@ function updatePlanModeHint() {
 function previewTaskEdit() {
   try {
     const before=scheduleState();
-    const result=ScheduleEngine.editTask(before.tasks,before.plans,before.holidays,editScheduleIdInput.value,
+    const result=runActiveScheduleChange((tasks,plans)=>ScheduleEngine.editTask(tasks,plans,before.holidays,editScheduleIdInput.value,
       {date:editScheduleDateInput.value,start:Number(editScheduleStartInput.value),end:Number(editScheduleEndInput.value),fixed:editScheduleFixedInput.checked,material:editScheduleMaterialInput.value,unit:editScheduleUnitInput.value},
-      {holiday:scheduleElement("editHolidayChoice").value,fixed:scheduleElement("editFixedChoice").value,fixedDate:scheduleElement("editFixedDateChoice").value,extend:scheduleElement("editExtendDeadline").checked},createId);
+      {holiday:scheduleElement("editHolidayChoice").value,fixed:scheduleElement("editFixedChoice").value,fixedDate:scheduleElement("editFixedDateChoice").value,extend:scheduleElement("editExtendDeadline").checked},createId));
     showSchedulePreview(before,result,"scheduleEditDialog",editScheduleIdInput.value);
   }catch(error){setScheduleEditStatus(error.message,"error");if(/固定|期限|終了日/.test(error.message))scheduleElement("editConflictDetails").open=true;}
 }
@@ -71,7 +71,7 @@ function previewPlanEdit() {
     const changes={start:Number(scheduleElement("planRangeStart").value),end:Number(scheduleElement("planRangeEnd").value),subject:scheduleElement("planSubject").value.trim(),mode,dailyQuantity:quantity,endDate:scheduleElement("planEndDate").value,
       weekdays:[...document.querySelectorAll("input[name='planWeekday']:checked")].map(el=>Number(el.value)),reviewEnabled:enabled,
       reviewOffsets:enabled?parseOffsets(scheduleElement("planReviewOffsets").value):old.reviewOffsets};
-    const result=ScheduleEngine.editPlan(before.tasks,before.plans,before.holidays,editingPlanId,changes,{fixed:scheduleElement("planFixedChoice").value},createId,localDateKey());
+    const result=runActiveScheduleChange((tasks,plans)=>ScheduleEngine.editPlan(tasks,plans,before.holidays,editingPlanId,changes,{fixed:scheduleElement("planFixedChoice").value},createId,localDateKey()));
     showSchedulePreview(before,result,"materialSettingsDialog","",editingPlanId);
   }catch(error){
     scheduleElement("materialSettingsStatus").textContent=error.message;
@@ -123,9 +123,9 @@ function showSchedulePreview(before,result,editorId,taskId,planId="") {
   if(reviews)add('関連する復習：'+reviews+'件を変更・統合・再作成します。');
   const pins=result.changes.filter(c=>c.before?.fixed&&(!c.after||!c.after.fixed)).length;
   add(pins?'未完了の固定を '+pins+'件解除します。':'完了済みの実績・固定予定は保持します。');
-  const collisions=ScheduleEngine.conflicts(result.tasks,result.plans,result.holidays);
+  const collisions=ScheduleEngine.conflicts(planningMaterialTasks(result.tasks),activeMaterialPlans(result.plans),result.holidays);
   if(collisions.length)add('固定予定との衝突が '+collisions.length+'件残ります。入力に戻って調整方法を選べます。');
-  const daily=new Map();for(const t of result.tasks){const key=t.date+' '+ScheduleEngine.quantityUnit(t.unit);daily.set(key,(daily.get(key)||0)+rangeSize(t));}
+  const daily=new Map();for(const t of planningMaterialTasks(result.tasks)){const key=t.date+' '+ScheduleEngine.quantityUnit(t.unit);daily.set(key,(daily.get(key)||0)+rangeSize(t));}
   const overloaded=[...daily].filter(([key,n])=>n>scheduleSettings.maxTotalUnitsPerDay&&result.changes.some(c=>c.after&&key.startsWith(c.after.date)));
   if(overloaded.length)add('負担基準を超える日が '+new Set(overloaded.map(([key])=>key.slice(0,10))).size+'日あります。日別の合計量を確認してください。');
   const notes=scheduleElement('scheduleChangeNotes');notes.replaceChildren();

@@ -67,6 +67,43 @@
   byId('materialSettingsDialog').addEventListener('close', restoreDirectory);
   byId('scheduleChangeDialog').addEventListener('close', restoreDirectory);
 
+  const archiveDialog=byId('materialArchiveDialog');
+  let pendingArchive=null;
+  byId('materialProgressList').addEventListener('click', event=>{
+    const button=event.target.closest('button[data-material-archive]');
+    if(!button)return;
+    pendingArchive={planId:button.dataset.materialArchive,material:button.dataset.materialName};
+    const tasks=materialArchiveTasks(pendingArchive.planId,pendingArchive.material);
+    const pending=tasks.filter(task=>!task.done),fixed=pending.filter(task=>task.fixed).length;
+    byId('materialArchiveName').textContent=pendingArchive.material;
+    byId('materialArchiveImpact').textContent=`未完了の予定${pending.length}件${fixed?`（固定${fixed}件を含む）`:''}を予定から外します。`;
+    byId('materialArchiveStatus').textContent='';
+    dialog.close();archiveDialog.showModal();
+  });
+  for(const id of ['materialArchiveClose','materialArchiveCancel'])byId(id).addEventListener('click',()=>archiveDialog.close());
+  archiveDialog.addEventListener('close',()=>{pendingArchive=null;show('materials');copyStatus();});
+  byId('materialArchiveSave').addEventListener('click',()=>{
+    if(!pendingArchive)return;
+    try{
+      const entry=archiveMaterial(pendingArchive.planId,pendingArchive.material);
+      setScheduleStatus(`${entry.material}を削除済みの一覧に移しました。学習記録・完了実績は残っています。`,'success');
+      render();archiveDialog.close();
+    }catch(error){byId('materialArchiveStatus').textContent=error.message;}
+  });
+  byId('archivedMaterialList').addEventListener('click',event=>{
+    const button=event.target.closest('button[data-material-restore]');
+    if(!button)return;
+    try{
+      const entry=restoreMaterial(button.dataset.materialRestore);
+      setScheduleStatus(`${entry.material}を戻しました。保存されている日付・範囲で予定を再表示します。必要なら予定を組み直せます。`,'success');
+      render();copyStatus();
+    }catch(error){setScheduleStatus(error.message,'error');copyStatus();}
+  });
+  document.defaultView?.addEventListener('storage',event=>{
+    if(event.key!==ARCHIVED_MATERIALS_KEY)return;
+    archivedMaterials=loadArchivedMaterials();lastReschedule=loadLastReschedule();render();
+  });
+
   for (const id of ['materialPlanForm', 'manualScheduleForm', 'holidayForm', 'scheduleSettingsForm']) {
     byId(id).addEventListener('submit', () => {
       if (id === 'materialPlanForm' && byId('scheduleStatus').classList.contains('success')) show('materials');

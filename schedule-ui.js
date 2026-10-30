@@ -4,7 +4,7 @@ let scheduleMonth = scheduleSelectedDate.slice(0,7);
 let scheduleView = "week";
 let completionTaskId = "", editingPlanId = "";
 const scheduleElement = id => document.getElementById(id);
-function scheduleState() {return {tasks:structuredClone(materialTasks),plans:structuredClone(materialPlans),holidays:[...holidays]};}
+function scheduleState() {return {tasks:structuredClone(materialTasks),plans:structuredClone(materialPlans),holidays:[...holidays],archivedMaterials:structuredClone(archivedMaterials),archiveStorage:localStorage.getItem(ARCHIVED_MATERIALS_KEY)};}
 function sanitizeScheduleSnapshot(value) {
   if(!value || typeof value!=="object")return null;
   return {beforeTasks:sanitizeMaterialTasks(value.beforeTasks),afterTasks:sanitizeMaterialTasks(value.afterTasks),
@@ -61,8 +61,8 @@ function scheduleCalendarDates(selected,month,view) {
 }
 function renderScheduleCalendar() {
   const selected=scheduleMaterialFilter.value||"all";
-  const tasks=materialTasks.filter(t=>selected==="all"||t.material===selected);
-  const plans=materialPlans.filter(p=>selected==="all"||p.material===selected);
+  const tasks=visibleMaterialTasks().filter(t=>selected==="all"||t.material===selected);
+  const plans=activeMaterialPlans().filter(p=>selected==="all"||p.material===selected);
   const grid=scheduleElement("scheduleMonthGrid");grid.replaceChildren();
   const date=new Date(`${scheduleMonth}-01T12:00:00`);
   grid.classList.toggle("is-week",scheduleView==="week");
@@ -99,7 +99,7 @@ function renderScheduleCalendar() {
   for(const type of ["new","review"]){const block=document.createElement("div"),heading=document.createElement("span"),value=document.createElement("strong");heading.textContent=taskTypeLabel(type);value.textContent=Object.entries(totals[type]).map(([u,n])=>`${n}${u}`).join("・")||"予定なし";block.append(heading,value);totalBox.append(block);}
   const load=Object.keys({...totals.new,...totals.review}).filter(u=>(totals.new[u]||0)+(totals.review[u]||0)>scheduleSettings.maxTotalUnitsPerDay||(totals.new[u]||0)>scheduleSettings.maxNewUnitsPerDay);
   if(load.length){const note=document.createElement("p");note.className="schedule-load-warning";note.textContent=`負担基準を超えています：${load.join("・")}。日付や範囲を編集して調整できます。`;totalBox.append(note);}
-  const overdue=tasks.filter(t=>!t.done&&t.date<localDateKey()),collisions=ScheduleEngine.conflicts(tasks,materialPlans,holidays);
+  const overdue=tasks.filter(t=>!t.done&&t.date<localDateKey()),collisions=ScheduleEngine.conflicts(tasks,activeMaterialPlans(),holidays);
   const attention=scheduleElement("scheduleAttention");attention.replaceChildren();attention.hidden=!overdue.length&&!collisions.length;
   if(overdue.length){const p=document.createElement("p");p.textContent=`期限を過ぎた未完了 ${overdue.length}件（復習 ${overdue.filter(t=>t.type==="review").length}件）。予定は残っています。日付を選んで編集するか、未完了を再調整できます。`;attention.append(p);const show=document.createElement("button");show.type="button";show.className="secondary-button";show.textContent="最も古い未完了の日へ";show.addEventListener("click",()=>{scheduleSelectedDate=overdue.map(t=>t.date).sort()[0];scheduleMonth=scheduleSelectedDate.slice(0,7);renderSchedule();});attention.append(show);}
   if(collisions.length){const p=document.createElement("p");p.textContent=`固定予定の衝突 ${collisions.length}件。日付は保持しています。`;attention.append(p);for(const task of collisions){const button=document.createElement("button");button.type="button";button.className="secondary-button";button.textContent=`${task.date} ${task.material} ${taskTypeLabel(task.type)}を確認`;button.addEventListener("click",()=>openScheduleEditDialog(task));attention.append(button);}}

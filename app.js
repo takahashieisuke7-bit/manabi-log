@@ -12,6 +12,7 @@ const MATERIAL_PLANS_KEY = "study-material-plans-v1";
 const MATERIAL_TASKS_KEY = "study-material-tasks-v1";
 const SCHEDULE_SETTINGS_KEY = "study-schedule-settings-v1";
 const LAST_RESCHEDULE_KEY = "study-last-reschedule-v1";
+const ARCHIVED_MATERIALS_KEY = "study-archived-materials-v1";
 const EXAM_DATE = new Date("2027-01-16T09:30:00+09:00");
 const MAX_LEVEL_HOURS = 5000;
 const DEFAULT_REVIEW_OFFSETS = [1, 3, 7, 14];
@@ -230,6 +231,7 @@ let subjectGoals = loadSubjectGoals();
 let activityOptions = loadActivityOptions();
 let materialPlans = loadMaterialPlans();
 let materialTasks = loadMaterialTasks();
+let archivedMaterials = loadArchivedMaterials();
 let scheduleSettings = loadScheduleSettings();
 let lastReschedule = loadLastReschedule();
 let visibleMonth = new Date();
@@ -414,6 +416,81 @@ function loadScheduleSettings() {
 
 function loadLastReschedule() {
   try { return sanitizeScheduleSnapshot(JSON.parse(localStorage.getItem(LAST_RESCHEDULE_KEY))); } catch { return null; }
+}
+
+function sanitizeArchivedMaterials(value) {
+  if (!Array.isArray(value)) return [];
+  const ids=new Set(),plans=new Set();
+  return value.flatMap(entry=>{
+    if(!entry||typeof entry.id!=="string"||!entry.id||ids.has(entry.id)||typeof entry.material!=="string"||!entry.material.trim())return [];
+    const planId=typeof entry.planId==="string"?entry.planId:"";
+    if(planId&&plans.has(planId))return [];
+    ids.add(entry.id);if(planId)plans.add(planId);
+    return [{id:entry.id,planId,material:entry.material.trim().slice(0,40),
+      taskIds:[...new Set((Array.isArray(entry.taskIds)?entry.taskIds:[]).filter(id=>typeof id==="string"&&id))],
+      deletedAt:typeof entry.deletedAt==="string"?entry.deletedAt:""}];
+  });
+}
+
+function loadArchivedMaterials() {
+  try{return sanitizeArchivedMaterials(JSON.parse(localStorage.getItem(ARCHIVED_MATERIALS_KEY))??[]);}catch{return [];}
+}
+
+function isArchivedMaterialTask(task) {
+  return archivedMaterials.some(entry=>entry.planId?task.planId===entry.planId:entry.taskIds.includes(task.id));
+}
+
+function activeMaterialPlans(plans=materialPlans) {
+  return plans.filter(plan=>!archivedMaterials.some(entry=>entry.planId&&entry.planId===plan.id));
+}
+
+function visibleMaterialTasks(tasks=materialTasks) {
+  return tasks.filter(task=>task.done||!isArchivedMaterialTask(task));
+}
+
+function planningMaterialTasks(tasks=materialTasks) {
+  return tasks.filter(task=>!isArchivedMaterialTask(task));
+}
+
+function persistArchivedMaterials(next) {
+  const clean=sanitizeArchivedMaterials(next);
+  if(JSON.stringify(loadArchivedMaterials())!==JSON.stringify(archivedMaterials))throw Error("別の画面で教材の削除状態が更新されました。再読み込みしてから操作してください。");
+  StudyFlow.persist(localStorage,[[ARCHIVED_MATERIALS_KEY,clean],[LAST_RESCHEDULE_KEY,null]]);
+  archivedMaterials=clean;lastReschedule=null;
+}
+
+function archiveMaterial(planId,material) {
+  const plan=planId?activeMaterialPlans().find(plan=>plan.id===planId):null;
+  if(planId&&!plan)throw Error("この教材は削除済みか、見つかりません。");
+  const tasks=materialArchiveTasks(planId,material);
+  if(!plan&&!tasks.length)throw Error("削除する教材が見つかりません。");
+  const entry={id:createId(),planId:plan?.id||"",material:plan?.material||material,taskIds:tasks.map(task=>task.id),deletedAt:new Date().toISOString()};
+  persistArchivedMaterials([...archivedMaterials,entry]);
+  return entry;
+}
+
+function materialArchiveTasks(planId,material) {
+  const knownPlans=new Set(materialPlans.map(plan=>plan.id));
+  return materialTasks.filter(task=>planId?task.planId===planId:(!task.planId||!knownPlans.has(task.planId))&&task.material===material&&!isArchivedMaterialTask(task));
+}
+
+function restoreMaterial(id) {
+  const entry=archivedMaterials.find(entry=>entry.id===id);
+  if(!entry)throw Error("この教材はすでに戻されているか、見つかりません。");
+  persistArchivedMaterials(archivedMaterials.filter(entry=>entry.id!==id));
+  return entry;
+}
+
+function runActiveScheduleChange(transform) {
+  const activeTasks=planningMaterialTasks(),activePlans=activeMaterialPlans();
+  const result=transform(activeTasks,activePlans);
+  const merge=(all,active,fresh)=>{
+    const activeIds=new Set(active.map(item=>item.id)),freshById=new Map(fresh.map(item=>[item.id,item]));
+    const oldIds=new Set(all.map(item=>item.id));
+    return all.flatMap(item=>activeIds.has(item.id)?freshById.has(item.id)?[freshById.get(item.id)]:[]:[structuredClone(item)])
+      .concat(fresh.filter(item=>!oldIds.has(item.id)));
+  };
+  return {...result,tasks:merge(materialTasks,activeTasks,result.tasks),plans:merge(materialPlans,activePlans,result.plans)};
 }
 
 function createId() {
@@ -720,18 +797,27 @@ function saveDailyGoal() {
 }
 
 function saveAllData() {
-  saveRecords();
-  saveDailyGoal();
-  saveHolidays();
-  saveProfile();
-  saveMockResults();
-  saveTodos();
-  saveSubjectGoals();
-  saveActivityOptions();
-  saveMaterialPlans();
-  saveMaterialTasks();
-  saveScheduleSettings();
-  saveLastReschedule();
+  const keys=[STORAGE_KEY,GOAL_KEY,HOLIDAYS_KEY,PROFILE_KEY,MOCK_RESULTS_KEY,TODOS_KEY,SUBJECT_GOALS_KEY,ACTIVITY_OPTIONS_KEY,MATERIAL_PLANS_KEY,MATERIAL_TASKS_KEY,SCHEDULE_SETTINGS_KEY,LAST_RESCHEDULE_KEY,ARCHIVED_MATERIALS_KEY];
+  const previous=keys.map(key=>[key,localStorage.getItem(key)]);
+  try {
+    saveRecords();
+    saveDailyGoal();
+    saveHolidays();
+    saveProfile();
+    saveMockResults();
+    saveTodos();
+    saveSubjectGoals();
+    saveActivityOptions();
+    saveMaterialPlans();
+    saveMaterialTasks();
+    saveScheduleSettings();
+    saveLastReschedule();
+    localStorage.setItem(ARCHIVED_MATERIALS_KEY, JSON.stringify(archivedMaterials));
+  } catch(error) {
+    let restored=true;
+    for(const [key,value] of previous)try{value===null?localStorage.removeItem(key):localStorage.setItem(key,value);}catch{restored=false;}
+    throw Error(restored?"保存できませんでした。変更前のデータを保持しています。":"保存状態を復元できませんでした。画面を閉じずにバックアップを保存してください。");
+  }
 }
 
 function setBackupStatus(message, type = "") {
@@ -758,6 +844,7 @@ function createBackupPayload() {
       materialTasks,
       scheduleSettings,
       lastReschedule,
+      archivedMaterials,
     },
   };
 }
@@ -815,6 +902,7 @@ function readBackupPayload(payload) {
     materialTasks: sanitizeMaterialTasks(source.materialTasks ?? []),
     scheduleSettings: sanitizeScheduleSettings(source.scheduleSettings ?? {}),
     lastReschedule: sanitizeScheduleSnapshot(source.lastReschedule),
+    archivedMaterials: sanitizeArchivedMaterials(source.archivedMaterials ?? []),
   };
 }
 
@@ -829,19 +917,14 @@ async function importBackup(file) {
       return;
     }
 
-    records = payload.records;
-    dailyGoal = payload.dailyGoal;
-    holidays = payload.holidays;
-    profile = payload.profile;
-    mockResults = payload.mockResults;
-    todos = payload.todos;
-    subjectGoals = payload.subjectGoals;
-    activityOptions = payload.activityOptions;
-    materialPlans = payload.materialPlans;
-    materialTasks = payload.materialTasks;
-    scheduleSettings = payload.scheduleSettings;
-    lastReschedule = payload.lastReschedule;
-    saveAllData();
+    const previous=createBackupPayload().data;
+    try {
+      ({records,dailyGoal,holidays,profile,mockResults,todos,subjectGoals,activityOptions,materialPlans,materialTasks,scheduleSettings,lastReschedule,archivedMaterials}=payload);
+      saveAllData();
+    } catch(error) {
+      ({records,dailyGoal,holidays,profile,mockResults,todos,subjectGoals,activityOptions,materialPlans,materialTasks,scheduleSettings,lastReschedule,archivedMaterials}=previous);
+      throw error;
+    }
 
     goalHoursInput.value = dailyGoal > 0 ? Math.floor(dailyGoal / 60) : 1;
     goalMinutesInput.value = dailyGoal > 0 ? dailyGoal % 60 : 0;
@@ -852,8 +935,8 @@ async function importBackup(file) {
     maxTotalUnitsPerDayInput.value = scheduleSettings.maxTotalUnitsPerDay;
     render();
     setBackupStatus("バックアップを復元しました。記録・目標・プロフィール・模試結果・やること・科目別目標・教材予定を更新しました。", "success");
-  } catch {
-    setBackupStatus("このファイルは読み込めませんでした。まなびログのバックアップファイルを選んでください。", "error");
+  } catch(error) {
+    setBackupStatus(error?.message?.startsWith("保存")?error.message:"このファイルは読み込めませんでした。まなびログのバックアップファイルを選んでください。", "error");
   } finally {
     backupFileInput.value = "";
   }
@@ -1180,7 +1263,7 @@ function renderTodos() {
 
 function renderHomeAgenda() {
   const today = localDateKey();
-  const tasks = materialTasks.filter(task => task.date === today).sort((a, b) => a.material.localeCompare(b.material, 'ja') || a.start - b.start);
+  const tasks = visibleMaterialTasks().filter(task => task.date === today).sort((a, b) => a.material.localeCompare(b.material, 'ja') || a.start - b.start);
   const dailyTodos = todos.filter(todo => todo.date === today);
   const groups = groupLearningTasks(tasks, materialTasks);
   const recent = groups.completed.filter(task => homeRecentCompletions.has('task:' + task.id));
@@ -1203,7 +1286,7 @@ function renderHomeAgenda() {
 }
 
 function renderTodayOverview() {
-  const today=localDateKey(), entries=[...materialTasks.filter(t=>t.date===today),...todos.filter(t=>t.date===today)];
+  const today=localDateKey(), entries=[...visibleMaterialTasks().filter(t=>t.date===today),...todos.filter(t=>t.date===today)];
   const counter=document.getElementById('todayDoneCount');
   if(counter)counter.textContent=`${entries.filter(t=>t.done).length} / ${entries.length}`;
   todayScheduleEmpty.hidden=entries.length>0;
@@ -1266,7 +1349,7 @@ function openTaskDetails(task) {
   addAction(task.done ? record ? '時間を修正' : '時間を記録' : '完了・時間を記録', handoff(current => openStudyCompletion(current)), { disabled: Boolean(!task.done && source && !source.done), className: 'schedule-complete-primary' });
   addAction('この予定の日付・範囲を編集', handoff(openScheduleEditDialog), { disabled: task.done });
   const plan = planById(task.planId);
-  if (plan) addAction('教材全体の範囲・終了日を編集', handoff(current => openMaterialSettings(planById(current.planId))));
+  if (plan && !isArchivedMaterialTask(task)) addAction('教材全体の範囲・終了日を編集', handoff(current => openMaterialSettings(planById(current.planId))));
   addAction(task.fixed ? 'この予定の固定を解除' : 'この予定を固定', handoff(current => { openScheduleEditDialog(current); editScheduleFixedInput.checked = !current.fixed; updateTaskEditHint(); previewTaskEdit(); }), { disabled: task.done });
   if (task.done) addAction('完了を取り消す', handoff(current => openStudyCompletion(current, true)));
   addAction('この予定を削除', current => {
@@ -1278,7 +1361,7 @@ function openTaskDetails(task) {
 }
 
 function renderTodaySchedule() {
-  const tasks = materialTasks.filter(task => task.date === localDateKey());
+  const tasks = visibleMaterialTasks().filter(task => task.date === localDateKey());
   todayScheduleBadge.textContent = `${tasks.filter(task => task.done).length} / ${tasks.length}`;
   renderHomeAgenda();
   renderTodayOverview();
@@ -1286,8 +1369,8 @@ function renderTodaySchedule() {
 
 function renderMaterialProgress() {
   materialProgressList.replaceChildren();
-  const plannedMaterials = new Set(materialPlans.map((plan) => plan.material));
-  materialPlans.forEach((plan) => {
+  const plannedMaterials = new Set(activeMaterialPlans().map((plan) => plan.material));
+  activeMaterialPlans().forEach((plan) => {
     const planTasks = tasksForPlan(plan.id).filter((task) => task.type === "new");
     const doneNew = planTasks.filter((task) => task.done).reduce((sum, task) => sum + rangeSize(task), 0);
     const total = plan.end - plan.start + 1;
@@ -1307,7 +1390,10 @@ function renderMaterialProgress() {
     settings.addEventListener("click",()=>openMaterialSettings(plan));
     const method=document.createElement("p");method.className="material-method setting-note";
     method.textContent=`${plan.subject||"科目未設定"}・${plan.mode==="quantity"?`1日${plan.dailyQuantity}${ScheduleEngine.quantityUnit(plan.unit)}`:`${plan.endDate}まで`}・${plan.weekdays.map(d=>"日月火水木金土"[d]).join("・")}`;
-    card.append(name, method, progress, dates, settings);
+    const actions=document.createElement("div");actions.className="material-card-actions";
+    const remove=document.createElement("button");remove.type="button";remove.className="danger compact-button";remove.textContent="削除";
+    remove.dataset.materialArchive=plan.id;remove.dataset.materialName=plan.material;remove.setAttribute("aria-label",`${plan.material}を削除`);
+    actions.append(settings,remove);card.append(name, method, progress, dates, actions);
     let nextRange=plan.start;
     const gaps=[];
     for(const task of [...planTasks].sort((a,b)=>a.start-b.start)) {
@@ -1323,12 +1409,12 @@ function renderMaterialProgress() {
     materialProgressList.append(card);
   });
   const manualMaterials = [...new Set(
-    materialTasks
+    planningMaterialTasks()
       .filter((task) => !plannedMaterials.has(task.material))
       .map((task) => task.material),
   )].sort((a, b) => a.localeCompare(b, "ja"));
   manualMaterials.forEach((material) => {
-    const tasks = materialTasks.filter((task) => task.material === material);
+    const tasks = planningMaterialTasks().filter((task) => task.material === material);
     const doneCount = tasks.filter((task) => task.done).length;
     const card = document.createElement("div");
     card.className = "material-progress-card";
@@ -1337,22 +1423,37 @@ function renderMaterialProgress() {
     const progress = document.createElement("span");
     progress.textContent = `手動予定 ${doneCount} / ${tasks.length}件 完了`;
     const help=document.createElement("p");help.className="setting-note";help.textContent="手動の教材は、日付ごとの予定を押して範囲や日付を変更できます。";
-    card.append(name, progress, help);
+    const remove=document.createElement("button");remove.type="button";remove.className="danger compact-button";remove.textContent="教材を削除";
+    remove.dataset.materialArchive="";remove.dataset.materialName=material;remove.setAttribute("aria-label",`${material}を削除`);
+    card.append(name, progress, help, remove);
     materialProgressList.append(card);
   });
   if (!materialProgressList.children.length) {
     const empty = document.createElement('p');
     empty.className = 'empty';
-    empty.textContent = '教材はまだありません。「＋ 教材」から追加できます。';
+    empty.textContent = archivedMaterials.length ? '使用中の教材はありません。追加するか、下の一覧から戻せます。' : '教材はまだありません。「＋ 教材」から追加できます。';
     materialProgressList.append(empty);
+  }
+  renderArchivedMaterials();
+}
+
+function renderArchivedMaterials() {
+  const list=document.getElementById("archivedMaterialList"),section=document.getElementById("archivedMaterialSection");
+  list.replaceChildren();section.hidden=!archivedMaterials.length;
+  document.getElementById("archivedMaterialCount").textContent=archivedMaterials.length+"件";
+  for(const entry of archivedMaterials){
+    const item=document.createElement("li"),name=document.createElement("span"),restore=document.createElement("button");
+    name.textContent=entry.material;restore.type="button";restore.className="text-button";restore.textContent="戻す";
+    restore.dataset.materialRestore=entry.id;restore.setAttribute("aria-label",`${entry.material}を戻す`);
+    item.append(name,restore);list.append(item);
   }
 }
 
 function renderScheduleFilter() {
   const selected = scheduleMaterialFilter.value || "all";
   const materials = [...new Set([
-    ...materialPlans.map((plan) => plan.material),
-    ...materialTasks.map((task) => task.material),
+    ...activeMaterialPlans().map((plan) => plan.material),
+    ...visibleMaterialTasks().map((task) => task.material),
   ])].sort((a, b) => a.localeCompare(b, "ja"));
   scheduleMaterialFilter.replaceChildren();
   const allOption = document.createElement("option");
@@ -1375,7 +1476,8 @@ function renderSchedule() {
   renderScheduleCalendar();
 
   const selectedMaterial = scheduleMaterialFilter.value;
-  const visibleTasks = materialTasks
+  const displayTasks = visibleMaterialTasks();
+  const visibleTasks = displayTasks
     .filter((task) => (selectedMaterial === "all" || task.material === selectedMaterial) && task.date === scheduleSelectedDate)
     .sort((a, b) => (
       a.date.localeCompare(b.date)
@@ -1384,13 +1486,13 @@ function renderSchedule() {
       || a.material.localeCompare(b.material, "ja")
       || a.start - b.start
     ));
-  const doneCount = materialTasks.filter((task) => task.done).length;
+  const doneCount = displayTasks.filter((task) => task.done).length;
 
   scheduleList.replaceChildren();
   scheduleEmpty.hidden = visibleTasks.length > 0;
-  scheduleSummary.textContent = materialTasks.length === 0
+  scheduleSummary.textContent = displayTasks.length === 0
     ? "予定を作るとここに表示されます。"
-    : `教材${new Set(materialTasks.map((task) => task.material)).size}件・予定${doneCount}/${materialTasks.length}件完了`;
+    : `教材${new Set(displayTasks.map((task) => task.material)).size}件・予定${doneCount}/${displayTasks.length}件完了`;
   const groups = groupLearningTasks(visibleTasks, materialTasks);
   for(const [key, label] of [['ready','○ 未完了'], ['waiting','着手待ち'], ['completed','✓ 完了済み']]){
     const group=groups[key];if(!group.length)continue;
@@ -1582,7 +1684,7 @@ function renderWeeklyReview() {
       .filter((record) => record.date === date)
       .reduce((sum, record) => sum + record.minutes, 0) >= dailyGoal)
     .length;
-  const scheduledWeek=materialTasks.filter(task=>{const date=task.done?(task.completedDate||task.date):task.date;return date>=current.startKey&&date<=current.endKey;});
+  const scheduledWeek=visibleMaterialTasks().filter(task=>{const date=task.done?(task.completedDate||task.date):task.date;return date>=current.startKey&&date<=current.endKey;});
   const waitingWeek=scheduledWeek.filter(task=>!task.done&&task.sourceNewId&&!materialTasks.find(source=>source.id===task.sourceNewId)?.done);
   const todoWeek = [...todos.filter((todo) => todo.date >= current.startKey && todo.date <= current.endKey),...scheduledWeek.filter(task=>!waitingWeek.includes(task))];
   const doneTodos = todoWeek.filter((todo) => todo.done).length;
@@ -1807,7 +1909,7 @@ function renderWeaknessAlerts() {
   const latestDeviation = latestMockDeviationBySubject();
 
   const today=localDateKey(),manualToday=todos.filter(t=>t.date===today);
-  const plannedToday=materialTasks.filter(t=>t.date===today || (t.done&&t.completedDate===today));
+  const plannedToday=visibleMaterialTasks().filter(t=>t.date===today || (t.done&&t.completedDate===today));
   const readyToday=plannedToday.filter(t=>t.done||!t.sourceNewId||materialTasks.find(s=>s.id===t.sourceNewId)?.done);
   if(!manualToday.length&&!plannedToday.length) alerts.push(["今日の予定を決めよう","予定タブで教材の予定を作るか、ホームの「自分で追加すること」に追加できます。"]);
   else if(!manualToday.length&&!readyToday.length) alerts.push(["復習は新規学習の完了待ち","今日の復習予定があります。先に対応する新規学習を完了すると、実際の学習日から復習日が決まります。"]);
@@ -2416,12 +2518,12 @@ function totalUnitsByDate(tasks) {
 }
 
 function redistributePlan(planId, startFromKey = localDateKey()) {
-  const result=ScheduleEngine.reschedule(materialTasks, materialPlans, holidays,startFromKey,createId,planId);
+  const result=runActiveScheduleChange((tasks,plans)=>ScheduleEngine.reschedule(tasks,plans,holidays,startFromKey,createId,planId));
   materialTasks=sanitizeMaterialTasks(result.tasks);saveMaterialTasks();return result;
 }
 
 function redistributeAllPlans(startFromKey = localDateKey(), before = scheduleState(), onlyPlanId = "") {
-  const result=ScheduleEngine.reschedule(materialTasks,materialPlans,holidays,startFromKey,createId,onlyPlanId);
+  const result=runActiveScheduleChange((tasks,plans)=>ScheduleEngine.reschedule(tasks,plans,holidays,startFromKey,createId,onlyPlanId));
   materialTasks=sanitizeMaterialTasks(result.tasks); materialPlans=sanitizeMaterialPlans(result.plans);
   saveMaterialTasks();saveMaterialPlans();saveHolidays();
   const summary=[`未完了の予定を${result.moved}件再調整しました。固定・完了済みの予定は保持しました。`,...result.warnings].join(" ");
@@ -2430,8 +2532,8 @@ function redistributeAllPlans(startFromKey = localDateKey(), before = scheduleSt
 }
 
 function adjustReviewsForNewTask(newTask) {
-  const plan=planById(newTask.planId);if(!plan||newTask.type!=="new")return;
-  materialTasks=ScheduleEngine.hydrate(materialTasks,materialPlans,holidays);
+  const plan=planById(newTask.planId);if(!plan||newTask.type!=="new"||isArchivedMaterialTask(newTask))return;
+  materialTasks=runActiveScheduleChange((tasks,plans)=>({tasks:ScheduleEngine.hydrate(tasks,plans,holidays),plans})).tasks;
   const linked=materialTasks.filter(t=>t.sourceNewId===newTask.id);
   materialTasks=sanitizeMaterialTasks(materialTasks.filter(t=>t.sourceNewId!==newTask.id).concat(ScheduleEngine.reviewsFor(newTask,plan,holidays,createId,linked)));
   saveMaterialTasks();

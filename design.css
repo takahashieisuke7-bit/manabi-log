@@ -520,6 +520,17 @@ dialog::backdrop { background: #0b0a1277; backdrop-filter: blur(4px); }
 .schedule-tools-dialog :is(form > button[type="submit"],.edit-dialog-actions) { position: sticky; bottom: 0; z-index: 1; margin-top: 8px; }
 #materialSettingsForm .edit-dialog-actions { position: sticky; bottom: -12px; background: var(--surface); padding: 8px 0; z-index: 1; }
 .schedule-tools-dialog #rescueCount { display: block; margin: 8px 0; font-size: 13px; }
+.schedule-tools-dialog .material-card-actions { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; margin-top: 6px; }
+.schedule-tools-dialog .material-card-actions > button { min-height: 44px; margin: 0; padding: 8px 12px; font-size: 14px; }
+.archived-materials { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--border); }
+.archived-materials[hidden] { display: none; }
+.archived-materials h3 { margin: 0; color: var(--text-secondary); font-size: 14px; font-weight: 600; }
+.archived-materials h3 > span { margin-left: 6px; font-size: 12px; font-weight: 400; }
+.archived-material-list { list-style: none; padding: 0; margin: 4px 0 0; }
+.archived-material-list li { display: flex; align-items: center; gap: 12px; justify-content: space-between; min-height: 44px; padding: 0; border: 0; border-bottom: 1px solid var(--border); }
+.archived-material-list li > span { min-width: 0; overflow-wrap: anywhere; color: var(--text-secondary); font-size: 13px; }
+.archived-material-list button { flex: none; width: auto; min-height: 44px; margin: 0; padding: 6px 10px; font-size: 13px; }
+.material-archive-dialog .edit-dialog-actions { margin-top: 12px; }
 @media(max-width:360px) {
   .material-fields-grid { gap: 8px; }
   .material-fields-grid:has(input[type="date"]) { grid-template-columns: minmax(0,1fr); }

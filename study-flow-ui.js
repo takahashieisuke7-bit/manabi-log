@@ -1,8 +1,8 @@
 'use strict';
 let completionMode='finish',completionBaseline='',completionStorageBaseline='',completionSaving=false;
-const flowStorageFingerprint=()=>JSON.stringify([STORAGE_KEY,MATERIAL_TASKS_KEY,MATERIAL_PLANS_KEY,HOLIDAYS_KEY].map(key=>localStorage.getItem(key)));
+const flowStorageFingerprint=()=>JSON.stringify([STORAGE_KEY,MATERIAL_TASKS_KEY,MATERIAL_PLANS_KEY,HOLIDAYS_KEY,ARCHIVED_MATERIALS_KEY].map(key=>localStorage.getItem(key)));
 const flowState=()=>({records, tasks:materialTasks,plans:materialPlans,holidays});
-const flowFingerprint=()=>JSON.stringify(flowState());
+const flowFingerprint=()=>JSON.stringify([flowState(),archivedMaterials]);
 function saveFlowState(state){
   const clean={records:sanitizeRecords(state.records),tasks:sanitizeMaterialTasks(state.tasks),plans:sanitizeMaterialPlans(state.plans)};
   StudyFlow.persist(localStorage,[[STORAGE_KEY,clean.records],[MATERIAL_TASKS_KEY,clean.tasks],[MATERIAL_PLANS_KEY,clean.plans]]);
